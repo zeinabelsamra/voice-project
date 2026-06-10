@@ -1,0 +1,3421 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Al Rassoul Blood Bank — Voice Entry</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+  <style>
+    /* ── SEARCH BAR ── */
+.search-bar {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.search-input-wrap {
+  position: relative;
+  flex: 1;
+  min-width: 200px;
+}
+.search-icon {
+  position: absolute;
+  left: 11px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 14px;
+  pointer-events: none;
+}
+.search-input {
+  width: 100%;
+  padding: 9px 11px 9px 34px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-family: 'Instrument Sans', sans-serif;
+  font-size: 13px;
+  color: var(--text);
+  background: var(--white);
+  outline: none;
+  transition: border-color .18s, box-shadow .18s;
+}
+.search-input:focus {
+  border-color: var(--blood);
+  box-shadow: 0 0 0 3px var(--blood-glow);
+}
+.search-input::placeholder { color: var(--text-soft); }
+.search-filters {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.filter-btn {
+  padding: 7px 14px;
+  border: 1.5px solid var(--border);
+  border-radius: 50px;
+  background: var(--white);
+  font-family: 'Instrument Sans', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-soft);
+  cursor: pointer;
+  transition: all .18s;
+  white-space: nowrap;
+}
+.filter-btn:hover { border-color: var(--blood); color: var(--blood); }
+.filter-btn.active { background: var(--blood); border-color: var(--blood); color: white; }
+.filter-btn.delivery-active { background: #1A5276; border-color: #1A5276; color: white; }
+.search-date {
+  padding: 7px 11px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-family: 'Instrument Sans', sans-serif;
+  font-size: 12px;
+  color: var(--text);
+  background: var(--white);
+  outline: none;
+  transition: border-color .18s;
+  cursor: pointer;
+}
+.search-date:focus { border-color: var(--blood); }
+.search-stats {
+  font-size: 11px;
+  color: var(--text-soft);
+  white-space: nowrap;
+  align-self: center;
+}
+.search-stats strong { color: var(--blood); }
+.no-results {
+  grid-column: 1/-1;
+  text-align: center;
+  padding: 40px 24px;
+  color: var(--text-soft);
+}
+.no-results-icon { font-size: 36px; margin-bottom: 8px; }
+.no-results-text { font-size: 13px; }
+.highlight {
+  background: #FFF3CD;
+  border-radius: 2px;
+  padding: 0 2px;
+  font-weight: 600;
+}
+    :root {
+      --navy:#0D1B2A; --navy-mid:#162436; --navy-light:#1E3448;
+      --blood:#C0392B; --blood-dim:#96281B; --blood-glow:rgba(192,57,43,0.15);
+      --gold:#E8B84B; --gold-dim:rgba(232,184,75,0.12);
+      --white:#FFFFFF; --off-white:#F7F9FC; --mist:#EDF1F7;
+      --border:#D8DFE8; --border-dark:#2A3F55;
+      --text:#1A2535; --text-mid:#4A5568; --text-soft:#8896A7;
+      --green:#1A7F4B; --green-light:#E8F5EE; --green-glow:rgba(26,127,75,0.15);
+      --warn:#D4730A; --warn-light:#FEF3E2;
+      --shadow-sm:0 2px 8px rgba(13,27,42,0.08);
+      --shadow-md:0 6px 24px rgba(13,27,42,0.12);
+      --shadow-lg:0 16px 48px rgba(13,27,42,0.18);
+      --radius:10px; --radius-sm:6px;
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    html{scroll-behavior:smooth;}
+    body{font-family:'Instrument Sans',sans-serif;background:var(--off-white);color:var(--text);min-height:100vh;line-height:1.5;}
+
+    /* ── HEADER ── */
+    .header{background:var(--navy);height:60px;display:flex;align-items:center;justify-content:space-between;padding:0 28px;position:sticky;top:0;z-index:100;border-bottom:2px solid var(--blood);}
+    .header-brand{display:flex;align-items:center;gap:12px;}
+    .brand-icon{width:32px;height:32px;background:var(--blood);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
+    .brand-logo{height:46px;width:46px;border-radius:8px;object-fit:cover;flex-shrink:0;}
+    .brand-name{font-family:'Syne',sans-serif;font-size:16px;font-weight:700;color:var(--white);letter-spacing:.01em;}
+    .brand-sub{font-size:10px;color:#5A7A99;text-transform:uppercase;letter-spacing:.1em;margin-top:1px;}
+    .header-right{display:flex;align-items:center;gap:16px;}
+    .header-clock{font-family:'JetBrains Mono',monospace;font-size:13px;color:#5A7A99;letter-spacing:.05em;}
+    .mode-badge{display:flex;align-items:center;gap:6px;padding:5px 12px;border-radius:50px;font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;border:1px solid var(--border-dark);color:#5A7A99;background:var(--navy-mid);transition:all .3s;}
+    .mode-badge.rules{color:var(--gold);border-color:rgba(232,184,75,.3);background:var(--gold-dim);}
+    .mode-dot{width:6px;height:6px;border-radius:50%;background:currentColor;}
+
+    /* ── VOICE BAR ── */
+    .voice-bar{background:var(--white);border-bottom:1px solid var(--border);padding:12px 28px;display:flex;align-items:center;gap:12px;position:sticky;top:60px;z-index:90;box-shadow:var(--shadow-sm);}
+    .seg-tabs{display:flex;background:var(--mist);border-radius:var(--radius-sm);padding:3px;gap:2px;}
+    .seg-tab{padding:6px 14px;border:none;background:transparent;border-radius:4px;font-family:'Instrument Sans',sans-serif;font-size:12px;font-weight:600;color:var(--text-soft);cursor:pointer;transition:all .18s;white-space:nowrap;}
+    .seg-tab.active{background:var(--white);color:var(--blood);box-shadow:0 1px 4px rgba(0,0,0,.1);}
+    .voice-status{display:flex;align-items:center;gap:8px;padding:6px 14px;border-radius:50px;font-size:12px;font-weight:600;background:var(--mist);color:var(--text-soft);min-width:140px;transition:all .25s;}
+    .voice-status.recording{background:#FDECEA;color:var(--blood);}
+    .voice-status.processing{background:var(--warn-light);color:var(--warn);}
+    .voice-status.done{background:var(--green-light);color:var(--green);}
+    .voice-status.warn{background:#FEF3E2;color:var(--warn);}
+    .vs-dot{width:7px;height:7px;border-radius:50%;background:currentColor;flex-shrink:0;}
+    .vs-dot.pulse{animation:vsPulse 1s infinite;}
+    @keyframes vsPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.3;transform:scale(.6)}}
+    .waveform{display:none;align-items:center;gap:2px;height:18px;}
+    .waveform.show{display:flex;}
+    .wv{width:3px;background:var(--blood);border-radius:2px;animation:wv 1s ease-in-out infinite;}
+    .wv:nth-child(1){animation-delay:0s}.wv:nth-child(2){animation-delay:.12s}.wv:nth-child(3){animation-delay:.24s}.wv:nth-child(4){animation-delay:.36s}.wv:nth-child(5){animation-delay:.48s}
+    @keyframes wv{0%,100%{height:3px}50%{height:16px}}
+    .btn-rec{display:flex;align-items:center;gap:8px;padding:9px 20px;border:none;border-radius:50px;font-family:'Instrument Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all .18s;white-space:nowrap;}
+    .btn-rec.start{background:var(--blood);color:white;margin-left:auto;}
+    .btn-rec.start:hover{background:var(--blood-dim);transform:translateY(-1px);box-shadow:0 4px 12px var(--blood-glow);}
+    .btn-rec.stop{background:var(--navy);color:white;animation:recPulse 1.5s infinite;}
+    @keyframes recPulse{0%,100%{box-shadow:0 0 0 0 rgba(192,57,43,.4)}50%{box-shadow:0 0 0 8px rgba(192,57,43,0)}}
+    .btn-rec:disabled{opacity:.4;cursor:not-allowed;animation:none;transform:none;box-shadow:none;}
+    .rec-dot{width:8px;height:8px;border-radius:50%;background:white;}
+    .rec-timer{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--blood);font-weight:700;min-width:36px;display:none;}
+    .rec-timer.show{display:block;}
+
+    /* ── TRANSCRIPT STRIP ── */
+    .transcript-strip{background:var(--navy);padding:8px 28px;display:none;align-items:center;gap:10px;font-size:12px;}
+    .transcript-strip.show{display:flex;}
+    .ts-label{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:500;color:var(--blood);text-transform:uppercase;letter-spacing:.1em;flex-shrink:0;}
+    .ts-text{font-family:'JetBrains Mono',monospace;color:#8AACCA;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+
+    /* ── TOAST ── */
+    .flash-stack{position:fixed;top:80px;right:20px;z-index:999;display:flex;flex-direction:column;gap:6px;pointer-events:none;max-width:300px;}
+    .flash-toast{background:var(--navy);border-left:3px solid var(--green);border-radius:var(--radius-sm);padding:9px 14px;box-shadow:var(--shadow-md);animation:toastIn .25s ease,toastOut .4s ease 2.6s forwards;}
+    .ft-field{font-size:10px;font-weight:600;color:#4EC990;text-transform:uppercase;letter-spacing:.07em;margin-bottom:2px;}
+    .ft-value{font-family:'JetBrains Mono',monospace;font-size:12px;color:#C8DAF0;}
+    @keyframes toastIn{from{opacity:0;transform:translateX(12px)}to{opacity:1;transform:translateX(0)}}
+    @keyframes toastOut{to{opacity:0;transform:translateY(-6px)}}
+
+    /* ── LAYOUT ── */
+    .main{padding:24px 28px 48px;max-width:1440px;margin:0 auto;}
+    .forms-row{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+    @media(max-width:960px){.forms-row{grid-template-columns:1fr;}}
+
+    /* ── FORM CARD ── */
+    .fcard{background:var(--white);border-radius:var(--radius);border:1px solid var(--border);box-shadow:var(--shadow-sm);overflow:hidden;transition:opacity .25s,transform .25s;}
+    .fcard.dimmed{opacity:.35;pointer-events:none;transform:scale(.99);}
+    .fcard-head{padding:16px 20px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+    .fcard-title{font-family:'Syne',sans-serif;font-size:16px;font-weight:700;color:var(--text);}
+    .fcard-sub{font-size:10px;color:var(--text-soft);text-transform:uppercase;letter-spacing:.08em;margin-top:2px;}
+    .fcard-chip{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:4px 12px;border-radius:50px;}
+    .fcard-chip.t{background:#FDECEA;color:var(--blood);}
+    .fcard-chip.d{background:#EBF5FB;color:#1A5276;}
+    .fcard-body{padding:18px 20px;}
+
+    /* ── FORM FIELDS ── */
+    .sec-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--text-soft);margin:18px 0 10px;display:flex;align-items:center;gap:8px;}
+    .sec-label::after{content:'';flex:1;height:1px;background:var(--border);}
+    .sec-label:first-child{margin-top:0;}
+    .row{display:grid;gap:10px;margin-bottom:10px;}
+    .row-2{grid-template-columns:1fr 1fr;}
+    .row-3{grid-template-columns:1fr 1fr 1fr;}
+    .row-1{grid-template-columns:1fr;}
+    .fg{display:flex;flex-direction:column;gap:4px;}
+    .fl{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--text-soft);}
+    .fi{padding:8px 11px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-family:'Instrument Sans',sans-serif;font-size:13px;color:var(--text);background:var(--white);outline:none;transition:border-color .18s,box-shadow .18s,background .3s;width:100%;}
+    .fi:focus{border-color:var(--blood);box-shadow:0 0 0 3px var(--blood-glow);}
+    select.fi{cursor:pointer;}
+    .fi.voice-hit{animation:voiceHit .5s ease;border-color:var(--green)!important;background:var(--green-light)!important;}
+    @keyframes voiceHit{0%{background:#B7F0D2;transform:scale(1.02)}100%{background:var(--green-light);transform:scale(1)}}
+
+    /* ── COMPONENTS TABLE ── */
+    .comp-table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:2px;}
+    .comp-table th{background:var(--mist);padding:7px 10px;text-align:left;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-soft);border-bottom:1px solid var(--border);}
+    .comp-table td{padding:6px 8px;border-bottom:1px solid #F0F4F8;vertical-align:middle;}
+    .comp-table tr:last-child td{border-bottom:none;}
+    .comp-table input[type=number],.comp-table select,.comp-table input[type=text]{width:100%;padding:6px 8px;border:1.5px solid var(--border);border-radius:5px;font-family:'Instrument Sans',sans-serif;font-size:12px;outline:none;transition:border-color .18s,background .3s;}
+    .comp-table input:focus,.comp-table select:focus{border-color:var(--blood);}
+    .comp-table input.voice-hit,.comp-table select.voice-hit{animation:voiceHit .5s ease;border-color:var(--green)!important;background:var(--green-light)!important;}
+    .comp-name{font-weight:500;color:var(--text-mid);font-size:12px;}
+
+    /* ── BLOOD UNIT GRID ── */
+    .unit-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+    .unit-cell{display:flex;flex-direction:column;gap:3px;}
+    .unit-num{font-size:9px;font-weight:700;color:#BCC8D8;text-align:center;font-family:'JetBrains Mono',monospace;}
+
+    /* ── CHECKS & RADIOS ── */
+    .check-row{display:flex;gap:14px;align-items:center;padding:6px 0;flex-wrap:wrap;}
+    .chk{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-mid);cursor:pointer;}
+    .chk input{width:14px;height:14px;accent-color:var(--blood);cursor:pointer;}
+
+    /* ── INTEGRITY GRID ── */
+    .integ-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+
+    /* ── NURSE UNIT TWO-COLUMN LAYOUT ── */
+    .nurse-integ-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+    .nurse-left,.nurse-right{display:flex;flex-direction:column;}
+
+    /* ── ROLE-BASED SECTION BLOCKS ── */
+    .form-section-block{border-radius:8px;padding:12px 14px;margin:0 -4px 12px;border:1px solid transparent;}
+    .bb-block{background:#EEF4FF;border-color:#C5D8F6;}
+    .nurse-block{background:#F0FAF5;border-color:#B8DECE;}
+    .physician-block{background:#FFF8F0;border-color:#F5D9B5;}
+    .lifesaving-block{background:#FFF5F5;border-color:#F5BABA;}
+    .form-section-block .sec-label{margin-top:0;}
+    .form-footer-note{background:#FFF3CD;border:1px solid #FFEAA7;border-radius:6px;padding:10px 14px;font-size:12px;font-weight:700;color:#856404;text-align:center;margin-top:14px;}
+    .form-note{font-size:11px;color:var(--text-soft);font-style:italic;margin-bottom:10px;}
+    .alert-labels{display:flex;flex-wrap:wrap;gap:8px;background:#FFFBEB;border:1px solid #FDE68A;border-radius:8px;padding:10px 14px;margin-bottom:12px;}
+    .alert-lbl{font-weight:600;font-size:12px;color:#92400E;padding:4px 10px;background:#FEF3C7;border-radius:4px;border:1px solid #FDE68A;display:flex;align-items:center;gap:5px;cursor:pointer;}
+    .alert-lbl input[type=checkbox]{accent-color:#D97706;width:14px;height:14px;}
+
+    /* ── SAVE BAR ── */
+    .save-bar{padding:13px 20px;border-top:1px solid var(--border);background:var(--off-white);display:flex;align-items:center;justify-content:space-between;gap:10px;}
+    .filled-count{font-size:11px;color:var(--text-soft);}
+    .filled-count span{color:var(--green);font-weight:700;}
+    .btn-row{display:flex;gap:8px;flex-wrap:wrap;}
+    .btn-clear{padding:8px 16px;border:1.5px solid var(--border);border-radius:var(--radius-sm);background:transparent;font-family:'Instrument Sans',sans-serif;font-size:12px;font-weight:600;color:var(--text-soft);cursor:pointer;transition:all .18s;}
+    .btn-clear:hover{border-color:var(--blood);color:var(--blood);}
+    .btn-save{padding:8px 20px;border:none;border-radius:var(--radius-sm);font-family:'Instrument Sans',sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:all .18s;color:white;}
+    .btn-save.t{background:var(--blood);}.btn-save.t:hover{background:var(--blood-dim);}
+    .btn-save.d{background:#1A5276;}.btn-save.d:hover{background:#154360;}
+    .btn-save:active{transform:scale(.97);}
+
+    /* ── HISTORY ── */
+    .history-wrap{margin-top:28px;}
+    .history-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+    .history-title{font-family:'Syne',sans-serif;font-size:20px;font-weight:700;}
+    .btn-refresh{padding:7px 16px;border:1.5px solid var(--border);border-radius:var(--radius-sm);background:var(--white);font-family:'Instrument Sans',sans-serif;font-size:12px;font-weight:600;color:var(--text-soft);cursor:pointer;transition:all .18s;}
+    .btn-refresh:hover{border-color:var(--navy);color:var(--navy);}
+    .history-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px;}
+    .hcard{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;box-shadow:var(--shadow-sm);transition:box-shadow .18s;position:relative;cursor:pointer;}
+    .hcard:hover{box-shadow:var(--shadow-md);border-color:var(--blood);}
+    .hcard.selected{border-color:var(--blood);box-shadow:0 0 0 3px var(--blood-glow);}
+    .hcard-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+    .hcard-type{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;padding:3px 10px;border-radius:50px;}
+    .hcard-type.transfusion{background:#FDECEA;color:var(--blood);}
+    .hcard-type.delivery{background:#EBF5FB;color:#1A5276;}
+    .hcard-time{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--text-soft);}
+    .hcard-row{font-size:12px;color:var(--text-mid);margin-bottom:3px;}
+    .hcard-row strong{color:var(--text);font-weight:600;}
+    .btn-del{margin-top:10px;padding:4px 12px;border:1px solid var(--border);border-radius:4px;background:transparent;font-size:11px;color:#BCC8D8;cursor:pointer;transition:all .18s;}
+    .btn-del:hover{border-color:var(--blood);color:var(--blood);}
+    .empty-msg{grid-column:1/-1;text-align:center;padding:48px 24px;color:var(--text-soft);}
+    .empty-icon{font-size:40px;margin-bottom:10px;}
+    .empty-text{font-size:13px;}
+
+    /* ── EDIT MODE ── */
+    .fcard.view-mode .fi,
+    .fcard.view-mode select.fi,
+    .fcard.view-mode input[type="number"],
+    .fcard.view-mode input[type="text"],
+    .fcard.view-mode input[type="date"],
+    .fcard.view-mode input[type="time"],
+    .fcard.view-mode .comp-table input,
+    .fcard.view-mode .comp-table select {
+      pointer-events:none;background:#f7f9fc;color:var(--text);border-color:#e8ecf1;opacity:0.85;
+    }
+    .fcard.view-mode input[type="checkbox"],
+    .fcard.view-mode input[type="radio"] { pointer-events:none;opacity:0.7; }
+    .edit-bar{display:none;padding:10px 20px;background:linear-gradient(135deg,#fef3e2,#fff8ee);border-top:1px solid #f5a623;align-items:center;justify-content:space-between;gap:10px;}
+    .edit-bar.show{display:flex;}
+    .edit-bar-info{font-size:12px;color:#8B5E1A;font-weight:500;}
+    .edit-bar-info strong{color:var(--blood);}
+    .btn-edit{padding:8px 18px;border:2px solid var(--warn);border-radius:var(--radius-sm);background:transparent;font-family:'Instrument Sans',sans-serif;font-size:12px;font-weight:700;color:var(--warn);cursor:pointer;transition:all .18s;}
+    .btn-edit:hover{background:var(--warn);color:#fff;}
+    .btn-edit.editing{background:var(--green);border-color:var(--green);color:#fff;}
+    .btn-edit.editing:hover{background:#15713f;}
+
+    /* ── OVERLAY ── */
+    .overlay{display:none;position:fixed;inset:0;background:rgba(13,27,42,.6);z-index:500;align-items:center;justify-content:center;backdrop-filter:blur(3px);}
+    .overlay.show{display:flex;}
+    .overlay-box{background:var(--white);border-radius:14px;padding:40px 52px;text-align:center;box-shadow:var(--shadow-lg);border-top:3px solid var(--blood);}
+    .spinner{width:44px;height:44px;border:3px solid var(--mist);border-top-color:var(--blood);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 16px;}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .overlay-title{font-family:'Syne',sans-serif;font-size:18px;font-weight:700;margin-bottom:4px;}
+    .overlay-sub{font-size:12px;color:var(--text-soft);}
+
+    /* ── DB STATUS BANNER ── */
+    .db-banner{display:none;background:#FEF3E2;border-bottom:1px solid #F5A623;padding:6px 28px;font-size:11px;color:#8B5E1A;align-items:center;gap:8px;}
+    .db-banner.show{display:flex;}
+
+    /* ── MULTI RECORD BUTTON ── */
+    .btn-multi{padding:8px 14px;border:2px solid #7c3aed;background:transparent;color:#7c3aed;border-radius:var(--radius-sm);font-family:'Instrument Sans',sans-serif;font-size:12px;font-weight:700;cursor:pointer;transition:all .18s;white-space:nowrap;}
+    .btn-multi:hover{background:#7c3aed;color:#fff;}
+    .btn-multi.active{background:#7c3aed;color:#fff;box-shadow:0 0 0 3px rgba(124,58,237,.25);}
+
+    /* ── BATCH BANNER ── */
+    .batch-banner{background:linear-gradient(135deg,#7c3aed,#5b21b6);color:#fff;border-radius:var(--radius-sm);padding:10px 16px;margin-bottom:10px;font-size:13px;font-weight:500;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+
+    /* ── BATCH QUEUE ── */
+    .batch-queue{background:var(--white);border:2px solid #7c3aed;border-radius:var(--radius);padding:16px;margin-bottom:14px;}
+    .bq-header{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+    .bq-title{font-weight:700;font-size:15px;color:#5b21b6;}
+    .bq-form-badge{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;}
+    .bq-form-badge.transfusion{background:#FDECEA;color:var(--blood);}
+    .bq-form-badge.delivery{background:#EBF5FB;color:#1A5276;}
+    .bq-dots{display:flex;gap:5px;margin-left:auto;}
+    .bq-dot{width:10px;height:10px;border-radius:50%;background:var(--mist);border:2px solid #ddd;transition:all .2s;}
+    .bq-dot.done{background:#22c55e;border-color:#16a34a;}
+    .bq-dot.active{background:#7c3aed;border-color:#5b21b6;}
+    .bq-dot.pending{background:var(--mist);border-color:#ddd;}
+    .bq-transcript{background:#f8f7ff;border-radius:6px;padding:10px 12px;font-size:13px;color:#374151;margin-bottom:12px;line-height:1.5;border-left:3px solid #7c3aed;}
+    .bq-actions{display:flex;gap:8px;justify-content:flex-end;}
+    .bq-skip{background:var(--mist)!important;color:var(--text-soft)!important;border:1px solid #ddd!important;}
+    .bq-next{background:#7c3aed!important;color:#fff!important;}
+    /* ── PAGE NAV TABS ── */
+    .page-nav{display:flex;gap:6px;padding:10px 24px 0;background:var(--navy);}
+    .page-tab{padding:8px 20px;border:none;border-radius:8px 8px 0 0;font-family:'Instrument Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;color:rgba(255,255,255,.55);background:transparent;transition:all .18s;}
+    .page-tab:hover{color:rgba(255,255,255,.85);}
+    .page-tab.active{background:var(--off-white);color:var(--navy);}
+    /* ── DASHBOARD ── */
+    .dash-section{display:none;padding:24px;}
+    .dash-section.show{display:block;}
+    .dash-refresh{float:right;margin-top:-4px;padding:6px 14px;background:transparent;border:1.5px solid var(--border);border-radius:6px;font-size:12px;font-weight:600;color:var(--text-soft);cursor:pointer;}
+    .dash-refresh:hover{border-color:var(--blood);color:var(--blood);}
+    .dash-title{font-size:20px;font-weight:800;color:var(--navy);margin-bottom:20px;}
+    .dash-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:24px;}
+    .dash-card{background:var(--white);border:1.5px solid var(--border);border-radius:12px;padding:18px 20px;}
+    .dash-card-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text-soft);margin-bottom:10px;}
+    .dash-card-row{display:flex;align-items:baseline;gap:8px;margin-bottom:4px;}
+    .dash-card-num{font-size:28px;font-weight:800;color:var(--navy);}
+    .dash-card-sub{font-size:12px;color:var(--text-soft);}
+    .dash-card.accent-red .dash-card-num{color:var(--blood);}
+    .dash-card.accent-blue .dash-card-num{color:#1A5276;}
+    .dash-card.accent-gold .dash-card-num{color:#b7860b;}
+    .dash-card-divider{height:1px;background:var(--border);margin:8px 0;}
+    .dash-two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px;}
+    @media(max-width:700px){.dash-two-col{grid-template-columns:1fr;}}
+    .dash-panel{background:var(--white);border:1.5px solid var(--border);border-radius:12px;padding:20px;}
+    .dash-panel-title{font-size:13px;font-weight:700;color:var(--navy);margin-bottom:16px;}
+    .bg-bar-row{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+    .bg-bar-label{width:32px;font-size:12px;font-weight:700;color:var(--navy);text-align:right;}
+    .bg-bar-track{flex:1;height:18px;background:var(--mist);border-radius:4px;overflow:hidden;}
+    .bg-bar-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--blood),#e74c3c);transition:width .6s ease;}
+    .bg-bar-fill.delivery{background:linear-gradient(90deg,#1A5276,#2471A3);}
+    .bg-bar-count{width:28px;font-size:11px;font-weight:600;color:var(--text-soft);}
+    .daily-chart{display:flex;align-items:flex-end;gap:6px;height:120px;padding-bottom:20px;position:relative;}
+    .daily-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;height:100%;}
+    .daily-bars{flex:1;display:flex;align-items:flex-end;gap:2px;width:100%;}
+    .daily-bar{flex:1;border-radius:3px 3px 0 0;min-height:2px;transition:height .5s ease;}
+    .daily-bar.t-bar{background:var(--blood);}
+    .daily-bar.d-bar{background:#1A5276;}
+    .daily-label{font-size:9px;color:var(--text-soft);white-space:nowrap;}
+    .daily-legend{display:flex;gap:14px;margin-top:10px;}
+    .daily-legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-soft);}
+    .daily-legend-dot{width:10px;height:10px;border-radius:2px;}
+    .dash-table{width:100%;border-collapse:collapse;font-size:12.5px;}
+    .dash-table th{text-align:left;padding:7px 10px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--text-soft);border-bottom:1.5px solid var(--border);}
+    .dash-table td{padding:8px 10px;border-bottom:1px solid var(--mist);color:var(--text);}
+    .dash-table tr:last-child td{border-bottom:none;}
+    .dash-table tr:hover td{background:var(--mist);}
+    .dash-badge{display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;}
+    .dash-badge.t{background:rgba(192,57,43,.12);color:var(--blood);}
+    .dash-badge.d{background:rgba(26,82,118,.12);color:#1A5276;}
+    .dash-empty{text-align:center;padding:40px;color:var(--text-soft);font-size:13px;}
+    /* ── FILE NUMBER LOOKUP ── */
+    .fn-wrap{display:flex;gap:6px;align-items:center;}
+    .fn-wrap .fi{flex:1;}
+    .fn-lookup-btn{flex-shrink:0;width:34px;height:34px;border:1.5px solid var(--border);border-radius:6px;background:var(--white);cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;transition:all .18s;}
+    .fn-lookup-btn:hover{border-color:var(--blood);background:var(--blood-glow);}
+    .fn-lookup-btn.loading{opacity:.4;pointer-events:none;}
+    .fn-hint{font-size:11px;margin-top:4px;padding:5px 9px;border-radius:5px;display:none;line-height:1.4;}
+    .fn-hint.show{display:block;}
+    .fn-hint.success{background:#e8f5ee;color:#1a7f4b;border:1px solid #a8d5b8;}
+    .fn-hint.error{background:#fdf0ef;color:#c0392b;border:1px solid #f5b7b1;font-weight:600;}
+    .fn-hint.info{background:var(--mist);color:var(--text-soft);border:1px solid var(--border);}
+    /* ── EXPIRY DATE ── */
+    .expiry-hint{font-size:11px;margin-top:4px;padding:4px 8px;border-radius:5px;display:none;font-weight:600;}
+    .expiry-hint.show{display:block;}
+    .expiry-hint.ok{background:#e8f5ee;color:#1a7f4b;}
+    .expiry-hint.warn{background:#fef9e7;color:#b7860b;}
+    .expiry-hint.error{background:#fdf0ef;color:#c0392b;}
+    .fi.expiry-expired{border-color:#e74c3c!important;box-shadow:0 0 0 3px rgba(231,76,60,.18)!important;}
+    .fi.expiry-warn{border-color:#e8b84b!important;box-shadow:0 0 0 3px rgba(232,184,75,.18)!important;}
+    /* ── FILE NUMBER LOOKUP ── */
+    .fn-wrap{position:relative;display:flex;gap:6px;align-items:center;}
+    .fn-wrap .fi{flex:1;}
+    .fn-lookup-btn{flex-shrink:0;width:32px;height:32px;border:1.5px solid var(--border);border-radius:6px;background:var(--white);cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;transition:all .18s;}
+    .fn-lookup-btn:hover{border-color:var(--blood);background:var(--blood-glow);}
+    .fn-lookup-btn.loading{opacity:.5;pointer-events:none;}
+    .fn-hint{font-size:11px;margin-top:4px;padding:5px 8px;border-radius:5px;display:none;}
+    .fn-hint.show{display:block;}
+    .fn-hint.success{background:#e8f5ee;color:#1a7f4b;border:1px solid #a8d5b8;}
+    .fn-hint.error{background:#fdf0ef;color:#c0392b;border:1px solid #f5b7b1;font-weight:600;}
+    .fn-hint.info{background:var(--mist);color:var(--text-soft);border:1px solid var(--border);}
+    /* ── COMPATIBILITY WARNING MODAL ── */
+    .compat-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9000;align-items:center;justify-content:center;}
+    .compat-overlay.show{display:flex;}
+    .compat-modal{background:#fff;border-radius:14px;padding:32px 28px;max-width:420px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.3);animation:modalIn .2s ease;}
+    @keyframes modalIn{from{transform:scale(.92);opacity:0}to{transform:scale(1);opacity:1}}
+    .compat-icon{font-size:48px;text-align:center;margin-bottom:12px;}
+    .compat-title{font-size:18px;font-weight:800;color:#c0392b;text-align:center;margin-bottom:6px;}
+    .compat-subtitle{font-size:13px;color:var(--text-mid);text-align:center;margin-bottom:20px;line-height:1.5;}
+    .compat-groups{display:flex;gap:12px;justify-content:center;margin-bottom:20px;}
+    .compat-group-box{flex:1;background:var(--mist);border-radius:10px;padding:12px;text-align:center;}
+    .compat-group-label{font-size:11px;color:var(--text-soft);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px;}
+    .compat-group-value{font-size:26px;font-weight:800;}
+    .compat-group-value.patient{color:#1A5276;}
+    .compat-group-value.unit{color:#c0392b;}
+    .compat-arrow{align-self:center;font-size:22px;color:var(--text-soft);}
+    .compat-warning-text{background:#fdf0ef;border:1.5px solid #e74c3c;border-radius:8px;padding:10px 14px;font-size:12.5px;color:#c0392b;font-weight:600;text-align:center;margin-bottom:20px;}
+    .compat-btns{display:flex;gap:10px;}
+    .compat-btn-cancel{flex:2;padding:11px;background:var(--blood);border:none;border-radius:8px;color:#fff;font-size:14px;font-weight:700;cursor:pointer;}
+    .compat-btn-cancel:hover{background:var(--blood-dim);}
+    .compat-btn-override{flex:1;padding:11px;background:transparent;border:1.5px solid var(--border);border-radius:8px;color:var(--text-soft);font-size:12px;font-weight:600;cursor:pointer;}
+    .compat-btn-override:hover{border-color:#e74c3c;color:#c0392b;}
+    /* ── DRAFT BANNER ── */
+    .draft-banner{display:none;align-items:center;gap:10px;background:#fffbea;border:1.5px solid #e8b84b;border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:13px;color:#7d6008;}
+    .draft-banner.show{display:flex;}
+    .draft-banner-icon{font-size:18px;flex-shrink:0;}
+    .draft-banner-text{flex:1;font-weight:600;}
+    .draft-banner-text span{font-weight:400;color:#a08020;}
+    .draft-btn-restore{padding:5px 12px;background:#e8b84b;border:none;border-radius:5px;font-size:12px;font-weight:700;color:#fff;cursor:pointer;}
+    .draft-btn-restore:hover{background:#d4a530;}
+    .draft-btn-dismiss{padding:5px 10px;background:transparent;border:1.5px solid #e8b84b;border-radius:5px;font-size:12px;font-weight:600;color:#a08020;cursor:pointer;}
+    .draft-indicator{font-size:10px;color:var(--text-soft);margin-left:8px;font-style:italic;}
+    /* ── UPDATE MODE ── */
+    .btn-save.updating{background:linear-gradient(135deg,#1A5276,#1F618D)!important;}
+    .btn-save.updating:hover{background:linear-gradient(135deg,#1F618D,#2471A3)!important;}
+    /* ── EXTERNAL DELIVERY ── */
+    .ext-section{padding:24px;display:none;}
+    .ext-section.show{display:block;}
+    .ext-form-card{background:var(--white);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow-sm);overflow:hidden;max-width:900px;margin:0 auto 28px;}
+    .ext-head{background:var(--navy);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;}
+    .ext-head-title{font-family:'Syne',sans-serif;font-size:16px;font-weight:700;color:var(--white);}
+    .ext-head-sub{font-size:10px;color:#5A7A99;text-transform:uppercase;letter-spacing:.08em;margin-top:2px;}
+    .ext-head-chip{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:4px 12px;border-radius:50px;background:#EBF5FB;color:#1A5276;}
+    .ext-body{padding:18px 20px;}
+    .ext-comp-table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:10px;}
+    .ext-comp-table th{background:var(--mist);padding:7px 8px;text-align:left;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text-soft);border:1px solid var(--border);}
+    .ext-comp-table td{padding:5px 6px;border:1px solid var(--border);vertical-align:middle;}
+    .ext-comp-table input,.ext-comp-table select{width:100%;padding:5px 7px;border:1.5px solid var(--border);border-radius:4px;font-size:12px;font-family:'Instrument Sans',sans-serif;outline:none;}
+    .ext-comp-table input:focus,.ext-comp-table select:focus{border-color:var(--blood);}
+    .ext-comp-label{font-weight:600;color:var(--text-mid);font-size:12px;white-space:nowrap;}
+    .comp-btn-cell{width:50px;text-align:center;padding:3px 4px!important;white-space:nowrap;}
+    .comp-add-btn,.comp-rem-btn{width:22px;height:22px;border:none;border-radius:50%;font-size:15px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;line-height:1;vertical-align:middle;}
+    .comp-add-btn{background:#1a7f4b;color:#fff;}.comp-add-btn:hover{background:#145f39;}
+    .comp-rem-btn{background:#c0392b;color:#fff;margin-left:2px;}.comp-rem-btn:hover{background:#922b21;}
+    .ext-tests-table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:10px;}
+    .ext-tests-table th{background:var(--navy);color:#fff;padding:7px 10px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;}
+    .ext-tests-table td{padding:7px 10px;border-bottom:1px solid var(--mist);vertical-align:middle;}
+    .ext-tests-table tr:last-child td{border-bottom:none;}
+    .ext-note{background:#F5F5F5;border:1px solid var(--border);border-radius:6px;padding:9px 14px;font-size:11px;color:#555;margin-top:14px;line-height:1.5;}
+
+    /* ── RESPONSE TIME PANEL ── */
+    .rt-summary{display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;}
+    .rt-stat-box{flex:1;min-width:140px;background:var(--white);border:1.5px solid var(--border);border-radius:10px;padding:14px 16px;text-align:center;}
+    .rt-stat-box.ok{border-color:#a8d5b8;}
+    .rt-stat-box.warn{border-color:#f5a623;}
+    .rt-stat-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-soft);margin-bottom:6px;}
+    .rt-stat-num{font-size:26px;font-weight:800;color:var(--navy);}
+    .rt-stat-sub{font-size:11px;color:var(--text-soft);margin-top:3px;}
+    .rt-table{width:100%;border-collapse:collapse;font-size:12.5px;}
+    .rt-table th{text-align:left;padding:7px 10px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--text-soft);border-bottom:1.5px solid var(--border);}
+    .rt-table td{padding:8px 10px;border-bottom:1px solid var(--mist);color:var(--text);vertical-align:middle;}
+    .rt-table tr:last-child td{border-bottom:none;}
+    .rt-badge{display:inline-block;padding:3px 9px;border-radius:20px;font-size:10px;font-weight:700;white-space:nowrap;}
+    .rt-badge.life-saving{background:#fdf0ef;color:#c0392b;border:1px solid #f5b7b1;}
+    .rt-badge.urgent{background:#fef9e7;color:#b7860b;border:1px solid #fde68a;}
+    .rt-badge.routine{background:var(--mist);color:var(--text-soft);border:1px solid var(--border);}
+    .rt-status{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700;}
+    .rt-status.pass{background:#e8f5ee;color:#1a7f4b;}
+    .rt-status.fail{background:#fdf0ef;color:#c0392b;}
+    .rt-status.pending{background:var(--mist);color:var(--text-soft);}
+    .rt-empty{text-align:center;padding:32px;color:var(--text-soft);font-size:13px;}
+
+    /* ── VALIDATION ── */
+    .fi.field-error{border-color:#e74c3c!important;box-shadow:0 0 0 3px rgba(231,76,60,.18)!important;animation:shake .3s ease;}
+    @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+    .req-star{color:#e74c3c;margin-left:2px;font-weight:700;}
+    .validation-banner{display:none;background:#fdf0ef;border:1.5px solid #e74c3c;border-radius:8px;padding:10px 14px;margin:0 0 10px;color:#c0392b;font-size:12.5px;font-weight:600;line-height:1.5;}
+    .validation-banner.show{display:block;}
+  /* ══════════════════════════════════════════════════════
+     LOGIN SCREEN
+  ══════════════════════════════════════════════════════ */
+  #loginScreen {
+    position: fixed; inset: 0; z-index: 9999;
+    background: linear-gradient(135deg, #0f1f35 0%, #1a3a5c 50%, #0f2847 100%);
+    display: flex; align-items: center; justify-content: center;
+  }
+  #loginScreen.hidden { display: none; }
+  .login-box {
+    background: #fff; border-radius: 16px; padding: 40px 44px;
+    width: 380px; max-width: 95vw;
+    box-shadow: 0 24px 60px rgba(0,0,0,0.35);
+    text-align: center;
+  }
+  .login-logo { margin-bottom: 8px; }
+  .login-logo img { width: 90px; height: 90px; border-radius: 16px; object-fit: cover; }
+  .login-hospital { font-size: 13px; color: #555; margin-bottom: 4px; }
+  .login-title { font-size: 22px; font-weight: 700; color: #1a2a3a; margin-bottom: 24px; }
+  .login-field { margin-bottom: 16px; text-align: left; }
+  .login-field label { display: block; font-size: 12px; font-weight: 600; color: #444; margin-bottom: 5px; }
+  .login-field input {
+    width: 100%; box-sizing: border-box;
+    padding: 10px 14px; border: 1.5px solid #d0d7e0; border-radius: 8px;
+    font-size: 15px; outline: none; transition: border-color .2s;
+  }
+  .login-field input:focus { border-color: #2563eb; }
+  .login-btn {
+    width: 100%; padding: 12px; background: #1a3a5c; color: #fff;
+    border: none; border-radius: 8px; font-size: 15px; font-weight: 700;
+    cursor: pointer; margin-top: 4px; transition: background .2s;
+  }
+  .login-btn:hover { background: #2563eb; }
+  .login-err { color: #dc2626; font-size: 13px; margin-top: 10px; min-height: 18px; }
+
+  /* ══════════════════════════════════════════════════════
+     USER BAR (top-right logged-in info)
+  ══════════════════════════════════════════════════════ */
+  .user-bar {
+    display: flex; align-items: center; gap: 10px;
+    background: rgba(255,255,255,0.12); border-radius: 8px;
+    padding: 5px 12px; font-size: 13px; color: #fff;
+  }
+  .user-bar-name { font-weight: 600; }
+  .user-bar-role {
+    font-size: 11px; background: rgba(255,255,255,0.2);
+    border-radius: 4px; padding: 2px 7px; text-transform: uppercase; letter-spacing: .5px;
+  }
+  .user-bar-role.admin { background: #f59e0b22; color: #fbbf24; border: 1px solid #f59e0b44; }
+  .user-bar-role.staff { background: #10b98122; color: #34d399; border: 1px solid #10b98144; }
+  .logout-btn {
+    background: rgba(255,255,255,0.15); border: none; color: #fff;
+    padding: 4px 10px; border-radius: 6px; font-size: 12px; cursor: pointer;
+    transition: background .2s;
+  }
+  .logout-btn:hover { background: rgba(220,38,38,0.5); }
+
+  /* ══════════════════════════════════════════════════════
+     ADMIN PANEL
+  ══════════════════════════════════════════════════════ */
+  .admin-panel { max-width: 780px; margin: 0 auto; }
+  .admin-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 18px;
+  }
+  .admin-title { font-size: 18px; font-weight: 700; color: #1a2a3a; }
+  .btn-add-user {
+    background: #1a3a5c; color: #fff; border: none; border-radius: 8px;
+    padding: 8px 18px; font-size: 13px; font-weight: 600; cursor: pointer;
+    transition: background .2s;
+  }
+  .btn-add-user:hover { background: #2563eb; }
+  .users-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .users-table th {
+    background: #1a2a3a; color: #fff; padding: 9px 12px;
+    text-align: left; font-weight: 600; font-size: 12px;
+  }
+  .users-table td { padding: 9px 12px; border-bottom: 1px solid #eee; vertical-align: middle; }
+  .users-table tr:hover td { background: #f8fafc; }
+  .badge-role {
+    display: inline-block; padding: 2px 9px; border-radius: 4px; font-size: 11px; font-weight: 700;
+  }
+  .badge-role.admin { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
+  .badge-role.staff { background: #d1fae5; color: #065f46; border: 1px solid #a7f3d0; }
+  .badge-active { color: #16a34a; font-weight: 600; }
+  .badge-inactive { color: #dc2626; font-weight: 600; }
+  .tbl-btn {
+    background: none; border: 1px solid #d0d7e0; border-radius: 5px;
+    padding: 3px 9px; font-size: 12px; cursor: pointer; margin-right: 4px;
+    transition: all .15s;
+  }
+  .tbl-btn:hover { background: #1a3a5c; color: #fff; border-color: #1a3a5c; }
+  .tbl-btn.danger:hover { background: #dc2626; border-color: #dc2626; color: #fff; }
+
+  /* ══════════════════════════════════════════════════════
+     MODAL (add/edit user)
+  ══════════════════════════════════════════════════════ */
+  #modalBg {
+    display: none; position: fixed; inset: 0; z-index: 10000;
+    background: rgba(0,0,0,0.5); align-items: center; justify-content: center;
+  }
+  #modalBg.open { display: flex; }
+  .modal-box {
+    background: #fff; border-radius: 14px; padding: 32px 36px;
+    width: 380px; max-width: 95vw; box-shadow: 0 16px 48px rgba(0,0,0,0.25);
+  }
+  .modal-title { font-size: 17px; font-weight: 700; color: #1a2a3a; margin-bottom: 20px; }
+  .modal-field { margin-bottom: 14px; }
+  .modal-field label { display: block; font-size: 12px; font-weight: 600; color: #444; margin-bottom: 5px; }
+  .modal-field input, .modal-field select {
+    width: 100%; box-sizing: border-box; padding: 9px 12px;
+    border: 1.5px solid #d0d7e0; border-radius: 7px; font-size: 14px; outline: none;
+  }
+  .modal-field input:focus, .modal-field select:focus { border-color: #2563eb; }
+  .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
+  .modal-save {
+    flex: 1; padding: 10px; background: #1a3a5c; color: #fff;
+    border: none; border-radius: 8px; font-size: 14px; font-weight: 700; cursor: pointer;
+  }
+  .modal-save:hover { background: #2563eb; }
+  .modal-cancel {
+    padding: 10px 18px; background: #f3f4f6; color: #333;
+    border: none; border-radius: 8px; font-size: 14px; cursor: pointer;
+  }
+  .modal-err { color: #dc2626; font-size: 12px; margin-top: 8px; }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════
+     LOGIN SCREEN
+══════════════════════════════════════════════════════ -->
+<div id="loginScreen">
+  <div class="login-box">
+    <div class="login-logo"><img src="logo.png" alt="Al Rassoul Al-Aazam Hospital"/></div>
+    <div class="login-hospital">Al Rassoul Al-Aazam Hospital</div>
+    <div class="login-title">Blood Bank System</div>
+    <div class="login-field">
+      <label>Username</label>
+      <input type="text" id="loginUsername" placeholder="Enter username" autocomplete="username"/>
+    </div>
+    <div class="login-field">
+      <label>Password</label>
+      <input type="password" id="loginPassword" placeholder="Enter password" autocomplete="current-password"
+             onkeydown="if(event.key==='Enter') doLogin()"/>
+    </div>
+    <button class="login-btn" onclick="doLogin()">Sign In</button>
+    <div class="login-err" id="loginErr"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     USER MODAL (add / edit)
+══════════════════════════════════════════════════════ -->
+<div id="modalBg">
+  <div class="modal-box">
+    <div class="modal-title" id="modalTitle">Add User</div>
+    <div class="modal-field">
+      <label>Username</label>
+      <input type="text" id="mUsername" placeholder="e.g. nurse_sara"/>
+    </div>
+    <div class="modal-field">
+      <label>Full Name</label>
+      <input type="text" id="mFullName" placeholder="Sara Mohammed"/>
+    </div>
+    <div class="modal-field" id="mPasswordWrap">
+      <label id="mPasswordLabel">Password</label>
+      <input type="password" id="mPassword" placeholder="Min 4 characters"/>
+    </div>
+    <div class="modal-field">
+      <label>Role</label>
+      <select id="mRole">
+        <option value="staff">Staff</option>
+        <option value="admin">Admin</option>
+      </select>
+    </div>
+    <div class="modal-field" id="mActiveWrap" style="display:none">
+      <label>Status</label>
+      <select id="mActive">
+        <option value="1">Active</option>
+        <option value="0">Inactive</option>
+      </select>
+    </div>
+    <div class="modal-err" id="modalErr"></div>
+    <div class="modal-actions">
+      <button class="modal-save" onclick="submitUserModal()">Save</button>
+      <button class="modal-cancel" onclick="closeModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="overlay-box">
+    <div class="spinner"></div>
+    <div class="overlay-title">Analyzing Speech</div>
+    <div class="overlay-sub">Extracting fields from voice input…</div>
+  </div>
+</div>
+
+<div class="flash-stack" id="flashStack"></div>
+
+<header class="header">
+  <div class="header-brand">
+    <img src="logo.png" class="brand-logo" alt="Al Rassoul Al-Aazam Hospital"/>
+    <div>
+      <div class="brand-name">Al Rassoul Al-Aazam Hospital</div>
+      <div class="brand-sub">Blood Bank · Voice Entry System</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="mode-badge rules" id="modeBadge">
+      <div class="mode-dot"></div>
+      <span id="modeText">📋 Rule-Based</span>
+    </div>
+    <div class="user-bar" id="userBar" style="display:none">
+      <span class="user-bar-name" id="userBarName"></span>
+      <span class="user-bar-role" id="userBarRole"></span>
+      <button class="logout-btn" onclick="doLogout()">Sign Out</button>
+    </div>
+    <div class="header-clock" id="clock">--:--:--</div>
+  </div>
+</header>
+
+<div class="db-banner" id="dbBanner">
+  ⚠️ Database not connected — voice extraction works but saving is disabled. Fix db.js to enable saving.
+</div>
+
+<div class="voice-bar">
+  <div class="seg-tabs">
+    <button class="seg-tab active" id="tabBoth"        onclick="setForm('both')">Both Forms</button>
+    <button class="seg-tab"        id="tabTransfusion" onclick="setForm('transfusion')">Transfusion</button>
+    <button class="seg-tab"        id="tabDelivery"    onclick="setForm('delivery')">Delivery</button>
+    <button class="seg-tab"        id="tabExtDelivery" onclick="setForm('ext_delivery')" style="display:none">Ext. Delivery</button>
+  </div>
+  <div class="waveform" id="waveform">
+    <div class="wv"></div><div class="wv"></div><div class="wv"></div>
+    <div class="wv"></div><div class="wv"></div>
+  </div>
+  <div class="voice-status" id="voiceStatus">
+    <div class="vs-dot"></div>
+    <span>Ready</span>
+  </div>
+  <div class="rec-timer" id="recTimer">0s</div>
+  <button class="btn-rec start" id="btnStart" onclick="startRec()">
+    <div class="rec-dot"></div> Start Recording
+  </button>
+  <button class="btn-rec stop" id="btnStop" disabled onclick="stopRec()">
+    <div class="rec-dot"></div> Stop & Analyze
+  </button>
+  <button class="btn-multi" id="btnMulti" onclick="toggleBatchMode()" title="Record multiple patients in one go">
+    👥 Multi Record
+  </button>
+</div>
+
+<div class="batch-banner" id="batchBanner" style="display:none">
+  <span>👥 Multi-patient mode — say <b>"next patient"</b> between patients</span>
+  <span style="font-size:11px;opacity:.8;">💡 Say <b>"delivery"</b> to route to delivery form</span>
+</div>
+
+<div class="batch-queue" id="batchQueue" style="display:none">
+  <div class="bq-header">
+    <span class="bq-title" id="bqTitle">Patient 1 of 3</span>
+    <span class="bq-form-badge" id="bqFormBadge">Transfusion</span>
+    <div class="bq-dots" id="bqDots"></div>
+  </div>
+  <div class="bq-transcript" id="bqTranscript"></div>
+  <div class="bq-actions">
+    <button class="btn-save bq-skip" onclick="batchSkip()">⏭ Skip</button>
+    <button class="btn-save bq-next" id="bqSaveNext" onclick="batchSaveNext()">💾 Save &amp; Next →</button>
+  </div>
+</div>
+
+<div class="transcript-strip" id="transcriptStrip">
+  <span class="ts-label">🎤 Heard</span>
+  <span class="ts-text" id="transcriptText"></span>
+</div>
+
+<div class="page-nav">
+  <button class="page-tab active" id="tabForms"     onclick="showPage('forms')">📋 Forms</button>
+  <button class="page-tab"        id="tabDashboard" onclick="showPage('dashboard')">📊 Dashboard</button>
+  <button class="page-tab"        id="tabAdmin"     onclick="showPage('admin')"       style="display:none">👥 Users</button>
+  <button class="page-tab"        id="tabExtDel"    onclick="showPage('extdel')"      style="display:none">🚚 Ext. Delivery</button>
+</div>
+
+<main class="main">
+  <div class="forms-row">
+
+    <!-- ═══════════════════════════════════════════════════════
+         FORM 1 — TRANSFUSION BLOOD REQUEST  BB-19F-04
+    ═══════════════════════════════════════════════════════ -->
+    <div class="fcard" id="cardTransfusion">
+      <div class="fcard-head">
+        <div>
+          <div class="fcard-title">Transfusion Blood Request</div>
+          <div class="fcard-sub">BB-19F-04 · Al Rassoul Al-Aazam Hospital</div>
+        </div>
+        <span class="fcard-chip t">Form 1</span>
+      </div>
+      <div class="fcard-body">
+
+        <div class="draft-banner" id="t_draftBanner">
+          <div class="draft-banner-icon">📝</div>
+          <div class="draft-banner-text">Unsaved draft found <span id="t_draftInfo"></span></div>
+          <button class="draft-btn-restore" onclick="restoreDraft('transfusion')">Restore</button>
+          <button class="draft-btn-dismiss" onclick="dismissDraft('transfusion')">Dismiss</button>
+        </div>
+
+        <div class="sec-label">Date &amp; Time</div>
+        <div class="row row-3">
+          <div class="fg"><label class="fl">Date</label>
+            <input class="fi" type="date" id="t_request_date"/></div>
+          <div class="fg"><label class="fl">Time</label>
+            <input class="fi" type="time" id="t_request_time"/></div>
+          <div class="fg"><label class="fl">Room / Ward</label>
+            <input class="fi" type="text" id="t_room" placeholder="e.g. 401A"/></div>
+        </div>
+
+        <div class="sec-label">Patient Identification</div>
+        <div class="row row-2">
+          <div class="fg"><label class="fl">Patient Name<span class="req-star">*</span></label>
+            <input class="fi" type="text" id="t_patient_name" placeholder="Full name"/></div>
+          <div class="fg"><label class="fl">Medical Record # (File Number)<span class="req-star">*</span></label>
+            <div class="fn-wrap">
+              <input class="fi" type="text" id="t_file_number" placeholder="e.g. 117432" onblur="lookupFileNumber('transfusion')"/>
+              <button class="fn-lookup-btn" id="t_fnLookupBtn" onclick="lookupFileNumber('transfusion')" title="Search patient by file number">🔍</button>
+            </div>
+            <div class="fn-hint" id="t_fnHint"></div>
+          </div>
+        </div>
+        <div class="row row-3">
+          <div class="fg"><label class="fl">Pt's Blood Group<span class="req-star">*</span></label>
+            <select class="fi" id="t_blood_group">
+              <option value="">—</option><option>A</option><option>B</option><option>AB</option><option>O</option>
+            </select></div>
+          <div class="fg"><label class="fl">RH<span class="req-star">*</span></label>
+            <select class="fi" id="t_rh">
+              <option value="">—</option><option value="Pos">Positive</option><option value="Neg">Negative</option>
+            </select></div>
+          <div class="fg"><label class="fl">Diagnosis<span class="req-star">*</span></label>
+            <input class="fi" type="text" id="t_diagnosis" placeholder="e.g. Hemodialysis"/></div>
+        </div>
+
+        <div class="sec-label">Blood Components Requested</div>
+        <table class="comp-table">
+          <thead>
+            <tr><th>Component</th><th>Nº Units</th><th>Pre-Operative 24 hrs &nbsp;/&nbsp; Routine &nbsp;/&nbsp; Stat (45 min)</th><th style="width:34px">✓</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="comp-name">Filtered Packed Cells</td>
+              <td><input type="number" min="0" id="t_fpc_units" placeholder="0"/></td>
+              <td><select id="t_fpc_type"><option value="">—</option><option>Pre-Op 24hrs</option><option>Routine</option><option>Stat</option></select></td>
+              <td><input type="checkbox" id="t_fpc_check" style="width:14px;height:14px;accent-color:var(--blood)"/></td>
+            </tr>
+            <tr>
+              <td class="comp-name">F.F.P</td>
+              <td><input type="number" min="0" id="t_ffp_units" placeholder="0"/></td>
+              <td><select id="t_ffp_type"><option value="">—</option><option>Pre-Op 24hrs</option><option>Routine</option><option>Stat</option></select></td>
+              <td><input type="checkbox" id="t_ffp_check" style="width:14px;height:14px;accent-color:var(--blood)"/></td>
+            </tr>
+            <tr>
+              <td class="comp-name">Platelets</td>
+              <td><input type="number" min="0" id="t_plt_units" placeholder="0"/></td>
+              <td><select id="t_plt_type"><option value="">—</option><option>Pre-Op 24hrs</option><option>Routine</option><option>Stat</option></select></td>
+              <td><input type="checkbox" id="t_plt_check" style="width:14px;height:14px;accent-color:var(--blood)"/></td>
+            </tr>
+            <tr>
+              <td><input type="text" id="t_others" placeholder="Other component…"/></td>
+              <td><input type="number" min="0" id="t_others_units" placeholder="0"/></td>
+              <td><select id="t_others_type"><option value="">—</option><option>Pre-Op 24hrs</option><option>Routine</option><option>Stat</option></select></td>
+              <td><input type="checkbox" id="t_others_check" style="width:14px;height:14px;accent-color:var(--blood)"/></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="form-section-block bb-block">
+          <div class="sec-label">Only for Blood Bank — Compatible Blood Units</div>
+          <div class="unit-grid">
+            <div class="unit-cell"><div class="unit-num">1</div><input class="fi" type="text" id="t_unit_1" placeholder="Unit #"/></div>
+            <div class="unit-cell"><div class="unit-num">2</div><input class="fi" type="text" id="t_unit_2" placeholder="Unit #"/></div>
+            <div class="unit-cell"><div class="unit-num">3</div><input class="fi" type="text" id="t_unit_3" placeholder="Unit #"/></div>
+            <div class="unit-cell"><div class="unit-num">4</div><input class="fi" type="text" id="t_unit_4" placeholder="Unit #"/></div>
+            <div class="unit-cell"><div class="unit-num">5</div><input class="fi" type="text" id="t_unit_5" placeholder="Unit #"/></div>
+            <div class="unit-cell"><div class="unit-num">6</div><input class="fi" type="text" id="t_unit_6" placeholder="Unit #"/></div>
+            <div class="unit-cell"><div class="unit-num">7</div><input class="fi" type="text" id="t_unit_7" placeholder="Unit #"/></div>
+            <div class="unit-cell"><div class="unit-num">8</div><input class="fi" type="text" id="t_unit_8" placeholder="Unit #"/></div>
+          </div>
+        </div>
+
+        <div class="form-section-block physician-block">
+          <div class="sec-label">Only For Physicians — Patient History</div>
+          <div class="row row-2">
+            <div class="fg">
+              <label class="fl">Previous Transfusion</label>
+              <div class="check-row">
+                <label class="chk"><input type="radio" name="prev_tr" id="t_prev_no"  value="No"> No</label>
+                <label class="chk"><input type="radio" name="prev_tr" id="t_prev_yes" value="Yes"> Yes</label>
+              </div>
+            </div>
+            <div class="fg"><label class="fl">Previous Date / Place</label>
+              <input class="fi" type="text" id="t_prev_place" placeholder="Date or hospital name"/></div>
+          </div>
+          <div class="row row-1">
+            <div class="fg"><label class="fl">Previous Transfusion Reaction</label>
+              <input class="fi" type="text" id="t_prev_reaction" placeholder="Describe reaction if any"/></div>
+          </div>
+          <div class="row row-1">
+            <div class="fg"><label class="fl">Physician<span class="req-star">*</span></label>
+              <input class="fi" type="text" id="t_physician" placeholder="Dr. Name"/></div>
+          </div>
+        </div>
+
+        <div class="form-section-block nurse-block">
+          <div class="sec-label">Only For Nurse Sign / Phlebotomist</div>
+          <div class="row row-1">
+            <div class="fg"><label class="fl">Blood Extracted By (Name)</label>
+              <input class="fi" type="text" id="t_phlebotomist" placeholder="Phlebotomist / Nurse name"/></div>
+          </div>
+        </div>
+
+        <div class="form-section-block lifesaving-block">
+          <div class="sec-label">Life Saving Cases</div>
+          <div class="form-note">For delivery of blood units without cross-matching, please sign below:</div>
+          <div class="row row-3">
+            <div class="fg">
+              <label class="fl">Life Saving Case</label>
+              <div class="check-row">
+                <label class="chk"><input type="checkbox" id="t_life_saving"> Yes</label>
+              </div>
+            </div>
+            <div class="fg"><label class="fl">Physician's Name</label>
+              <input class="fi" type="text" id="t_ls_physician" placeholder="Dr. Name"/></div>
+            <div class="fg"><label class="fl">Time</label>
+              <input class="fi" type="time" id="t_ls_time"/></div>
+          </div>
+        </div>
+
+        <div class="form-footer-note">⚠ Incomplete requests or bad filling are not accepted</div>
+        <div style="font-size:10px;color:#999;font-weight:700;letter-spacing:.03em;margin-top:8px">BB-19F-04 (4)</div>
+
+      </div>
+      <div class="edit-bar" id="t_editBar">
+        <div class="edit-bar-info">📋 Viewing record for <strong id="t_editName">—</strong> · Click <b>Edit</b> to modify</div>
+        <div class="btn-row">
+          <button class="btn-edit" id="t_editBtn" onclick="toggleEditMode('t')">✏️ Edit</button>
+          <button class="btn-clear" onclick="exitViewMode('t')">✕ Close</button>
+        </div>
+      </div>
+      <div class="save-bar">
+        <div class="validation-banner" id="t_validationBanner"></div>
+        <div class="filled-count">Voice-filled: <span id="t_count">0</span> fields<span class="draft-indicator" id="t_draftIndicator"></span></div>
+        <div class="btn-row">
+          <button class="btn-clear" onclick="clearForm('t')">Clear</button>
+          <button class="btn-clear" onclick="exportForm('transfusion','pdf')" title="Export as PDF">📄 PDF</button>
+          <button class="btn-clear" onclick="exportForm('transfusion','docx')" title="Export as Word">📝 Word</button>
+          <button class="btn-save t" id="t_saveBtn" onclick="saveForm('transfusion')">💾 Save Record</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════════════════════
+         FORM 2 — DELIVERY OF BLOOD COMPONENTS  BB-19F-23
+    ═══════════════════════════════════════════════════════ -->
+    <div class="fcard" id="cardDelivery">
+      <div class="fcard-head">
+        <div>
+          <div class="fcard-title">Delivery of Blood Components</div>
+          <div class="fcard-sub">BB-19F-23 · Al Rassoul Al-Aazam Hospital</div>
+        </div>
+        <span class="fcard-chip d">Form 2</span>
+      </div>
+      <div class="fcard-body">
+
+        <div class="draft-banner" id="d_draftBanner">
+          <div class="draft-banner-icon">📝</div>
+          <div class="draft-banner-text">Unsaved draft found <span id="d_draftInfo"></span></div>
+          <button class="draft-btn-restore" onclick="restoreDraft('delivery')">Restore</button>
+          <button class="draft-btn-dismiss" onclick="dismissDraft('delivery')">Dismiss</button>
+        </div>
+
+        <div class="sec-label">Labels &amp; Alerts</div>
+        <div class="alert-labels">
+          <label class="alert-lbl"><input type="checkbox" id="d_similar_names"> Similar Names Alert Label</label>
+          <label class="alert-lbl"><input type="checkbox" id="d_isolation"> Isolation Label</label>
+          <label class="alert-lbl"><input type="checkbox" id="d_risk_fall"> Risk to Fall Label</label>
+          <label class="alert-lbl"><input type="checkbox" id="d_allergy_label"> Allergy Label</label>
+        </div>
+        <div class="row row-1">
+          <div class="fg">
+            <label class="fl">Known Allergies or Sensitivities</label>
+            <input class="fi" type="text" id="d_allergy_details" placeholder="Include drug or latex — Specify…"/>
+          </div>
+        </div>
+
+        <div class="sec-label">Patient Identification</div>
+        <div class="row row-2">
+          <div class="fg"><label class="fl">Patient Name<span class="req-star">*</span></label>
+            <input class="fi" type="text" id="d_patient_name" placeholder="Full name"/></div>
+          <div class="fg"><label class="fl">Medical Record # (File Number)<span class="req-star">*</span></label>
+            <div class="fn-wrap">
+              <input class="fi" type="text" id="d_file_number" placeholder="e.g. I21062" onblur="lookupFileNumber('delivery')"/>
+              <button class="fn-lookup-btn" id="d_fnLookupBtn" onclick="lookupFileNumber('delivery')" title="Search patient by file number">🔍</button>
+            </div>
+            <div class="fn-hint" id="d_fnHint"></div>
+          </div>
+        </div>
+        <div class="row row-3">
+          <div class="fg"><label class="fl">Patient Blood Group<span class="req-star">*</span></label>
+            <select class="fi" id="d_blood_group">
+              <option value="">—</option><option>A</option><option>B</option><option>AB</option><option>O</option>
+            </select></div>
+          <div class="fg"><label class="fl">RH (Pos. / Neg.)<span class="req-star">*</span></label>
+            <select class="fi" id="d_rh">
+              <option value="">—</option><option value="Pos">Positive</option><option value="Neg">Negative</option>
+            </select></div>
+          <div class="fg"><label class="fl">Room / Ward<span class="req-star">*</span></label>
+            <input class="fi" type="text" id="d_room" placeholder="e.g. 1009A"/></div>
+        </div>
+
+        <div class="row row-2">
+          <div class="fg"><label class="fl">Type of Blood Requested<span class="req-star">*</span></label>
+            <input class="fi" type="text" id="d_blood_type_requested" placeholder="e.g. Packed Cells"/></div>
+          <div class="fg"><label class="fl">Nurse's Name<span class="req-star">*</span></label>
+            <input class="fi" type="text" id="d_nurse" placeholder="Name"/></div>
+        </div>
+
+        <div class="form-section-block bb-block">
+          <div class="sec-label">For Blood Bank Use Only</div>
+          <div class="row row-2">
+            <div class="fg"><label class="fl">Blood Unit N°<span class="req-star">*</span></label>
+              <input class="fi" type="text" id="d_blood_unit_numbers" placeholder="e.g. 2601231/2601663"/></div>
+            <div class="fg"><label class="fl">Type of Blood</label>
+              <input class="fi" type="text" id="d_type_of_blood" placeholder="e.g. 2 P.C"/></div>
+          </div>
+          <div class="row row-1">
+            <div class="fg"><label class="fl">Blood Unit Group (Done Before Delivery)</label>
+              <select class="fi" id="d_blood_unit_group">
+                <option value="">—</option><option>A+</option><option>A-</option><option>B+</option><option>B-</option><option>AB+</option><option>AB-</option><option>O+</option><option>O-</option>
+              </select></div>
+          </div>
+          <div class="row row-1">
+            <div class="fg"><label class="fl">Patient Blood Group (Done Before Delivery)</label>
+              <select class="fi" id="d_patient_bg_delivery">
+                <option value="">—</option><option>A+</option><option>A-</option><option>B+</option><option>B-</option><option>AB+</option><option>AB-</option><option>O+</option><option>O-</option>
+              </select></div>
+          </div>
+          <div class="row row-3">
+            <div class="fg"><label class="fl">Technician Name<span class="req-star">*</span></label>
+              <input class="fi" type="text" id="d_technician" placeholder="Name"/></div>
+            <div class="fg"><label class="fl">Received By</label>
+              <input class="fi" type="text" id="d_received_by" placeholder="Name"/></div>
+            <div class="fg"><label class="fl">Orderly</label>
+              <input class="fi" type="text" id="d_orderly" placeholder="Name"/></div>
+          </div>
+          <div class="row row-2">
+            <div class="fg"><label class="fl">Date</label>
+              <input class="fi" type="date" id="d_delivery_date"/></div>
+            <div class="fg"><label class="fl">Time</label>
+              <input class="fi" type="time" id="d_delivery_time"/></div>
+          </div>
+          <div class="row row-1">
+            <div class="fg">
+              <label class="fl">Integrity (Temp, Leakage, Volume, Expiry Date, Gases)</label>
+              <div class="check-row">
+                <label class="chk"><input type="radio" name="d_integ" value="yes"> Yes</label>
+                <label class="chk"><input type="radio" name="d_integ" value="no"> No</label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-section-block nurse-block">
+          <div class="sec-label">For Nurse Unit Use Only — Integrity</div>
+          <div class="nurse-integ-grid">
+            <div class="nurse-left">
+              <div class="row row-1" style="margin-bottom:10px">
+                <div class="fg"><label class="fl">Received By (Nurse)</label>
+                  <input class="fi" type="text" id="d_nurse_received_by" placeholder="Name"/></div>
+              </div>
+              <div class="row row-1" style="margin-bottom:10px">
+                <div class="fg"><label class="fl">Nurse Name</label>
+                  <input class="fi" type="text" id="d_nurse_name" placeholder="Name"/></div>
+              </div>
+              <div class="row row-2" style="margin-bottom:10px">
+                <div class="fg"><label class="fl">Date</label>
+                  <input class="fi" type="date" id="d_nurse_date"/></div>
+                <div class="fg"><label class="fl">Time</label>
+                  <input class="fi" type="time" id="d_nurse_time"/></div>
+              </div>
+              <div class="row row-1" style="margin-bottom:6px">
+                <div class="fg">
+                  <label class="fl">Pre-Transfusion Safety Card</label>
+                  <div class="check-row">
+                    <label class="chk"><input type="radio" name="d_safety" value="yes"> Yes</label>
+                    <label class="chk"><input type="radio" name="d_safety" value="no"> No</label>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="nurse-right">
+              <div class="fg" style="margin-bottom:10px"><label class="fl">Leakage</label>
+                <select class="fi" id="d_leakage"><option value="">—</option><option>None</option><option>Present</option></select></div>
+              <div class="fg" style="margin-bottom:10px"><label class="fl">Gases</label>
+                <select class="fi" id="d_gases"><option value="">—</option><option>None</option><option>Present</option></select></div>
+              <div class="fg" style="margin-bottom:10px"><label class="fl">Volume (mL)</label>
+                <input class="fi" type="text" id="d_volume" placeholder="e.g. 250 mL"/></div>
+              <div class="fg" style="margin-bottom:10px"><label class="fl">Expiry Date</label>
+                <input class="fi" type="date" id="d_expiry_date" onchange="checkExpiryDate(this.value)"/>
+                <div class="expiry-hint" id="expiryHint"></div></div>
+              <div class="fg"><label class="fl">Temperature (°C)</label>
+                <input class="fi" type="number" step="0.1" id="d_temperature" placeholder="e.g. 4.0"/></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-section-block lifesaving-block">
+          <div class="sec-label">Life Saving Cases</div>
+          <div class="form-note">For delivery of blood units without cross-matching, please sign below:</div>
+          <div class="row row-3">
+            <div class="fg">
+              <label class="fl">Life Saving Case</label>
+              <div class="check-row">
+                <label class="chk"><input type="checkbox" id="d_life_saving"> Yes</label>
+              </div>
+            </div>
+            <div class="fg"><label class="fl">Physician's Name</label>
+              <input class="fi" type="text" id="d_ls_physician" placeholder="Dr. Name"/></div>
+            <div class="fg"><label class="fl">Time</label>
+              <input class="fi" type="time" id="d_ls_time"/></div>
+          </div>
+        </div>
+        <div style="font-size:10px;color:#999;font-weight:700;letter-spacing:.03em;margin-top:8px">BB-19F-23 (4)</div>
+
+      </div>
+      <div class="edit-bar" id="d_editBar">
+        <div class="edit-bar-info">📋 Viewing record for <strong id="d_editName">—</strong> · Click <b>Edit</b> to modify</div>
+        <div class="btn-row">
+          <button class="btn-edit" id="d_editBtn" onclick="toggleEditMode('d')">✏️ Edit</button>
+          <button class="btn-clear" onclick="exitViewMode('d')">✕ Close</button>
+        </div>
+      </div>
+      <div class="save-bar">
+        <div class="validation-banner" id="d_validationBanner"></div>
+        <div class="filled-count">Voice-filled: <span id="d_count">0</span> fields<span class="draft-indicator" id="d_draftIndicator"></span></div>
+        <div class="btn-row">
+          <button class="btn-clear" onclick="clearForm('d')">Clear</button>
+          <button class="btn-clear" onclick="exportForm('delivery','pdf')" title="Export as PDF">📄 PDF</button>
+          <button class="btn-clear" onclick="exportForm('delivery','docx')" title="Export as Word">📝 Word</button>
+          <button class="btn-save d" id="d_saveBtn" onclick="saveForm('delivery')">💾 Save Record</button>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /forms-row -->
+
+  <!-- ═══════════════ DASHBOARD ═══════════════ -->
+  <div class="dash-section" id="dashSection">
+    <div class="dash-title">📊 Dashboard
+      <button class="dash-refresh" onclick="loadDashboard()">🔄 Refresh</button>
+    </div>
+
+    <!-- Summary cards -->
+    <div class="dash-cards">
+      <div class="dash-card accent-red">
+        <div class="dash-card-label">Today</div>
+        <div class="dash-card-row"><span class="dash-card-num" id="dToday_t">—</span><span class="dash-card-sub">transfusions</span></div>
+        <div class="dash-card-divider"></div>
+        <div class="dash-card-row"><span class="dash-card-num accent-blue" id="dToday_d" style="color:#1A5276">—</span><span class="dash-card-sub">deliveries</span></div>
+      </div>
+      <div class="dash-card">
+        <div class="dash-card-label">This Week</div>
+        <div class="dash-card-row"><span class="dash-card-num" id="dWeek_t">—</span><span class="dash-card-sub">transfusions</span></div>
+        <div class="dash-card-divider"></div>
+        <div class="dash-card-row"><span class="dash-card-num" id="dWeek_d" style="color:#1A5276">—</span><span class="dash-card-sub">deliveries</span></div>
+      </div>
+      <div class="dash-card">
+        <div class="dash-card-label">This Month</div>
+        <div class="dash-card-row"><span class="dash-card-num" id="dMonth_t">—</span><span class="dash-card-sub">transfusions</span></div>
+        <div class="dash-card-divider"></div>
+        <div class="dash-card-row"><span class="dash-card-num" id="dMonth_d" style="color:#1A5276">—</span><span class="dash-card-sub">deliveries</span></div>
+      </div>
+      <div class="dash-card accent-gold">
+        <div class="dash-card-label">Life-Saving · Month</div>
+        <div class="dash-card-row"><span class="dash-card-num" id="dLifeSaving">—</span><span class="dash-card-sub">cases</span></div>
+        <div class="dash-card-divider"></div>
+        <div class="dash-card-row"><span class="dash-card-sub">Most requested: </span><span style="font-weight:700;color:var(--navy);margin-left:4px" id="dTopGroup">—</span></div>
+      </div>
+    </div>
+
+    <!-- Charts row -->
+    <div class="dash-two-col">
+      <div class="dash-panel">
+        <div class="dash-panel-title">Daily Activity — Last 7 Days</div>
+        <div class="daily-chart" id="dailyChart"></div>
+        <div class="daily-legend">
+          <div class="daily-legend-item"><div class="daily-legend-dot" style="background:var(--blood)"></div>Transfusions</div>
+          <div class="daily-legend-item"><div class="daily-legend-dot" style="background:#1A5276"></div>Deliveries</div>
+        </div>
+      </div>
+      <div class="dash-panel">
+        <div class="dash-panel-title">Blood Group Requests — Last 30 Days</div>
+        <div id="bgChart"></div>
+      </div>
+    </div>
+
+    <!-- Recent activity table -->
+    <div class="dash-panel">
+      <div class="dash-panel-title">Recent Activity</div>
+      <table class="dash-table">
+        <thead><tr><th>Type</th><th>Patient</th><th>Blood Group</th><th>Room</th><th>Staff</th><th>Date &amp; Time</th></tr></thead>
+        <tbody id="dashRecentBody"></tbody>
+      </table>
+    </div>
+
+    <!-- Response Time Compliance -->
+    <div class="dash-panel" style="margin-top:16px">
+      <div class="dash-panel-title">⏱ Response Time Compliance
+        <span style="font-size:11px;font-weight:400;color:var(--text-soft);margin-left:8px">Life-saving &lt;15 min · Urgent (Stat) &lt;45 min</span>
+      </div>
+      <div class="rt-summary" id="rtSummary"></div>
+      <div id="rtTableWrap">
+        <div class="rt-empty">Loading…</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="history-wrap">
+  <div class="history-head">
+    <div class="history-title">Recent Records</div>
+    <button class="btn-refresh" onclick="loadHistory()">🔄 Refresh</button>
+  </div>
+
+  <div class="search-bar">
+    <div class="search-input-wrap">
+      <span class="search-icon">🔍</span>
+      <input class="search-input" id="searchInput" type="text"
+        placeholder="Search by patient name, file number, diagnosis, doctor..."
+        oninput="onSearchInput()" />
+    </div>
+    <div class="search-filters">
+      <button class="filter-btn active"    id="filterAll"          onclick="setFilter('all')">All</button>
+      <button class="filter-btn"           id="filterTransfusion"  onclick="setFilter('transfusion')">🩸 Transfusion</button>
+      <button class="filter-btn"           id="filterDelivery"     onclick="setFilter('delivery')">🚚 Delivery</button>
+    </div>
+    <input class="search-date" id="searchDate" type="date"
+      onchange="onSearchInput()" title="Filter by date" />
+    <div class="search-stats" id="searchStats"></div>
+  </div>
+
+  <div class="history-grid" id="historyGrid">
+      <div class="empty-msg">
+        <div class="empty-icon">📋</div>
+        <div class="empty-text">No records yet. Fill and save a form to see it here.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ ADMIN PANEL ═══════════════ -->
+  <div id="adminSection" style="display:none; padding: 24px 8px;">
+    <div class="admin-panel">
+      <div class="admin-header">
+        <div class="admin-title">👥 User Management</div>
+        <button class="btn-add-user" onclick="openAddUser()">+ Add User</button>
+      </div>
+      <table class="users-table" id="usersTable">
+        <thead>
+          <tr>
+            <th>Username</th>
+            <th>Full Name</th>
+            <th>Role</th>
+            <th>Status</th>
+            <th>Created</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="usersTableBody">
+          <tr><td colspan="6" style="text-align:center;padding:20px;color:#888">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ═══════════════ EXTERNAL DELIVERY SECTION ═══════════════ -->
+  <div id="extDelSection" class="ext-section">
+    <div class="ext-form-card">
+      <div class="ext-head">
+        <div>
+          <div class="ext-head-title">BB External Delivery</div>
+          <div class="ext-head-sub">BB-19F-06 (7) · Al Rassoul Al-Aazam Hospital</div>
+        </div>
+        <span class="ext-head-chip">Admin Only</span>
+      </div>
+      <div class="ext-body">
+
+        <div class="sec-label">Patient &amp; Destination</div>
+        <div class="row row-2">
+          <div class="fg"><label class="fl">Patient Name</label>
+            <input class="fi" type="text" id="ex_patient_name" placeholder="Full name"/></div>
+          <div class="fg"><label class="fl">Destination</label>
+            <input class="fi" type="text" id="ex_destination" placeholder="Hospital / Department"/></div>
+        </div>
+
+        <div class="sec-label">Blood Components</div>
+        <table class="ext-comp-table">
+          <thead>
+            <tr><th>Type of Component</th><th>Unit No.</th><th>Blood Group</th><th>Expiry Date</th><th>Notes</th><th style="width:50px"></th></tr>
+          </thead>
+          <tbody id="extCompBody"></tbody>
+        </table>
+
+        <div class="sec-label">Test Results — Are tested in our blood bank and the result are:</div>
+        <table class="ext-tests-table">
+          <thead><tr><th style="width:55%">Tests</th><th>Results</th><th style="width:130px">Negative ☑</th></tr></thead>
+          <tbody>
+          
+          
+            <tr><td>HIV Ab-ELISA</td><td style="color:#1a7f4b;font-weight:600">Negative</td><td><label class="chk"><input type="checkbox" id="ex_test_hiv"> Confirmed</label></td></tr>
+            <tr><td>HBSAg-ELISA</td><td style="color:#1a7f4b;font-weight:600">Negative</td><td><label class="chk"><input type="checkbox" id="ex_test_hbsag"> Confirmed</label></td></tr>
+            <tr><td>HCV Ab-ELISA</td><td style="color:#1a7f4b;font-weight:600">Negative</td><td><label class="chk"><input type="checkbox" id="ex_test_hcv"> Confirmed</label></td></tr>
+            <tr><td>Hb Core IgG</td><td style="color:#1a7f4b;font-weight:600">Negative</td><td><label class="chk"><input type="checkbox" id="ex_test_hb_core"> Confirmed</label></td></tr>
+            <tr><td>STS (Screening for Syphilis)</td><td style="color:#1a7f4b;font-weight:600">Negative</td><td><label class="chk"><input type="checkbox" id="ex_test_sts"> Confirmed</label></td></tr>
+            <tr><td>IAT (Indirect Anti-globulin test)</td><td style="color:#1a7f4b;font-weight:600">Negative</td><td><label class="chk"><input type="checkbox" id="ex_test_iat"> Confirmed</label></td></tr>
+            <tr><td>Kell</td><td style="color:#1a7f4b;font-weight:600">Negative</td><td><label class="chk"><input type="checkbox" id="ex_test_kell"> Confirmed</label></td></tr>
+          </tbody>
+        </table>
+
+        <div class="sec-label">Integrity &amp; Delivery Details</div>
+        <div class="row row-1">
+          <div class="fg">
+            <label class="fl">Integrity (Temp, Leakage, Gases, Volume, Expiry Date)</label>
+            <div class="check-row">
+              <label class="chk"><input type="radio" name="ex_integrity" id="ex_integrity_yes" value="yes"> Yes</label>
+              <label class="chk"><input type="radio" name="ex_integrity" id="ex_integrity_no"  value="no">  No</label>
+            </div>
+          </div>
+        </div>
+        <div class="row row-3">
+          <div class="fg"><label class="fl">Date</label>
+            <input class="fi" type="date" id="ex_delivery_date"/></div>
+          <div class="fg"><label class="fl">Hour</label>
+            <input class="fi" type="time" id="ex_delivery_hour"/></div>
+          <div class="fg"><label class="fl">Technician Name</label>
+            <input class="fi" type="text" id="ex_technician_name" placeholder="Name"/></div>
+        </div>
+
+        <div class="ext-note">
+          <strong>Note:</strong> For inquiry or complaints please call: 01-456456  Ext-6120 - 6121<br>
+          Blood bank is not responsible for any damaged blood components due to improper transfer conditions.
+        </div>
+        <div style="font-size:10px;color:#999;font-weight:700;letter-spacing:.03em;margin-top:8px">BB-19F-06 (7)</div>
+
+      </div>
+      <div class="save-bar">
+        <div style="font-size:11px;color:var(--text-soft)" id="ex_editInfo"></div>
+        <div class="btn-row">
+          <button class="btn-clear" onclick="clearExtForm()">Clear</button>
+          <button class="btn-clear" onclick="exportExtDelivery('pdf')" title="Export as PDF">📄 PDF</button>
+          <button class="btn-clear" onclick="exportExtDelivery('docx')" title="Export as Word">📝 Word</button>
+          <button class="btn-save d" id="ex_saveBtn" onclick="saveExtDelivery()">💾 Save Record</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- History -->
+    <div style="max-width:900px;margin:0 auto">
+      <div class="history-head">
+        <div class="history-title" style="font-size:16px">Recent External Deliveries</div>
+        <button class="btn-refresh" onclick="loadExtHistory()">🔄 Refresh</button>
+      </div>
+      <div id="extHistoryGrid" class="history-grid">
+        <div class="empty-msg"><div class="empty-icon">🚚</div><div class="empty-text">No records yet.</div></div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+// ═══════════════════════════════════════════════════════
+// AUTH
+// ═══════════════════════════════════════════════════════
+const API = 'http://localhost:3000';
+let currentUser = null;
+
+function getToken() { return localStorage.getItem('bb_token'); }
+
+function authHeaders(extra = {}) {
+  return { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + getToken(), ...extra };
+}
+
+async function apiFetch(url, opts = {}) {
+  if (opts.body && typeof opts.body !== 'string') opts.body = JSON.stringify(opts.body);
+  opts.headers = { ...authHeaders(), ...(opts.headers || {}) };
+  const res = await fetch(url, opts);
+  if (res.status === 401) { doLogout(); return null; }
+  return res;
+}
+
+async function doLogin() {
+  const username = document.getElementById('loginUsername').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  const errEl    = document.getElementById('loginErr');
+  errEl.textContent = '';
+  if (!username || !password) { errEl.textContent = 'Please enter username and password.'; return; }
+  try {
+    const res  = await fetch(API + '/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    });
+    const data = await res.json();
+    if (!res.ok) { errEl.textContent = data.error || 'Login failed.'; return; }
+    localStorage.setItem('bb_token', data.token);
+    currentUser = data.user;
+    onLoginSuccess();
+  } catch {
+    errEl.textContent = 'Cannot connect to server. Is it running?';
+  }
+}
+
+function doLogout() {
+  localStorage.removeItem('bb_token');
+  currentUser = null;
+  document.getElementById('loginScreen').classList.remove('hidden');
+  document.getElementById('loginPassword').value = '';
+  document.getElementById('loginErr').textContent = '';
+  document.getElementById('userBar').style.display = 'none';
+  document.getElementById('tabAdmin').style.display  = 'none';
+  document.getElementById('tabExtDel').style.display = 'none';
+}
+
+function onLoginSuccess() {
+  document.getElementById('loginScreen').classList.add('hidden');
+  // Header user bar
+  document.getElementById('userBar').style.display  = '';
+  document.getElementById('userBarName').textContent = currentUser.fullName;
+  const roleEl = document.getElementById('userBarRole');
+  roleEl.textContent = currentUser.role;
+  roleEl.className   = 'user-bar-role ' + currentUser.role;
+  // Show Admin + Ext Delivery tabs only for admins
+  document.getElementById('tabAdmin').style.display  = currentUser.role === 'admin' ? '' : 'none';
+  document.getElementById('tabExtDel').style.display = currentUser.role === 'admin' ? '' : 'none';
+  // Delete buttons visibility
+  document.querySelectorAll('.delete-btn').forEach(b => {
+    b.style.display = currentUser.role === 'admin' ? '' : 'none';
+  });
+  loadHistory();
+  checkMode();
+}
+
+// Check session on page load
+window.addEventListener('DOMContentLoaded', () => {
+  const token = getToken();
+  if (!token) return; // stays on login screen
+  // Verify token still valid by fetching history (light call)
+  fetch(API + '/history', { headers: { Authorization: 'Bearer ' + token } })
+    .then(r => {
+      if (r.status === 401) { localStorage.removeItem('bb_token'); return; }
+      // Decode user from token (no library needed — just parse payload)
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        currentUser = { userId: payload.userId, username: payload.username, fullName: payload.fullName, role: payload.role };
+        onLoginSuccess();
+      } catch { localStorage.removeItem('bb_token'); }
+    })
+    .catch(() => { /* server offline — stay on login */ });
+});
+
+// ═══════════════════════════════════════════════════════
+// ADMIN — USER MANAGEMENT
+// ═══════════════════════════════════════════════════════
+let editingUserId = null;
+
+async function loadUsers() {
+  const tbody = document.getElementById('usersTableBody');
+  tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:#888">Loading…</td></tr>';
+  try {
+    const res   = await apiFetch(API + '/users');
+    if (!res) return;
+    const users = await res.json();
+    if (!users.length) {
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:#888">No users found.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = users.map(u => `
+      <tr>
+        <td><strong>${u.username}</strong></td>
+        <td>${u.full_name}</td>
+        <td><span class="badge-role ${u.role}">${u.role}</span></td>
+        <td><span class="${u.active ? 'badge-active' : 'badge-inactive'}">${u.active ? '● Active' : '○ Inactive'}</span></td>
+        <td style="font-size:12px;color:#888">${(u.created_at || '').slice(0,10)}</td>
+        <td>
+          <button class="tbl-btn" onclick="openEditUser(${u.user_id},'${u.username}','${u.full_name}','${u.role}',${u.active})">Edit</button>
+          <button class="tbl-btn" onclick="openResetPw(${u.user_id},'${u.username}')">Reset PW</button>
+        </td>
+      </tr>`).join('');
+  } catch {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#dc2626">Failed to load users.</td></tr>';
+  }
+}
+
+function openAddUser() {
+  editingUserId = null;
+  document.getElementById('modalTitle').textContent    = 'Add New User';
+  document.getElementById('mUsername').value           = '';
+  document.getElementById('mUsername').disabled        = false;
+  document.getElementById('mFullName').value           = '';
+  document.getElementById('mPassword').value           = '';
+  document.getElementById('mPasswordLabel').textContent = 'Password';
+  document.getElementById('mRole').value               = 'staff';
+  document.getElementById('mActiveWrap').style.display = 'none';
+  document.getElementById('mPasswordWrap').style.display = '';
+  document.getElementById('modalErr').textContent      = '';
+  document.getElementById('modalBg').classList.add('open');
+}
+
+function openEditUser(id, username, fullName, role, active) {
+  editingUserId = id;
+  document.getElementById('modalTitle').textContent    = 'Edit User';
+  document.getElementById('mUsername').value           = username;
+  document.getElementById('mUsername').disabled        = true;
+  document.getElementById('mFullName').value           = fullName;
+  document.getElementById('mPasswordWrap').style.display = 'none';
+  document.getElementById('mRole').value               = role;
+  document.getElementById('mActive').value             = active ? '1' : '0';
+  document.getElementById('mActiveWrap').style.display = '';
+  document.getElementById('modalErr').textContent      = '';
+  document.getElementById('modalBg').classList.add('open');
+}
+
+let resetPwUserId = null;
+function openResetPw(id, username) {
+  resetPwUserId = id;
+  editingUserId = null;
+  document.getElementById('modalTitle').textContent       = `Reset Password — ${username}`;
+  document.getElementById('mUsername').value              = username;
+  document.getElementById('mUsername').disabled           = true;
+  document.getElementById('mFullName').value              = '';
+  document.getElementById('mPasswordWrap').style.display  = '';
+  document.getElementById('mPasswordLabel').textContent   = 'New Password';
+  document.getElementById('mPassword').value              = '';
+  document.getElementById('mActiveWrap').style.display    = 'none';
+  document.getElementById('mRole').value                  = 'staff';
+  document.getElementById('modalErr').textContent         = '';
+  document.getElementById('modalBg').classList.add('open');
+}
+
+function closeModal() {
+  document.getElementById('modalBg').classList.remove('open');
+  resetPwUserId = null;
+}
+
+async function submitUserModal() {
+  const errEl    = document.getElementById('modalErr');
+  const fullName = document.getElementById('mFullName').value.trim();
+  const password = document.getElementById('mPassword').value;
+  const role     = document.getElementById('mRole').value;
+  errEl.textContent = '';
+
+  // Password reset mode
+  if (resetPwUserId) {
+    if (!password || password.length < 4) { errEl.textContent = 'Password must be at least 4 characters.'; return; }
+    const res = await apiFetch(`${API}/users/${resetPwUserId}/password`, { method: 'PUT', body: { password } });
+    if (!res) return;
+    const data = await res.json();
+    if (!res.ok) { errEl.textContent = data.error; return; }
+    closeModal(); loadUsers();
+    return;
+  }
+
+  // Edit mode
+  if (editingUserId) {
+    if (!fullName) { errEl.textContent = 'Full name is required.'; return; }
+    const active = document.getElementById('mActive').value === '1';
+    const res = await apiFetch(`${API}/users/${editingUserId}`, { method: 'PUT', body: { full_name: fullName, role, active } });
+    if (!res) return;
+    const data = await res.json();
+    if (!res.ok) { errEl.textContent = data.error; return; }
+    closeModal(); loadUsers();
+    return;
+  }
+
+  // Add mode
+  const username = document.getElementById('mUsername').value.trim();
+  if (!username || !fullName || !password) { errEl.textContent = 'All fields are required.'; return; }
+  if (password.length < 4) { errEl.textContent = 'Password must be at least 4 characters.'; return; }
+  const res = await apiFetch(`${API}/users`, { method: 'POST', body: { username, full_name: fullName, password, role } });
+  if (!res) return;
+  const data = await res.json();
+  if (!res.ok) { errEl.textContent = data.error; return; }
+  closeModal(); loadUsers();
+}
+
+// Close modal on background click
+document.getElementById('modalBg').addEventListener('click', e => {
+  if (e.target === document.getElementById('modalBg')) closeModal();
+});
+
+// ═══════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════
+let mediaRecorder, audioChunks = [];
+let activeForm    = 'both';
+let tCount = 0, dCount = 0;
+let recStartTime  = null;   // ── track when recording started
+let recTimerInterval = null; // ── interval for the live timer display
+
+// ── BATCH MODE STATE ──
+let batchMode   = false;
+let batchQueue  = [];
+let batchCursor = 0;
+
+// Live clock
+setInterval(() => {
+  document.getElementById('clock').textContent =
+    new Date().toLocaleTimeString('en-GB', { hour12: false });
+}, 1000);
+
+// Check DB/mode status
+function checkMode() {
+  fetch('http://localhost:3000/mode-check')
+    .then(r => r.json())
+    .then(d => {
+      if (!d.dbReady) document.getElementById('dbBanner').classList.add('show');
+    }).catch(() => {});
+}
+
+// ═══════════════════════════════════════════════════════
+// AUTO-SAVE DRAFT
+// ═══════════════════════════════════════════════════════
+function collectFormData(formType) {
+  const data = { form_type: formType };
+  Object.entries(FIELD_MAP).forEach(([key, map]) => {
+    if (map.form !== formType) return;
+    const el = document.getElementById(map.id);
+    if (!el) return;
+    if (map.type === 'checkbox') data[key] = el.checked;
+    else if (map.type === 'radio') data[key] = el.checked ? el.value : '';
+    else data[key] = el.value;
+  });
+  return data;
+}
+
+function isFormEmpty(formType) {
+  const data = collectFormData(formType);
+  return Object.entries(data).every(([k, v]) => k === 'form_type' || !v || v === false);
+}
+
+function saveDraft(formType) {
+  // Don't save drafts when viewing/editing an existing record
+  if (currentEditRecord && currentEditRecord.form_type === formType) return;
+  if (isFormEmpty(formType)) return;
+  const data = collectFormData(formType);
+  data._savedAt = new Date().toISOString();
+  localStorage.setItem('draft_' + formType, JSON.stringify(data));
+  // Update indicator
+  const prefix = formType === 'transfusion' ? 't' : 'd';
+  const ind = document.getElementById(prefix + '_draftIndicator');
+  if (ind) ind.textContent = '· draft saved ' + new Date().toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' });
+}
+
+function clearDraft(formType) {
+  localStorage.removeItem('draft_' + formType);
+  const prefix = formType === 'transfusion' ? 't' : 'd';
+  const ind = document.getElementById(prefix + '_draftIndicator');
+  if (ind) ind.textContent = '';
+  const banner = document.getElementById(prefix + '_draftBanner');
+  if (banner) banner.classList.remove('show');
+}
+
+function checkDrafts() {
+  ['transfusion', 'delivery'].forEach(formType => {
+    const raw = localStorage.getItem('draft_' + formType);
+    if (!raw) return;
+    try {
+      const draft = JSON.parse(raw);
+      const prefix  = formType === 'transfusion' ? 't' : 'd';
+      const name    = draft.patient_name || draft.d_patient_name || '';
+      const savedAt = draft._savedAt ? new Date(draft._savedAt).toLocaleString('en-GB') : '';
+      const info    = document.getElementById(prefix + '_draftInfo');
+      if (info) info.textContent = (name ? 'for ' + name : '') + (savedAt ? ' — saved ' + savedAt : '');
+      const banner  = document.getElementById(prefix + '_draftBanner');
+      if (banner) banner.classList.add('show');
+    } catch {
+      localStorage.removeItem('draft_' + formType);
+    }
+  });
+}
+
+function restoreDraft(formType) {
+  const raw = localStorage.getItem('draft_' + formType);
+  if (!raw) return;
+  try {
+    const draft  = JSON.parse(raw);
+    const prefix = formType === 'transfusion' ? 't' : 'd';
+    clearForm(prefix);
+    setForm(formType);
+    Object.entries(FIELD_MAP).forEach(([key, map]) => {
+      if (map.form !== formType) return;
+      const el  = document.getElementById(map.id);
+      const val = draft[key];
+      if (!el || val === undefined) return;
+      if (map.type === 'checkbox') el.checked = !!val;
+      else if (val) { el.value = String(val); el.classList.add('voice-hit'); setTimeout(() => el.classList.remove('voice-hit'), 1000); }
+    });
+    const banner = document.getElementById(prefix + '_draftBanner');
+    if (banner) banner.classList.remove('show');
+    const ind = document.getElementById(prefix + '_draftIndicator');
+    if (ind) ind.textContent = '· draft restored';
+    setStatus('done', '📝 Draft restored!');
+  } catch {
+    clearDraft(formType);
+  }
+}
+
+function dismissDraft(formType) {
+  clearDraft(formType);
+  setStatus('', '🗑 Draft discarded');
+}
+
+// Auto-save every 30 seconds
+setInterval(() => {
+  saveDraft('transfusion');
+  saveDraft('delivery');
+}, 30000);
+
+// Check for existing drafts on page load
+document.addEventListener('DOMContentLoaded', checkDrafts);
+
+// ═══════════════════════════════════════════════════════
+// FORM SELECTION
+// ═══════════════════════════════════════════════════════
+function setForm(form) {
+  activeForm = form;
+  ['Both','Transfusion','Delivery'].forEach(f => {
+    const el = document.getElementById('tab'+f);
+    if (el) el.classList.toggle('active', form === f.toLowerCase() || (form === 'both' && f === 'Both'));
+  });
+  const extDelTab = document.getElementById('tabExtDelivery');
+  if (extDelTab) extDelTab.classList.toggle('active', form === 'ext_delivery');
+  const cardT = document.getElementById('cardTransfusion');
+  const cardD = document.getElementById('cardDelivery');
+  if (cardT) cardT.classList.toggle('dimmed', form === 'delivery');
+  if (cardD) cardD.classList.toggle('dimmed', form === 'transfusion');
+}
+
+// ═══════════════════════════════════════════════════════
+// RECORDING — with minimum 2s guard and live timer
+// ═══════════════════════════════════════════════════════
+async function startRec() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    mediaRecorder  = new MediaRecorder(stream);
+    audioChunks    = [];
+    recStartTime   = Date.now();
+
+    // Start live timer display
+    const timerEl = document.getElementById('recTimer');
+    timerEl.textContent = '0s';
+    timerEl.classList.add('show');
+    recTimerInterval = setInterval(() => {
+      const s = Math.floor((Date.now() - recStartTime) / 1000);
+      timerEl.textContent = s + 's';
+    }, 500);
+
+    mediaRecorder.ondataavailable = e => { if (e.data.size > 0) audioChunks.push(e.data); };
+    mediaRecorder.start(100);
+    document.getElementById('btnStart').disabled = true;
+    document.getElementById('btnStop').disabled  = false;
+    document.getElementById('waveform').classList.add('show');
+    setStatus('recording', '🔴 Recording…', true);
+  } catch (err) {
+    setStatus('', '❌ Mic denied — check browser permissions');
+  }
+}
+
+function stopTimerDisplay() {
+  clearInterval(recTimerInterval);
+  recTimerInterval = null;
+  const timerEl = document.getElementById('recTimer');
+  timerEl.classList.remove('show');
+  timerEl.textContent = '0s';
+}
+
+// ── Toggle batch mode on/off ──
+function toggleBatchMode() {
+  batchMode = !batchMode;
+  document.getElementById('btnMulti').classList.toggle('active', batchMode);
+  document.getElementById('batchBanner').style.display = batchMode ? 'flex' : 'none';
+}
+
+async function stopRec() {
+  const elapsed = Date.now() - recStartTime;
+
+  stopTimerDisplay();
+
+  // ── Block if less than 2 seconds recorded ──
+  if (elapsed < 2000) {
+    mediaRecorder.stop();
+    mediaRecorder.stream.getTracks().forEach(t => t.stop());
+    document.getElementById('btnStart').disabled = false;
+    document.getElementById('btnStop').disabled  = true;
+    document.getElementById('waveform').classList.remove('show');
+    setStatus('warn', '⚠️ Too short — please speak then stop');
+    return;
+  }
+
+  mediaRecorder.stop();
+  mediaRecorder.stream.getTracks().forEach(t => t.stop());
+  document.getElementById('btnStart').disabled = false;
+  document.getElementById('btnStop').disabled  = true;
+  document.getElementById('waveform').classList.remove('show');
+  setStatus('processing', batchMode ? '⏳ Analyzing patients…' : '⏳ Analyzing…');
+
+  mediaRecorder.onstop = async () => {
+    const fd = new FormData();
+    fd.append('audio', new Blob(audioChunks, { type:'audio/webm' }), 'recording.webm');
+    fd.append('form_type', activeForm);
+    document.getElementById('overlay').classList.add('show');
+
+    try {
+      // ── BATCH MODE ──
+      if (batchMode) {
+        const res  = await fetch('http://localhost:3000/upload/batch', { method:'POST', body:fd, headers:{'Authorization':'Bearer '+getToken()} });
+        const data = await res.json();
+        document.getElementById('overlay').classList.remove('show');
+        if (data.error) { setStatus('', '❌ ' + data.error); return; }
+        showTranscript(data.text);
+        if (data.text === 'No speech detected' || !data.patients || data.patients.length === 0) {
+          setStatus('done', '✅ No speech detected — try again'); return;
+        }
+        const n = data.patients.length;
+        setStatus('done', '👥 ' + n + ' patient' + (n > 1 ? 's' : '') + ' detected');
+        startBatchQueue(data.patients);
+        return;
+      }
+
+      // ── SINGLE MODE ──
+      const res  = await fetch('http://localhost:3000/upload', { method:'POST', body:fd, headers:{'Authorization':'Bearer '+getToken()} });
+      const data = await res.json();
+      document.getElementById('overlay').classList.remove('show');
+      if (data.error) { setStatus('', '❌ ' + data.error); return; }
+      showTranscript(data.text);
+
+      // ── No speech guard ──
+      if (!data.text || data.text === 'No speech detected' || data.word_count === 0) {
+        setStatus('done', '✅ No speech detected — try again');
+        return;
+      }
+
+      if (data.fields && Object.keys(data.fields).length > 0) {
+        if (activeForm === 'ext_delivery') {
+          fillExtFields(data.fields);
+          setStatus('done', '✅ ' + Object.keys(data.fields).length + ' fields filled (ext. delivery)');
+        } else {
+          // Detect which form to fill when in 'both' mode
+          const hasDeliveryFields = Object.keys(data.fields).some(k =>
+            ['d_patient_name','d_file_number','d_blood_group','d_rh','d_room',
+             'delivery_time','delivery_date','leakage','gases','temperature',
+             'volume','technician','orderly','nurse','received_by',
+             'blood_type_requested','blood_unit_numbers','allergy_details'].includes(k)
+          );
+          const detectedForm = hasDeliveryFields ? 'delivery' : 'transfusion';
+          fillFields(data.fields, activeForm === 'both' ? detectedForm : activeForm);
+          setStatus('done', '✅ ' + Object.keys(data.fields).length + ' fields filled (' + detectedForm + ')');
+        }
+      } else {
+        setStatus('done', '✅ Done — no fields detected');
+      }
+    } catch (err) {
+      document.getElementById('overlay').classList.remove('show');
+      setStatus('', '❌ Server error: ' + err.message);
+    }
+  };
+}
+
+// ════════════════════════════════════════════════════════════════
+// BATCH QUEUE LOGIC
+// ════════════════════════════════════════════════════════════════
+function startBatchQueue(patients) {
+  batchQueue  = patients;
+  batchCursor = 0;
+  document.getElementById('batchQueue').style.display = 'block';
+  renderBatchPatient();
+}
+
+function renderBatchPatient() {
+  const p     = batchQueue[batchCursor];
+  const total = batchQueue.length;
+
+  document.getElementById('bqTitle').textContent = 'Patient ' + (batchCursor + 1) + ' of ' + total;
+
+  const badge = document.getElementById('bqFormBadge');
+  badge.textContent = p.formType === 'delivery' ? 'Delivery' : 'Transfusion';
+  badge.className   = 'bq-form-badge ' + (p.formType === 'delivery' ? 'delivery' : 'transfusion');
+
+  const dotsEl = document.getElementById('bqDots');
+  dotsEl.innerHTML = batchQueue.map(function(_, i) {
+    const cls = i < batchCursor ? 'done' : i === batchCursor ? 'active' : 'pending';
+    return '<div class="bq-dot ' + cls + '" title="Patient ' + (i+1) + '"></div>';
+  }).join('');
+
+  document.getElementById('bqTranscript').textContent = '🎤 ' + p.rawText;
+
+  setForm(p.formType);
+  clearForm(p.formType);
+  fillFields(p.fields, p.formType);
+
+  const saveBtn = document.getElementById('bqSaveNext');
+  saveBtn.textContent = batchCursor === total - 1 ? '💾 Save & Finish ✓' : '💾 Save & Next →';
+}
+
+function clearForm(arg) {
+  let prefix;
+  if (arg === 'transfusion') prefix = 't';
+  else if (arg === 'delivery') prefix = 'd';
+  else prefix = arg;
+
+  document.querySelectorAll(`[id^="${prefix}_"]`).forEach(el => {
+    if (el.type === 'checkbox' || el.type === 'radio') el.checked = false;
+    else el.value = '';
+    el.classList.remove('voice-hit');
+  });
+  if (prefix === 't') { tCount = 0; document.getElementById('t_count').textContent = 0; }
+  else                { dCount = 0; document.getElementById('d_count').textContent = 0; }
+  // Clear validation errors
+  document.querySelectorAll(`[id^="${prefix}_"].field-error`).forEach(el => el.classList.remove('field-error'));
+  const banner = document.getElementById(prefix + '_validationBanner');
+  if (banner) banner.classList.remove('show');
+  // Clear draft
+  const formType = prefix === 't' ? 'transfusion' : 'delivery';
+  clearDraft(formType);
+  // Clear file number hint
+  const hint = document.getElementById(prefix + '_fnHint');
+  if (hint) hint.className = 'fn-hint';
+}
+
+async function batchSaveNext() {
+  const p = batchQueue[batchCursor];
+  await saveForm(p.formType);
+  advanceBatch();
+}
+
+function batchSkip() { advanceBatch(); }
+
+function advanceBatch() {
+  batchCursor++;
+  if (batchCursor >= batchQueue.length) {
+    document.getElementById('batchQueue').style.display = 'none';
+    batchQueue  = [];
+    batchCursor = 0;
+    setStatus('done', '✅ All patients saved!');
+    loadHistory();
+    return;
+  }
+  renderBatchPatient();
+}
+
+// ═══════════════════════════════════════════════════════
+// FIELD MAP — voice key → HTML element id
+// ═══════════════════════════════════════════════════════
+const FIELD_MAP = {
+  request_date:             { id:'t_request_date',        form:'transfusion' },
+  request_time:             { id:'t_request_time',        form:'transfusion' },
+  room:                     { id:'t_room',                form:'transfusion' },
+  patient_name:             { id:'t_patient_name',        form:'transfusion' },
+  file_number:              { id:'t_file_number',         form:'transfusion' },
+  blood_group:              { id:'t_blood_group',         form:'transfusion' },
+  rh_factor:                { id:'t_rh',                  form:'transfusion' },
+  diagnosis:                { id:'t_diagnosis',           form:'transfusion' },
+  fpc_units:                { id:'t_fpc_units',           form:'transfusion' },
+  fpc_type:                 { id:'t_fpc_type',            form:'transfusion' },
+  ffp_units:                { id:'t_ffp_units',           form:'transfusion' },
+  ffp_type:                 { id:'t_ffp_type',            form:'transfusion' },
+  plt_units:                { id:'t_plt_units',           form:'transfusion' },
+  plt_type:                 { id:'t_plt_type',            form:'transfusion' },
+  blood_unit_1:             { id:'t_unit_1',              form:'transfusion' },
+  blood_unit_2:             { id:'t_unit_2',              form:'transfusion' },
+  blood_unit_3:             { id:'t_unit_3',              form:'transfusion' },
+  blood_unit_4:             { id:'t_unit_4',              form:'transfusion' },
+  blood_unit_5:             { id:'t_unit_5',              form:'transfusion' },
+  blood_unit_6:             { id:'t_unit_6',              form:'transfusion' },
+  blood_unit_7:             { id:'t_unit_7',              form:'transfusion' },
+  blood_unit_8:             { id:'t_unit_8',              form:'transfusion' },
+  previous_transfusion:     { id:'t_prev_yes',            form:'transfusion', type:'radio' },
+  prev_transfusion_place:   { id:'t_prev_place',          form:'transfusion' },
+  prev_transfusion_reaction:{ id:'t_prev_reaction',       form:'transfusion' },
+  physician:                { id:'t_physician',           form:'transfusion' },
+  phlebotomist:             { id:'t_phlebotomist',        form:'transfusion' },
+  life_saving_t:            { id:'t_life_saving',         form:'transfusion', type:'checkbox' },
+  ls_physician_t:           { id:'t_ls_physician',        form:'transfusion' },
+  ls_time_t:                { id:'t_ls_time',             form:'transfusion' },
+  d_patient_name:           { id:'d_patient_name',        form:'delivery' },
+  d_file_number:            { id:'d_file_number',         form:'delivery' },
+  d_blood_group:            { id:'d_blood_group',         form:'delivery' },
+  d_rh:                     { id:'d_rh',                  form:'delivery' },
+  d_room:                   { id:'d_room',                form:'delivery' },
+  similar_names:            { id:'d_similar_names',       form:'delivery', type:'checkbox' },
+  isolation:                { id:'d_isolation',           form:'delivery', type:'checkbox' },
+  risk_fall:                { id:'d_risk_fall',           form:'delivery', type:'checkbox' },
+  allergy_label:            { id:'d_allergy_label',       form:'delivery', type:'checkbox' },
+  allergy_details:          { id:'d_allergy_details',     form:'delivery' },
+  blood_type_requested:     { id:'d_blood_type_requested',form:'delivery' },
+  blood_unit_numbers:       { id:'d_blood_unit_numbers',  form:'delivery' },
+  type_of_blood:            { id:'d_type_of_blood',       form:'delivery' },
+  blood_unit_group:         { id:'d_blood_unit_group',    form:'delivery' },
+  patient_bg_delivery:      { id:'d_patient_bg_delivery', form:'delivery' },
+  technician:               { id:'d_technician',          form:'delivery' },
+  orderly:                  { id:'d_orderly',             form:'delivery' },
+  nurse:                    { id:'d_nurse',               form:'delivery' },
+  delivery_date:            { id:'d_delivery_date',       form:'delivery' },
+  delivery_time:            { id:'d_delivery_time',       form:'delivery' },
+  leakage:                  { id:'d_leakage',             form:'delivery' },
+  gases:                    { id:'d_gases',               form:'delivery' },
+  volume:                   { id:'d_volume',              form:'delivery' },
+  expiry_date:              { id:'d_expiry_date',         form:'delivery' },
+  temperature:              { id:'d_temperature',         form:'delivery' },
+  received_by:              { id:'d_received_by',         form:'delivery' },
+  nurse_received_by:        { id:'d_nurse_received_by',   form:'delivery' },
+  nurse_name:               { id:'d_nurse_name',          form:'delivery' },
+  nurse_date:               { id:'d_nurse_date',          form:'delivery' },
+  nurse_time:               { id:'d_nurse_time',          form:'delivery' },
+  life_saving_d:            { id:'d_life_saving',         form:'delivery', type:'checkbox' },
+  ls_physician_d:           { id:'d_ls_physician',        form:'delivery' },
+  ls_time_d:                { id:'d_ls_time',             form:'delivery' },
+};
+
+// ═══════════════════════════════════════════════════════
+// FILL FIELDS
+// ═══════════════════════════════════════════════════════
+function fillFields(fields, targetForm) {
+  for (const [key, value] of Object.entries(fields)) {
+    const map = FIELD_MAP[key];
+    if (!map) continue;
+    if (targetForm !== 'both' && map.form !== targetForm) continue;
+    const el = document.getElementById(map.id);
+    if (!el) continue;
+
+    const label = key.replace(/_/g,' ').replace(/\b\w/g, c => c.toUpperCase());
+
+    if (map.type === 'checkbox') {
+      el.checked = (value === true || value === 'true' || value === 'yes');
+    } else if (map.type === 'radio') {
+      const isTrue = (value === true || value === 'true' || value === 'yes');
+      const radio = document.querySelector(`input[name="${el.name}"][value="${isTrue ? 'Yes' : 'No'}"]`);
+      if (radio) radio.checked = true;
+    } else {
+      el.value = String(value);
+      el.classList.remove('voice-hit');
+      void el.offsetWidth;
+      el.classList.add('voice-hit');
+      setTimeout(() => el.classList.remove('voice-hit'), 1200);
+    }
+
+    if (map.form === 'transfusion') { tCount++; document.getElementById('t_count').textContent = tCount; }
+    else                            { dCount++; document.getElementById('d_count').textContent = dCount; }
+
+    showToast(label, String(value));
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// FILL EXT DELIVERY FIELDS FROM VOICE
+// ═══════════════════════════════════════════════════════
+function fillExtFields(fields) {
+  let count = 0;
+  const hit = (el) => {
+    el.classList.remove('voice-hit');
+    void el.offsetWidth;
+    el.classList.add('voice-hit');
+    setTimeout(() => el.classList.remove('voice-hit'), 1200);
+  };
+  const set = (id, val) => {
+    if (val === undefined || val === null || val === '') return;
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.value = String(val);
+    hit(el);
+    count++;
+    showToast(id.replace(/^ex_/, '').replace(/_/g, ' '), String(val));
+  };
+
+  set('ex_patient_name',    fields.ext_patient_name);
+  set('ex_destination',     fields.ext_destination);
+  set('ex_delivery_date',   fields.ext_delivery_date);
+  set('ex_delivery_hour',   fields.ext_delivery_hour);
+  set('ex_technician_name', fields.ext_technician_name);
+
+  if (fields.ext_integrity) {
+    const radio = document.querySelector(`input[name="ex_integrity"][value="${fields.ext_integrity}"]`);
+    if (radio) { radio.checked = true; count++; showToast('Integrity', fields.ext_integrity); }
+  }
+
+  const TEST_IDS = {
+    ext_test_hiv:     'ex_test_hiv',
+    ext_test_hbsag:   'ex_test_hbsag',
+    ext_test_hcv:     'ex_test_hcv',
+    ext_test_hb_core: 'ex_test_hb_core',
+    ext_test_sts:     'ex_test_sts',
+    ext_test_iat:     'ex_test_iat',
+    ext_test_kell:    'ex_test_kell',
+  };
+  Object.entries(TEST_IDS).forEach(([fkey, elId]) => {
+    if (fields[fkey]) {
+      const el = document.getElementById(elId);
+      if (el) { el.checked = true; count++; }
+    }
+  });
+  const checkedTests = Object.keys(TEST_IDS).filter(k => fields[k]).length;
+  if (checkedTests > 0) showToast('Tests', checkedTests + ' confirmed');
+
+  if (fields.ext_components && fields.ext_components.length > 0) {
+    fields.ext_components.forEach(extracted => {
+      const idx = extComponents.findIndex(c => c.key === extracted.key && !c.unit_no);
+      if (idx !== -1) {
+        if (extracted.unit_no)     extComponents[idx].unit_no     = extracted.unit_no;
+        if (extracted.blood_group) extComponents[idx].blood_group = extracted.blood_group;
+        if (extracted.expiry_date) extComponents[idx].expiry_date = extracted.expiry_date;
+        if (extracted.notes)       extComponents[idx].notes       = extracted.notes;
+        count++;
+      }
+    });
+    renderExtCompTable();
+    showToast('Components', fields.ext_components.length + ' row(s) detected');
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// PAGE NAV — FORMS / DASHBOARD
+// ═══════════════════════════════════════════════════════
+function showPage(page) {
+  const isForm   = page === 'forms';
+  const isDash   = page === 'dashboard';
+  const isAdmin  = page === 'admin';
+  const isExtDel = page === 'extdel';
+  document.getElementById('tabForms').classList.toggle('active', isForm);
+  document.getElementById('tabDashboard').classList.toggle('active', isDash);
+  document.getElementById('tabAdmin').classList.toggle('active', isAdmin);
+  document.getElementById('tabExtDel').classList.toggle('active', isExtDel);
+  document.querySelector('.forms-row').style.display    = isForm  ? '' : 'none';
+  document.querySelector('.history-wrap').style.display = isForm  ? '' : 'none';
+  document.querySelector('.voice-bar').style.display    = (isForm || isExtDel) ? '' : 'none';
+  document.getElementById('dashSection').classList.toggle('show', isDash);
+  document.getElementById('adminSection').style.display = isAdmin ? '' : 'none';
+  document.getElementById('extDelSection').classList.toggle('show', isExtDel);
+  // Toggle voice bar seg-tabs: normal forms vs ext delivery
+  ['tabBoth','tabTransfusion','tabDelivery'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = isExtDel ? 'none' : '';
+  });
+  const extDelTab = document.getElementById('tabExtDelivery');
+  if (extDelTab) extDelTab.style.display = isExtDel ? '' : 'none';
+  document.getElementById('btnMulti').style.display = isExtDel ? 'none' : '';
+  if (isExtDel) setForm('ext_delivery');
+  else if (!isForm && activeForm === 'ext_delivery') setForm('both');
+  if (isDash)   loadDashboard();
+  if (isAdmin)  loadUsers();
+  if (isExtDel) { renderExtCompTable(); loadExtHistory(); }
+}
+
+async function loadDashboard() {
+  try {
+    const r2   = await apiFetch(`${API}/dashboard/stats`);
+    if (!r2) return;
+    const data = await r2.json();
+    if (data.error) { return; }
+
+    // Summary cards
+    document.getElementById('dToday_t').textContent  = data.today.transfusions  ?? 0;
+    document.getElementById('dToday_d').textContent  = data.today.deliveries    ?? 0;
+    document.getElementById('dWeek_t').textContent   = data.week.transfusions   ?? 0;
+    document.getElementById('dWeek_d').textContent   = data.week.deliveries     ?? 0;
+    document.getElementById('dMonth_t').textContent  = data.month.transfusions  ?? 0;
+    document.getElementById('dMonth_d').textContent  = data.month.deliveries    ?? 0;
+    document.getElementById('dLifeSaving').textContent = data.lifeSavingMonth   ?? 0;
+    document.getElementById('dTopGroup').textContent = data.bloodGroups[0]?.blood_group ?? '—';
+
+    // Daily activity chart
+    renderDailyChart(data.dailyActivity);
+
+    // Blood group chart
+    renderBgChart(data.bloodGroups);
+
+    // Recent table
+    renderRecentTable(data.recent);
+
+  } catch {
+    document.getElementById('dashSection').innerHTML += '<div class="dash-empty">Could not load dashboard — is the server running?</div>';
+  }
+
+  // Response times (separate call — doesn't block dashboard on failure)
+  loadResponseTimes();
+}
+
+function renderDailyChart(days) {
+  const el = document.getElementById('dailyChart');
+  if (!days.length) { el.innerHTML = '<div class="dash-empty">No data yet</div>'; return; }
+  const maxVal = Math.max(...days.map(d => (d.transfusions || 0) + (d.deliveries || 0)), 1);
+  // Fill missing days (last 7)
+  const allDays = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(); d.setDate(d.getDate() - i);
+    const key = d.toISOString().split('T')[0];
+    const found = days.find(r => r.date === key);
+    allDays.push({ date: key, transfusions: found?.transfusions || 0, deliveries: found?.deliveries || 0 });
+  }
+  el.innerHTML = allDays.map(d => {
+    const tH = Math.round(((d.transfusions || 0) / maxVal) * 95);
+    const dH = Math.round(((d.deliveries   || 0) / maxVal) * 95);
+    const label = new Date(d.date + 'T00:00:00').toLocaleDateString('en-GB', { day:'numeric', month:'short' });
+    return `<div class="daily-col">
+      <div class="daily-bars">
+        <div class="daily-bar t-bar" style="height:${tH}%" title="${d.transfusions} transfusions"></div>
+        <div class="daily-bar d-bar" style="height:${dH}%" title="${d.deliveries} deliveries"></div>
+      </div>
+      <div class="daily-label">${label}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderBgChart(groups) {
+  const el = document.getElementById('bgChart');
+  if (!groups.length) { el.innerHTML = '<div class="dash-empty">No data yet</div>'; return; }
+  const max = Math.max(...groups.map(g => g.cnt), 1);
+  el.innerHTML = groups.slice(0, 8).map(g => {
+    const pct = Math.round((g.cnt / max) * 100);
+    return `<div class="bg-bar-row">
+      <div class="bg-bar-label">${g.blood_group}</div>
+      <div class="bg-bar-track"><div class="bg-bar-fill" style="width:${pct}%"></div></div>
+      <div class="bg-bar-count">${g.cnt}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderRecentTable(rows) {
+  const tbody = document.getElementById('dashRecentBody');
+  if (!rows.length) { tbody.innerHTML = '<tr><td colspan="6" class="dash-empty">No records yet</td></tr>'; return; }
+  tbody.innerHTML = rows.map(r => `
+    <tr>
+      <td><span class="dash-badge ${r.form_type === 'transfusion' ? 't' : 'd'}">${r.form_type === 'transfusion' ? '🩸 Transfusion' : '🚚 Delivery'}</span></td>
+      <td>${r.patient_name || '—'}</td>
+      <td>${r.blood_group || '—'}${r.rh_factor ? ' ' + r.rh_factor : ''}</td>
+      <td>${r.room || '—'}</td>
+      <td>${r.staff || '—'}</td>
+      <td>${r.created_at ? new Date(r.created_at.replace(' ','T')).toLocaleString('en-GB') : '—'}</td>
+    </tr>`).join('');
+}
+
+// ═══════════════════════════════════════════════════════
+// RESPONSE TIME COMPLIANCE
+// ═══════════════════════════════════════════════════════
+function fmtMins(m) {
+  if (m === null || m === undefined) return '—';
+  return m < 60 ? m + ' min' : Math.floor(m / 60) + 'h ' + (m % 60) + 'm';
+}
+
+function statusBadge(within, caseType) {
+  if (within === true)              return '<span class="rt-status pass">✓ Met</span>';
+  if (within === false)             return '<span class="rt-status fail">✗ Exceeded</span>';
+  if (caseType === 'routine')       return '<span class="rt-status pending">—</span>';
+  return '<span class="rt-status pending">Awaiting</span>';
+}
+
+async function loadResponseTimes() {
+  const summaryEl = document.getElementById('rtSummary');
+  const wrapEl    = document.getElementById('rtTableWrap');
+  try {
+    const res = await apiFetch(`${API}/response-times`);
+    if (!res) return;
+    const rows = await res.json();
+    if (!Array.isArray(rows) || rows.error) {
+      wrapEl.innerHTML = '<div class="rt-empty">Response time data unavailable.</div>';
+      return;
+    }
+
+    const lsCases   = rows.filter(r => r.caseType === 'life_saving');
+    const statCases = rows.filter(r => r.caseType === 'urgent');
+
+    // For summary: a case is "met" if BOTH bb and nurse (when available) are within target.
+    // If only bb is filled, use bb; if only nurse is filled, use nurse.
+    function caseMet(r) {
+      const hasBB    = r.bb_diff_minutes    !== null;
+      const hasNurse = r.nurse_diff_minutes !== null;
+      if (!hasBB && !hasNurse) return false;
+      if (hasBB    && r.bbWithin    === false) return false;
+      if (hasNurse && r.nurseWithin === false) return false;
+      return true;
+    }
+
+    const lsMet    = lsCases.filter(caseMet).length;
+    const statMet  = statCases.filter(caseMet).length;
+    const lsPct    = lsCases.length  ? Math.round(lsMet  / lsCases.length  * 100) : null;
+    const statPct  = statCases.length ? Math.round(statMet / statCases.length * 100) : null;
+    const pending  = rows.filter(r => r.bb_diff_minutes === null && r.caseType !== 'routine').length;
+
+    summaryEl.innerHTML = `
+      <div class="rt-stat-box ${lsPct === null ? '' : lsPct === 100 ? 'ok' : 'warn'}">
+        <div class="rt-stat-label">Life-Saving (&lt;15 min)</div>
+        <div class="rt-stat-num">${lsPct !== null ? lsPct + '%' : '—'}</div>
+        <div class="rt-stat-sub">${lsMet} / ${lsCases.length} cases met target</div>
+      </div>
+      <div class="rt-stat-box ${statPct === null ? '' : statPct === 100 ? 'ok' : 'warn'}">
+        <div class="rt-stat-label">Urgent / Stat (&lt;45 min)</div>
+        <div class="rt-stat-num">${statPct !== null ? statPct + '%' : '—'}</div>
+        <div class="rt-stat-sub">${statMet} / ${statCases.length} cases met target</div>
+      </div>
+      <div class="rt-stat-box">
+        <div class="rt-stat-label">Pending Delivery</div>
+        <div class="rt-stat-num">${pending}</div>
+        <div class="rt-stat-sub">urgent/life-saving without BB delivery yet</div>
+      </div>`;
+
+    if (!rows.length) {
+      wrapEl.innerHTML = '<div class="rt-empty">No transfusion requests with date/time recorded yet.</div>';
+      return;
+    }
+
+    const display   = rows.filter(r => r.caseType !== 'routine');
+    const tableRows = (display.length ? display : rows).map(r => {
+      const reqDT    = r.request_date && r.request_time ? `${r.request_date} ${r.request_time}` : '—';
+      const bbDT     = r.delivery_date && r.delivery_time ? `${r.delivery_date} ${r.delivery_time}` : '—';
+      const nurseDT  = r.nurse_unit_date && r.nurse_unit_time ? `${r.nurse_unit_date} ${r.nurse_unit_time}` : '—';
+      const target   = r.targetMinutes ? r.targetMinutes + ' min' : '—';
+      const badgeCls = r.caseType === 'life_saving' ? 'life-saving' : r.caseType === 'urgent' ? 'urgent' : 'routine';
+      const badgeTxt = r.caseType === 'life_saving' ? '🔴 Life-Saving' : r.caseType === 'urgent' ? '⚠️ Urgent' : 'Routine';
+      return `<tr>
+        <td><strong>${r.patient_name || '—'}</strong><br><span style="font-size:11px;color:var(--text-soft)">${r.file_number || ''}</span></td>
+        <td><span class="rt-badge ${badgeCls}">${badgeTxt}</span></td>
+        <td>${reqDT}</td>
+        <td>
+          <div style="font-size:11px;color:var(--text-soft);margin-bottom:1px">BB:</div>${bbDT}
+          <div style="font-size:11px;color:var(--text-soft);margin-top:4px;margin-bottom:1px">Nurse:</div>${nurseDT}
+        </td>
+        <td style="font-weight:700">
+          <div style="font-size:11px;color:var(--text-soft);margin-bottom:1px">BB:</div>${fmtMins(r.bb_diff_minutes)}
+          <div style="font-size:11px;color:var(--text-soft);margin-top:4px;margin-bottom:1px">Nurse:</div>${fmtMins(r.nurse_diff_minutes)}
+        </td>
+        <td>${target}</td>
+        <td>
+          <div>${statusBadge(r.bbWithin, r.caseType)}</div>
+          <div style="margin-top:4px">${statusBadge(r.nurseWithin, r.caseType)}</div>
+        </td>
+      </tr>`;
+    }).join('');
+
+    wrapEl.innerHTML = `
+      <table class="rt-table">
+        <thead><tr>
+          <th>Patient</th><th>Case Type</th><th>Request Time</th>
+          <th>Delivery / Nurse Receipt</th><th>Elapsed</th><th>Target</th><th>Status</th>
+        </tr></thead>
+        <tbody>${tableRows}</tbody>
+      </table>`;
+  } catch (err) {
+    wrapEl.innerHTML = '<div class="rt-empty">Could not load response times.</div>';
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// PATIENT FILE NUMBER LOOKUP
+// ═══════════════════════════════════════════════════════
+async function lookupFileNumber(formType) {
+  const prefix    = formType === 'transfusion' ? 't' : 'd';
+  const fnEl      = document.getElementById(prefix + '_file_number');
+  const hintEl    = document.getElementById(prefix + '_fnHint');
+  const btnEl     = document.getElementById(prefix + '_fnLookupBtn');
+  const nameEl    = document.getElementById(prefix === 't' ? 't_patient_name' : 'd_patient_name');
+  const bgEl      = document.getElementById(prefix === 't' ? 't_blood_group'  : 'd_blood_group');
+  const rhEl      = document.getElementById(prefix === 't' ? 't_rh'           : 'd_rh');
+
+  const fileNumber = fnEl.value.trim();
+  if (!fileNumber) { hintEl.className = 'fn-hint'; return; }
+
+  // Don't lookup while editing an existing record
+  if (currentEditRecord && currentEditRecord.form_type === formType) return;
+
+  btnEl.classList.add('loading');
+  hintEl.className = 'fn-hint';
+
+  try {
+    const res    = await apiFetch(`${API}/patient/lookup?file_number=${encodeURIComponent(fileNumber)}`);
+    if (!res) return;
+    const result = await res.json();
+
+    if (!result.found) {
+      hintEl.textContent  = 'New patient — no previous records found.';
+      hintEl.className    = 'fn-hint info show';
+      return;
+    }
+
+    const existingName  = result.patient_name || '';
+    const currentName   = nameEl.value.trim();
+
+    // File number already belongs to a DIFFERENT patient — block
+    if (currentName && currentName.toLowerCase() !== existingName.toLowerCase()) {
+      hintEl.innerHTML = `⛔ File number already assigned to <strong>${existingName}</strong>. Check the file number.`;
+      hintEl.className = 'fn-hint error show';
+      fnEl.classList.add('field-error');
+      return;
+    }
+
+    // Same patient or name not yet filled — auto-fill
+    fnEl.classList.remove('field-error');
+    const filled = [];
+
+    if (bgEl && !bgEl.value && result.blood_group) { bgEl.value = result.blood_group; filled.push('Blood Group'); }
+    if (rhEl && !rhEl.value && result.rh_factor)   { rhEl.value = result.rh_factor;   filled.push('RH Factor'); }
+    if (nameEl && !nameEl.value && existingName)   { nameEl.value = existingName;     filled.push('Patient Name'); }
+
+    // For transfusion: also fill diagnosis
+    if (formType === 'transfusion' && result.diagnosis) {
+      const diagEl = document.getElementById('t_diagnosis');
+      if (diagEl && !diagEl.value) { diagEl.value = result.diagnosis; filled.push('Diagnosis'); }
+    }
+
+    if (filled.length) {
+      hintEl.textContent = '✓ Filled from previous record: ' + filled.join(', ');
+      hintEl.className   = 'fn-hint success show';
+    } else {
+      hintEl.textContent = '✓ Returning patient — ' + existingName;
+      hintEl.className   = 'fn-hint success show';
+    }
+
+    setTimeout(() => { hintEl.className = 'fn-hint'; }, 5000);
+
+  } catch {
+    hintEl.textContent = 'Could not check file number — is the server running?';
+    hintEl.className   = 'fn-hint error show';
+  } finally {
+    btnEl.classList.remove('loading');
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// EXPIRY DATE CHECK
+// ═══════════════════════════════════════════════════════
+function checkExpiryDate(value) {
+  const el   = document.getElementById('d_expiry_date');
+  const hint = document.getElementById('expiryHint');
+  el.classList.remove('expiry-expired', 'expiry-warn');
+  hint.className = 'expiry-hint';
+
+  if (!value) return;
+
+  const expiry   = new Date(value + 'T00:00:00');
+  const today    = new Date(); today.setHours(0, 0, 0, 0);
+  const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1);
+  const diffDays = Math.round((expiry - today) / 86400000);
+
+  if (expiry < today) {
+    el.classList.add('expiry-expired');
+    hint.textContent = `Expired ${Math.abs(diffDays)} day${Math.abs(diffDays) !== 1 ? 's' : ''} ago — delivery will be blocked`;
+    hint.classList.add('show', 'error');
+  } else if (diffDays === 0) {
+    el.classList.add('expiry-warn');
+    hint.textContent = 'Expires today — confirmation required';
+    hint.classList.add('show', 'warn');
+  } else if (diffDays === 1) {
+    el.classList.add('expiry-warn');
+    hint.textContent = 'Expires tomorrow — confirmation required';
+    hint.classList.add('show', 'warn');
+  } else if (diffDays <= 3) {
+    el.classList.add('expiry-warn');
+    hint.textContent = `Expires in ${diffDays} days`;
+    hint.classList.add('show', 'warn');
+  } else {
+    hint.textContent = `Valid — expires in ${diffDays} days`;
+    hint.classList.add('show', 'ok');
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// BLOOD GROUP COMPATIBILITY
+// ═══════════════════════════════════════════════════════
+const BLOOD_COMPATIBILITY = {
+  'A+':  ['A+', 'A-', 'O+', 'O-'],
+  'A-':  ['A-', 'O-'],
+  'B+':  ['B+', 'B-', 'O+', 'O-'],
+  'B-':  ['B-', 'O-'],
+  'AB+': ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'],
+  'AB-': ['A-', 'B-', 'AB-', 'O-'],
+  'O+':  ['O+', 'O-'],
+  'O-':  ['O-'],
+};
+
+function isCompatible(patientGroup, unitGroup) {
+  const compatible = BLOOD_COMPATIBILITY[patientGroup];
+  if (!compatible) return true; // unknown group — don't block
+  return compatible.includes(unitGroup);
+}
+
+function showCompatWarning(patientGroup, unitGroup) {
+  return new Promise(resolve => {
+    document.getElementById('compatPatientGroup').textContent = patientGroup;
+    document.getElementById('compatUnitGroup').textContent    = unitGroup;
+    document.getElementById('compatOverlay').classList.add('show');
+    document.getElementById('compatBtnCancel').onclick = () => {
+      document.getElementById('compatOverlay').classList.remove('show');
+      resolve(false);
+    };
+    document.getElementById('compatBtnOverride').onclick = () => {
+      if (!confirm('Are you sure you want to override the compatibility check? This could be life-threatening.')) return;
+      document.getElementById('compatOverlay').classList.remove('show');
+      resolve(true);
+    };
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+// VALIDATION
+// ═══════════════════════════════════════════════════════
+const REQUIRED_FIELDS = {
+  transfusion: [
+    { id: 't_patient_name',  label: 'Patient Name' },
+    { id: 't_file_number',   label: 'File Number' },
+    { id: 't_blood_group',   label: 'Blood Group' },
+    { id: 't_rh',            label: 'RH Factor' },
+    { id: 't_diagnosis',     label: 'Diagnosis' },
+    { id: 't_physician',     label: 'Physician' },
+  ],
+  delivery: [
+    { id: 'd_patient_name',         label: 'Patient Name' },
+    { id: 'd_file_number',          label: 'File Number' },
+    { id: 'd_blood_group',          label: 'Blood Group' },
+    { id: 'd_rh',                   label: 'RH Factor' },
+    { id: 'd_room',                 label: 'Room / Ward' },
+    { id: 'd_blood_type_requested', label: 'Type of Blood Requested' },
+    { id: 'd_nurse',                label: "Nurse's Name" },
+    { id: 'd_blood_unit_numbers',   label: 'Blood Unit Numbers' },
+    { id: 'd_technician',           label: 'Technician' },
+  ]
+};
+
+function validateForm(formType) {
+  // Clear any previous error state
+  document.querySelectorAll('.fi.field-error').forEach(el => el.classList.remove('field-error'));
+  const prefix  = formType === 'transfusion' ? 't' : 'd';
+  const banner  = document.getElementById(prefix + '_validationBanner');
+
+  const missing = [];
+  for (const field of REQUIRED_FIELDS[formType]) {
+    const el = document.getElementById(field.id);
+    if (!el) continue;
+    if (!el.value.trim()) {
+      el.classList.add('field-error');
+      missing.push(field.label);
+    }
+  }
+
+  if (missing.length) {
+    banner.textContent = '⚠ Required fields missing: ' + missing.join(', ');
+    banner.classList.add('show');
+    // Scroll to first invalid field
+    const first = document.querySelector('.fi.field-error');
+    if (first) first.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    return false;
+  }
+
+  banner.classList.remove('show');
+  return true;
+}
+
+// Clear error highlight as soon as user fixes the field
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.fi').forEach(el => {
+    el.addEventListener('input',  () => el.classList.remove('field-error'));
+    el.addEventListener('change', () => el.classList.remove('field-error'));
+  });
+});
+
+// ═══════════════════════════════════════════════════════
+// PATIENT FILE NUMBER LOOKUP
+// ═══════════════════════════════════════════════════════
+async function lookupFileNumber(formType) {
+  const prefix    = formType === 'transfusion' ? 't' : 'd';
+  const fnEl      = document.getElementById(prefix + '_file_number');
+  const btn       = document.getElementById(prefix + '_fnLookupBtn');
+  const hint      = document.getElementById(prefix + '_fnHint');
+  const nameEl    = document.getElementById(prefix + '_patient_name');
+  const bgEl      = document.getElementById(prefix + '_blood_group');
+  const rhEl      = document.getElementById(prefix + '_rh');
+  const diagEl    = formType === 'transfusion' ? document.getElementById('t_diagnosis') : null;
+
+  const fileNum = fnEl?.value?.trim();
+
+  // Reset hint
+  hint.className = 'fn-hint';
+  hint.textContent = '';
+
+  if (!fileNum) return;
+
+  btn.classList.add('loading');
+
+  try {
+    const res  = await apiFetch(`${API}/patient/lookup?file_number=${encodeURIComponent(fileNum)}`);
+    if (!res) return;
+    const data = await res.json();
+
+    if (!data.found) {
+      hint.textContent = 'No previous records — new patient';
+      hint.classList.add('show', 'info');
+      return;
+    }
+
+    const existingName = data.patient_name || '';
+    const currentName  = nameEl?.value?.trim() || '';
+
+    // File number already belongs to a DIFFERENT patient — block
+    if (currentName && existingName &&
+        currentName.toLowerCase() !== existingName.toLowerCase()) {
+      hint.textContent = `⚠ This file number belongs to "${existingName}" — cannot assign to a different patient`;
+      hint.classList.add('show', 'error');
+      fnEl.classList.add('field-error');
+      return;
+    }
+
+    // Auto-fill patient fields
+    const filled = [];
+    if (nameEl && !nameEl.value && existingName) {
+      nameEl.value = existingName;
+      nameEl.classList.add('voice-hit');
+      setTimeout(() => nameEl.classList.remove('voice-hit'), 1000);
+      filled.push('name');
+    }
+    if (bgEl && !bgEl.value && data.blood_group) {
+      bgEl.value = data.blood_group;
+      bgEl.classList.add('voice-hit');
+      setTimeout(() => bgEl.classList.remove('voice-hit'), 1000);
+      filled.push('blood group');
+    }
+    if (rhEl && !rhEl.value && data.rh_factor) {
+      rhEl.value = data.rh_factor;
+      rhEl.classList.add('voice-hit');
+      setTimeout(() => rhEl.classList.remove('voice-hit'), 1000);
+      filled.push('RH');
+    }
+    if (diagEl && !diagEl.value && data.diagnosis) {
+      diagEl.value = data.diagnosis;
+      diagEl.classList.add('voice-hit');
+      setTimeout(() => diagEl.classList.remove('voice-hit'), 1000);
+      filled.push('diagnosis');
+    }
+
+    hint.textContent = filled.length
+      ? `✓ Returning patient — filled: ${filled.join(', ')}`
+      : `✓ Returning patient: ${existingName}`;
+    hint.classList.add('show', 'success');
+
+  } catch {
+    hint.textContent = 'Could not reach server';
+    hint.classList.add('show', 'info');
+  } finally {
+    btn.classList.remove('loading');
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// SAVE
+// ═══════════════════════════════════════════════════════
+async function saveForm(formType) {
+  if (!validateForm(formType)) return;
+  const data = { form_type: formType };
+  Object.entries(FIELD_MAP).forEach(([key, map]) => {
+    if (map.form !== formType) return;
+    const el = document.getElementById(map.id);
+    if (!el) return;
+    if (map.type === 'checkbox') data[key] = el.checked;
+    else data[key] = el.value;
+  });
+
+  // Expiry date check for delivery forms
+  if (formType === 'delivery' && data.expiry_date) {
+    const expiry   = new Date(data.expiry_date + 'T00:00:00');
+    const today    = new Date(); today.setHours(0, 0, 0, 0);
+    const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1);
+    const diffDays = Math.round((expiry - today) / 86400000);
+
+    if (expiry < today) {
+      const el = document.getElementById('d_expiry_date');
+      if (el) { el.classList.add('expiry-expired'); el.scrollIntoView({ behavior:'smooth', block:'center' }); }
+      setStatus('', `❌ Blood unit expired ${Math.abs(diffDays)} day${Math.abs(diffDays) !== 1 ? 's' : ''} ago — delivery blocked`);
+      return;
+    }
+    if (diffDays <= 1) {
+      const msg = diffDays === 0
+        ? 'This blood unit expires TODAY. Confirm delivery?'
+        : 'This blood unit expires TOMORROW. Confirm delivery?';
+      if (!confirm('⚠ ' + msg)) return;
+    }
+  }
+
+  // Blood compatibility check for delivery forms
+  if (formType === 'delivery') {
+    const bg        = data.d_blood_group;
+    const rh        = data.d_rh === 'Pos' ? '+' : data.d_rh === 'Neg' ? '-' : '';
+    const patientGr = bg && rh ? bg + rh : null;
+    const unitGr    = data.blood_unit_group || null;
+    if (patientGr && unitGr && !isCompatible(patientGr, unitGr)) {
+      const proceed = await showCompatWarning(patientGr, unitGr);
+      if (!proceed) return;
+    }
+  }
+
+  const isUpdate = currentEditRecord && currentEditRecord.form_type === formType;
+
+  // File number uniqueness check — only for new records
+  if (!isUpdate) {
+    const prefix      = formType === 'transfusion' ? 't' : 'd';
+    const fileNum     = formType === 'transfusion' ? data.file_number : data.d_file_number;
+    const patientName = (formType === 'transfusion' ? data.patient_name : data.d_patient_name) || '';
+
+    if (fileNum) {
+      try {
+        const _lr  = await apiFetch(`${API}/patient/lookup?file_number=${encodeURIComponent(fileNum)}`);
+        const lookup = _lr ? await _lr.json() : { found: false };
+        if (lookup.found &&
+            lookup.patient_name &&
+            lookup.patient_name.toLowerCase().trim() !== patientName.toLowerCase().trim()) {
+          const fnEl = document.getElementById(prefix + '_file_number');
+          const hint = document.getElementById(prefix + '_fnHint');
+          if (fnEl) { fnEl.classList.add('field-error'); fnEl.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+          if (hint) { hint.textContent = `⚠ File number already belongs to "${lookup.patient_name}" — cannot save`; hint.className = 'fn-hint show error'; }
+          setStatus('', `❌ File number already assigned to "${lookup.patient_name}"`);
+          return;
+        }
+      } catch { /* network error — allow save to proceed */ }
+    }
+
+    // Duplicate same-day record warning
+    if (fileNum) {
+      try {
+        const _dr = await apiFetch(`${API}/check-duplicate?file_number=${encodeURIComponent(fileNum)}&form_type=${encodeURIComponent(formType)}`);
+        const dup = _dr ? await _dr.json() : { duplicate: false };
+        if (dup.duplicate) {
+          const timeStr = dup.saved_at ? dup.saved_at.replace('T', ' ') : 'earlier today';
+          const proceed = confirm(`⚠ A ${formType} record for "${dup.patient_name}" already exists today (saved at ${timeStr}).\n\nSave anyway?`);
+          if (!proceed) return;
+        }
+      } catch { /* network error — allow save to proceed */ }
+    }
+  }
+
+  const url    = isUpdate
+    ? `${API}/forms/update/${currentEditRecord.id}`
+    : `${API}/forms/save`;
+  const method = isUpdate ? 'PUT' : 'POST';
+
+  try {
+    const res    = await apiFetch(url, { method, body: data });
+    const result = await res.json();
+    if (result.success) {
+      const prefix = formType === 'transfusion' ? 't' : 'd';
+      clearDraft(formType);
+      if (isUpdate) {
+        exitViewMode(prefix);
+      } else {
+        clearForm(prefix); // clear fields so auto-save doesn't re-draft them
+      }
+      setStatus('done', isUpdate ? '✅ Record updated!' : '✅ Saved to database!');
+      loadHistory();
+    } else {
+      setStatus('', '❌ ' + (isUpdate ? 'Update' : 'Save') + ' failed: ' + (result.error || 'unknown'));
+    }
+  } catch (err) {
+    setStatus('', '❌ Cannot reach server');
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// EXPORT — PDF / DOCX
+// ═══════════════════════════════════════════════════════
+async function exportForm(formType, fileType) {
+  const data = { form_type: formType };
+  Object.entries(FIELD_MAP).forEach(([key, map]) => {
+    if (map.form !== formType) return;
+    const el = document.getElementById(map.id);
+    if (!el) return;
+    if (map.type === 'checkbox') data[key] = el.checked;
+    else data[key] = el.value;
+  });
+
+  setStatus('processing', '⏳ Generating ' + fileType.toUpperCase() + '…');
+
+  try {
+    const res = await apiFetch(`${API}/export/` + fileType, { method: 'POST', body: data });
+
+    if (!res.ok) {
+      const errText = await res.text();
+      setStatus('', '❌ Export failed: ' + errText);
+      return;
+    }
+
+    const blob = await res.blob();
+    if (blob.size === 0) { setStatus('', '❌ Export returned empty file'); return; }
+
+    const patName = (
+      document.getElementById(formType === 'transfusion' ? 't_patient_name' : 'd_patient_name')?.value || 'form'
+    ).replace(/\s+/g, '_');
+
+    const url = URL.createObjectURL(blob);
+    const a   = document.createElement('a');
+    a.href     = url;
+    a.download = patName + '_' + formType + '.' + fileType;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+
+    setStatus('done', '✅ ' + fileType.toUpperCase() + ' downloaded!');
+  } catch (err) {
+    setStatus('', '❌ Export error: ' + err.message);
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// HISTORY
+// ═══════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════
+// HISTORY — with search & filter
+// ═══════════════════════════════════════════════════════
+let historyRecords = [];
+let viewModeActive  = { t: false, d: false };
+let editModeActive  = { t: false, d: false };
+let currentEditRecord = null; // { id, form_type } when editing an existing record
+let searchFilter   = 'all';
+let searchTimer    = null;
+
+async function loadHistory() {
+  await doSearch();
+}
+
+function onSearchInput() {
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(doSearch, 300); // debounce 300ms
+}
+
+function setFilter(type) {
+  searchFilter = type;
+  document.getElementById('filterAll').classList.toggle('active', type === 'all');
+  document.getElementById('filterTransfusion').classList.toggle('active', type === 'transfusion');
+  document.getElementById('filterDelivery').classList.toggle('active', type === 'delivery');
+  doSearch();
+}
+
+async function doSearch() {
+  const q    = document.getElementById('searchInput').value.trim();
+  const date = document.getElementById('searchDate').value;
+  const grid = document.getElementById('historyGrid');
+  const stats = document.getElementById('searchStats');
+
+  // Show loading
+  grid.innerHTML = '<div class="empty-msg"><div class="empty-text">Searching…</div></div>';
+
+  try {
+    const params = new URLSearchParams({ q, type: searchFilter, date });
+    const url = `${API}/history/search?${params}`;
+
+    const res  = await apiFetch(url);
+    if (!res) return;
+    const rows = await res.json();
+
+    if (!Array.isArray(rows) || !rows.length) {
+      historyRecords = [];
+      stats.innerHTML = '';
+      grid.innerHTML = `
+        <div class="no-results">
+          <div class="no-results-icon">🔍</div>
+          <div class="no-results-text">${q ? `No records found for "<strong>${q}</strong>"` : 'No records yet.'}</div>
+        </div>`;
+      return;
+    }
+
+    historyRecords = rows;
+    const tCount = rows.filter(r => r.form_type === 'transfusion').length;
+    const dCount = rows.filter(r => r.form_type === 'delivery').length;
+    stats.innerHTML = `<strong>${rows.length}</strong> record${rows.length !== 1 ? 's' : ''} &nbsp;·&nbsp; ${tCount} transfusion${tCount !== 1 ? 's' : ''}, ${dCount} deliver${dCount !== 1 ? 'ies' : 'y'}`;
+
+    grid.innerHTML = rows.map((r, idx) => {
+      // Highlight matching text
+      const hl = (str) => {
+        if (!q || !str) return str || '';
+        const re = new RegExp(`(${q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+        return String(str).replace(re, '<mark class="highlight">$1</mark>');
+      };
+
+      return `
+        <div class="hcard" id="hc-${r.id}-${r.form_type}" onclick="loadRecordIntoForm(${idx})" title="Click to load into form">
+          <div class="hcard-top">
+            <span class="hcard-type ${r.form_type}">${r.form_type === 'transfusion' ? '🩸 Transfusion' : '🚚 Delivery'}</span>
+            <span class="hcard-time">${new Date(r.created_at.replace(' ', 'T')).toLocaleString('en-GB')}</span>
+          </div>
+          ${r.patient_name ? `<div class="hcard-row">👤 <strong>${hl(r.patient_name)}</strong></div>` : ''}
+          ${r.file_number  ? `<div class="hcard-row">📋 File: ${hl(r.file_number)}</div>` : ''}
+          ${r.diagnosis    ? `<div class="hcard-row">🏥 ${hl(r.diagnosis)}</div>` : ''}
+          ${r.blood_group  ? `<div class="hcard-row">🩸 ${r.blood_group}${r.rh_factor ? ' ' + r.rh_factor : ''}</div>` : ''}
+          ${r.room         ? `<div class="hcard-row">🚪 Room ${r.room}</div>` : ''}
+          ${r.saved_by     ? `<div class="hcard-row" style="font-size:11px;color:#888;margin-top:4px">👤 Saved by: ${r.saved_by}</div>` : ''}
+          ${currentUser?.role === 'admin' ? `<button class="btn-del delete-btn" onclick="event.stopPropagation();deleteRecord(${r.id},'${r.form_type}')">🗑 Delete</button>` : ''}
+        </div>`;
+    }).join('');
+
+  } catch {
+    grid.innerHTML = '<div class="empty-msg"><div class="empty-icon">⚠️</div><div class="empty-text">Could not load — is the server running?</div></div>';
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// LOAD RECORD INTO FORM
+// ═══════════════════════════════════════════════════════
+function loadRecordIntoForm(idx) {
+  const r = historyRecords[idx];
+  if (!r) return;
+  const formType = r.form_type;
+  const prefix = formType === 'transfusion' ? 't' : 'd';
+  document.querySelectorAll('.hcard').forEach(c => c.classList.remove('selected'));
+  const card = document.getElementById('hc-' + r.id + '-' + r.form_type);
+  if (card) card.classList.add('selected');
+  setForm(formType);
+  clearForm(prefix);
+
+  if (formType === 'transfusion') {
+    fillFromRecord('t', {
+      request_date: r.request_date ? r.request_date.split('T')[0] : '',
+      request_time: r.request_time || '',
+      room: r.room || '',
+      patient_name: r.patient_name || '',
+      file_number: r.file_number || '',
+      blood_group: r.blood_group || '',
+      rh: r.rh_factor || '',
+      diagnosis: r.diagnosis || '',
+      fpc_units: r.fpc_units || '',
+      fpc_type: r.fpc_type || '',
+      ffp_units: r.ffp_units || '',
+      ffp_type: r.ffp_type || '',
+      plt_units: r.plt_units || '',
+      plt_type: r.plt_type || '',
+      unit_1: r.blood_unit_1 || '',
+      unit_2: r.blood_unit_2 || '',
+      unit_3: r.blood_unit_3 || '',
+      unit_4: r.blood_unit_4 || '',
+      unit_5: r.blood_unit_5 || '',
+      unit_6: r.blood_unit_6 || '',
+      unit_7: r.blood_unit_7 || '',
+      unit_8: r.blood_unit_8 || '',
+      physician: r.physician || '',
+      phlebotomist: r.phlebotomist || '',
+    });
+    if (r.previous_transfusion) document.getElementById('t_prev_yes').checked = true;
+    else document.getElementById('t_prev_no').checked = true;
+    if (r.prev_transfusion_place)    setVal('t_prev_place',    r.prev_transfusion_place);
+    if (r.prev_transfusion_reaction) setVal('t_prev_reaction', r.prev_transfusion_reaction);
+    if (r.life_saving)               document.getElementById('t_life_saving').checked = true;
+    if (r.life_saving_physician)     setVal('t_ls_physician',  r.life_saving_physician);
+    if (r.life_saving_time)          setVal('t_ls_time',       r.life_saving_time);
+  } else {
+    fillFromRecord('d', {
+      patient_name: r.patient_name || '',
+      file_number: r.file_number || '',
+      blood_group: r.blood_group || '',
+      rh: r.rh_factor || '',
+      room: r.room || '',
+      allergy_details: r.allergy_details || '',
+      blood_type_requested: r.type_of_blood_requested || '',
+      blood_unit_numbers: r.blood_unit_numbers || '',
+      type_of_blood: r.type_of_blood || '',
+      blood_unit_group: r.blood_unit_group || '',
+      patient_bg_delivery: r.patient_blood_group_delivery || '',
+      technician: r.technician || '',
+      orderly: r.orderly || '',
+      nurse: r.nurse || '',
+      delivery_date: r.delivery_date ? r.delivery_date.split('T')[0] : '',
+      delivery_time: r.delivery_time || '',
+      leakage: r.leakage || '',
+      gases: r.gases || '',
+      volume: r.volume || '',
+      expiry_date: r.expiry_date ? r.expiry_date.split('T')[0] : '',
+      temperature: r.temperature || '',
+      received_by: r.received_by || '',
+      nurse_received_by: r.nurse_unit_received_by || '',
+      nurse_name:        r.nurse_unit_name || '',
+      nurse_date:        r.nurse_unit_date ? r.nurse_unit_date.split('T')[0] : '',
+      nurse_time:        r.nurse_unit_time || '',
+    });
+    if (r.life_saving)           document.getElementById('d_life_saving').checked = true;
+    if (r.life_saving_physician) setVal('d_ls_physician', r.life_saving_physician);
+    if (r.life_saving_time)      setVal('d_ls_time',      r.life_saving_time);
+  }
+
+  currentEditRecord = { id: r.id, form_type: r.form_type };
+  enterViewMode(prefix, r.patient_name || 'Unknown');
+  document.getElementById(formType === 'transfusion' ? 'cardTransfusion' : 'cardDelivery')
+    .scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function setVal(id, val) {
+  const el = document.getElementById(id);
+  if (el && val) el.value = String(val);
+}
+
+function fillFromRecord(prefix, data) {
+  for (const [key, val] of Object.entries(data)) {
+    const el = document.getElementById(prefix + '_' + key);
+    if (el && val) {
+      el.value = String(val);
+      el.classList.remove('voice-hit');
+      void el.offsetWidth;
+      el.classList.add('voice-hit');
+      setTimeout(() => el.classList.remove('voice-hit'), 1200);
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// VIEW / EDIT MODE
+// ═══════════════════════════════════════════════════════
+function enterViewMode(prefix, patientName) {
+  const card = document.getElementById(prefix === 't' ? 'cardTransfusion' : 'cardDelivery');
+  card.classList.add('view-mode');
+  viewModeActive[prefix] = true;
+  editModeActive[prefix] = false;
+  document.getElementById(prefix + '_editBar').classList.add('show');
+  document.getElementById(prefix + '_editName').textContent = patientName;
+  const editBtn = document.getElementById(prefix + '_editBtn');
+  editBtn.textContent = '✏️ Edit';
+  editBtn.classList.remove('editing');
+  document.getElementById(prefix + '_saveBtn').disabled = true;
+  document.getElementById(prefix + '_saveBtn').style.opacity = '0.4';
+}
+
+function toggleEditMode(prefix) {
+  const card    = document.getElementById(prefix === 't' ? 'cardTransfusion' : 'cardDelivery');
+  const editBtn = document.getElementById(prefix + '_editBtn');
+  const saveBtn = document.getElementById(prefix + '_saveBtn');
+  if (!editModeActive[prefix]) {
+    card.classList.remove('view-mode');
+    editModeActive[prefix] = true;
+    editBtn.textContent = '🔒 Lock';
+    editBtn.classList.add('editing');
+    saveBtn.disabled = false;
+    saveBtn.style.opacity = '1';
+    saveBtn.textContent = '💾 Update Record';
+    saveBtn.classList.add('updating');
+  } else {
+    card.classList.add('view-mode');
+    editModeActive[prefix] = false;
+    editBtn.textContent = '✏️ Edit';
+    editBtn.classList.remove('editing');
+    saveBtn.disabled = true;
+    saveBtn.style.opacity = '0.4';
+    saveBtn.textContent = '💾 Update Record';
+  }
+}
+
+function exitViewMode(prefix) {
+  const card = document.getElementById(prefix === 't' ? 'cardTransfusion' : 'cardDelivery');
+  card.classList.remove('view-mode');
+  viewModeActive[prefix] = false;
+  editModeActive[prefix] = false;
+  document.getElementById(prefix + '_editBar').classList.remove('show');
+  const saveBtn = document.getElementById(prefix + '_saveBtn');
+  saveBtn.disabled = false;
+  saveBtn.style.opacity = '1';
+  saveBtn.textContent = '💾 Save Record';
+  saveBtn.classList.remove('updating');
+  currentEditRecord = null;
+  clearForm(prefix);
+  document.querySelectorAll('.hcard').forEach(c => c.classList.remove('selected'));
+}
+
+async function deleteRecord(id, formType) {
+  if (!confirm('Delete this record?')) return;
+  await apiFetch(`${API}/history/${id}?form_type=${formType}`, { method: 'DELETE' });
+  document.getElementById(`hc-${id}-${formType}`)?.remove();
+  // Update stats
+  historyRecords = historyRecords.filter(r => !(r.id === id && r.form_type === formType));
+  const stats = document.getElementById('searchStats');
+  if (historyRecords.length === 0) {
+    document.getElementById('historyGrid').innerHTML = '<div class="no-results"><div class="no-results-icon">📋</div><div class="no-results-text">No records.</div></div>';
+    stats.innerHTML = '';
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// UI HELPERS
+// ═══════════════════════════════════════════════════════
+function setStatus(type, text, dot = false) {
+  const el = document.getElementById('voiceStatus');
+  el.className = 'voice-status ' + type;
+  el.innerHTML = `<div class="vs-dot${dot ? ' pulse' : ''}"></div><span>${text}</span>`;
+}
+
+function showTranscript(text) {
+  if (!text) return;
+  document.getElementById('transcriptText').textContent = text;
+  const strip = document.getElementById('transcriptStrip');
+  strip.classList.add('show');
+  setTimeout(() => strip.classList.remove('show'), 9000);
+}
+
+function showToast(field, value) {
+  const stack = document.getElementById('flashStack');
+  const toast = document.createElement('div');
+  toast.className = 'flash-toast';
+  toast.innerHTML = `<div class="ft-field">${field}</div><div class="ft-value">${value}</div>`;
+  stack.appendChild(toast);
+  setTimeout(() => toast.remove(), 3200);
+}
+
+// ═══════════════════════════════════════════════════════
+// EXTERNAL DELIVERY FORM
+// ═══════════════════════════════════════════════════════
+let currentExtId = null;
+
+const EXT_FIXED   = { frbc:'Filtered RBC', ffp:'FFP', plt:'Platelets' };
+const EXT_BG_OPTS = ['','A+','A-','B+','B-','AB+','AB-','O+','O-'];
+
+function defaultExtComponents() {
+  return [
+    { key:'frbc', label:'Filtered RBC', unit_no:'', blood_group:'', expiry_date:'', notes:'' },
+    { key:'ffp',  label:'FFP',          unit_no:'', blood_group:'', expiry_date:'', notes:'' },
+    { key:'plt',  label:'Platelets',    unit_no:'', blood_group:'', expiry_date:'', notes:'' },
+    { key:'oth1', label:'',             unit_no:'', blood_group:'', expiry_date:'', notes:'' },
+    { key:'oth2', label:'',             unit_no:'', blood_group:'', expiry_date:'', notes:'' },
+  ];
+}
+let extComponents = defaultExtComponents();
+
+function escHtml(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function syncExtComp(idx, field, value) {
+  if (extComponents[idx]) extComponents[idx][field] = value;
+}
+
+function addExtCompRow(key) {
+  let lastIdx = -1, lastLabel = '';
+  extComponents.forEach((c,i) => { if(c.key===key){ lastIdx=i; lastLabel=c.label||''; } });
+  if (lastIdx === -1) return;
+  extComponents.splice(lastIdx + 1, 0, {
+    key, label: EXT_FIXED[key] || lastLabel,
+    unit_no:'', blood_group:'', expiry_date:'', notes:''
+  });
+  renderExtCompTable();
+}
+
+function removeExtCompRow(idx) {
+  extComponents.splice(idx, 1);
+  renderExtCompTable();
+}
+
+function renderExtCompTable() {
+  const tbody = document.getElementById('extCompBody');
+  if (!tbody) return;
+  const lastOfKey = {};
+  extComponents.forEach((c,i) => { lastOfKey[c.key] = i; });
+  const seenKeys = {};
+  tbody.innerHTML = extComponents.map((c, idx) => {
+    const isFirst = !seenKeys[c.key]; seenKeys[c.key] = true;
+    const isLast  = lastOfKey[c.key] === idx;
+    const fixed   = EXT_FIXED[c.key];
+    const nameCell = fixed
+      ? `<td class="ext-comp-label" style="${isFirst?'':'color:var(--text-soft);font-style:italic;font-size:11px'}">${fixed}</td>`
+      : `<td><input type="text" style="width:100%;padding:5px 7px;border:1.5px solid var(--border);border-radius:4px;font-size:12px;font-family:inherit" value="${escHtml(c.label)}" oninput="syncExtComp(${idx},'label',this.value)" placeholder="Component name…"/></td>`;
+    const bgOpts = EXT_BG_OPTS.map(o=>`<option value="${o}"${o===c.blood_group?' selected':''}>${o||'—'}</option>`).join('');
+    const addBtn = isLast  ? `<button type="button" class="comp-add-btn" onclick="addExtCompRow('${c.key}')" title="Add row">+</button>` : '';
+    const remBtn = !isFirst ? `<button type="button" class="comp-rem-btn" onclick="removeExtCompRow(${idx})" title="Remove row">−</button>` : '';
+    return `<tr>${nameCell}
+      <td><input type="text" class="comp-input" value="${escHtml(c.unit_no)}" oninput="syncExtComp(${idx},'unit_no',this.value)" placeholder="Unit #"/></td>
+      <td><select class="comp-input" onchange="syncExtComp(${idx},'blood_group',this.value)">${bgOpts}</select></td>
+      <td><input type="date" class="comp-input" value="${escHtml(c.expiry_date)}" onchange="syncExtComp(${idx},'expiry_date',this.value)"/></td>
+      <td><input type="text" class="comp-input" value="${escHtml(c.notes)}" oninput="syncExtComp(${idx},'notes',this.value)" placeholder="Notes"/></td>
+      <td class="comp-btn-cell">${addBtn}${remBtn}</td></tr>`;
+  }).join('');
+}
+
+function clearExtForm() {
+  currentExtId = null;
+  document.getElementById('ex_saveBtn').textContent = '💾 Save Record';
+  ['ex_patient_name','ex_destination','ex_delivery_date','ex_delivery_hour','ex_technician_name'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  ['ex_test_hiv','ex_test_hbsag','ex_test_hcv','ex_test_hb_core','ex_test_sts','ex_test_iat','ex_test_kell'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.checked = false;
+  });
+  document.querySelectorAll('input[name="ex_integrity"]').forEach(r => r.checked = false);
+  extComponents = defaultExtComponents();
+  renderExtCompTable();
+}
+
+function collectExtFields() {
+  const integrityEl = document.querySelector('input[name="ex_integrity"]:checked');
+  const g  = id => (document.getElementById(id)?.value || '').trim();
+  const gd = id => document.getElementById(id)?.value || null;
+  const gc = id => document.getElementById(id)?.checked ? 1 : 0;
+  return {
+    patient_name:    g('ex_patient_name'),
+    destination:     g('ex_destination'),
+    delivery_date:   gd('ex_delivery_date'),
+    delivery_hour:   g('ex_delivery_hour'),
+    technician_name: g('ex_technician_name'),
+    test_hiv:     gc('ex_test_hiv'),   test_hbsag:   gc('ex_test_hbsag'),
+    test_hcv:     gc('ex_test_hcv'),   test_hb_core: gc('ex_test_hb_core'),
+    test_sts:     gc('ex_test_sts'),   test_iat:     gc('ex_test_iat'),
+    test_kell:    gc('ex_test_kell'),
+    integrity:    integrityEl ? integrityEl.value : null,
+    components:   extComponents
+  };
+}
+
+async function saveExtDelivery() {
+  const fields = collectExtFields();
+  if (!fields.patient_name) { showToast('Patient name is required.', 'error'); return; }
+  const btn = document.getElementById('ex_saveBtn');
+  btn.disabled = true;
+  try {
+    let res;
+    if (currentExtId) {
+      res = await apiFetch(`${API}/ext-delivery/${currentExtId}`, { method: 'PUT', body: fields });
+    } else {
+      res = await apiFetch(`${API}/ext-delivery/save`, { method: 'POST', body: fields });
+    }
+    if (!res) return;
+    const data = await res.json();
+    if (!res.ok) { showToast(data.error || 'Save failed.', 'error'); return; }
+    showToast(currentExtId ? 'Record updated.' : 'Record saved.', 'success');
+    currentExtId = null;
+    btn.textContent = '💾 Save Record';
+    clearExtForm();
+    loadExtHistory();
+  } catch { showToast('Server error.', 'error'); }
+  finally  { btn.disabled = false; }
+}
+
+async function loadExtHistory() {
+  const grid = document.getElementById('extHistoryGrid');
+  if (!grid) return;
+  grid.innerHTML = '<div class="empty-msg"><div class="empty-icon">⏳</div><div class="empty-text">Loading…</div></div>';
+  try {
+    const res = await apiFetch(`${API}/ext-delivery`);
+    if (!res) return;
+    const rows = await res.json();
+    if (!rows.length) {
+      grid.innerHTML = '<div class="empty-msg"><div class="empty-icon">🚚</div><div class="empty-text">No records yet.</div></div>';
+      return;
+    }
+    grid.innerHTML = rows.map(r => {
+      const dateStr = r.delivery_date ? r.delivery_date.slice(0, 10) : '—';
+      return `
+        <div class="history-card" style="cursor:default">
+          <div class="card-header">
+            <div class="card-patient">${r.patient_name || '—'}</div>
+            <div class="card-date">${dateStr}</div>
+          </div>
+          <div class="card-info-row">
+            <span class="card-info-label">Destination</span>
+            <span class="card-info-value">${r.destination || '—'}</span>
+          </div>
+          <div class="card-info-row">
+            <span class="card-info-label">Technician</span>
+            <span class="card-info-value">${r.technician_name || '—'}</span>
+          </div>
+          <div class="card-actions" style="margin-top:10px;display:flex;gap:8px">
+            <button class="btn-edit" onclick="viewExtRecord(${r.delivery_id})">✏️ Edit</button>
+            <button class="btn-clear" onclick="exportExtFromRecord(${r.delivery_id},'pdf')">📄 PDF</button>
+            <button class="btn-clear" onclick="exportExtFromRecord(${r.delivery_id},'docx')">📝 Word</button>
+            <button class="delete-btn" onclick="deleteExtRecord(${r.delivery_id})" style="${currentUser?.role==='admin'?'':'display:none'}">🗑️</button>
+          </div>
+        </div>`;
+    }).join('');
+  } catch { grid.innerHTML = '<div class="empty-msg"><div class="empty-text">Could not load history.</div></div>'; }
+}
+
+async function viewExtRecord(id) {
+  const res = await apiFetch(`${API}/ext-delivery`);
+  if (!res) return;
+  const rows = await res.json();
+  const r = rows.find(x => x.delivery_id === id);
+  if (!r) return;
+  currentExtId = id;
+  const set = (elId, val) => { const el = document.getElementById(elId); if (el) el.value = val || ''; };
+  set('ex_patient_name',    r.patient_name);
+  set('ex_destination',     r.destination);
+  set('ex_delivery_date',   r.delivery_date ? r.delivery_date.slice(0,10) : '');
+  set('ex_delivery_hour',   r.delivery_hour);
+  set('ex_technician_name', r.technician_name);
+  const chk = (elId, val) => { const el = document.getElementById(elId); if (el) el.checked = !!val; };
+  chk('ex_test_hiv',    r.test_hiv);  chk('ex_test_hbsag', r.test_hbsag); chk('ex_test_hcv',  r.test_hcv);
+  chk('ex_test_hb_core',r.test_hb_core); chk('ex_test_sts', r.test_sts); chk('ex_test_iat',  r.test_iat);
+  chk('ex_test_kell',   r.test_kell);
+  extComponents = (r.components && r.components.length) ? r.components.map(c => ({ ...c })) : defaultExtComponents();
+  renderExtCompTable();
+  if (r.integrity) {
+    const radio = document.querySelector(`input[name="ex_integrity"][value="${r.integrity}"]`);
+    if (radio) radio.checked = true;
+  }
+  document.getElementById('ex_saveBtn').textContent = '💾 Update Record';
+  window.scrollTo({ top: document.getElementById('extDelSection').offsetTop - 20, behavior: 'smooth' });
+}
+
+async function deleteExtRecord(id) {
+  if (!confirm('Delete this external delivery record?')) return;
+  const res = await apiFetch(`${API}/ext-delivery/${id}`, { method: 'DELETE' });
+  if (!res) return;
+  if (res.ok) { showToast('Record deleted.', 'success'); loadExtHistory(); }
+  else { const d = await res.json(); showToast(d.error || 'Delete failed.', 'error'); }
+}
+
+async function exportExtDelivery(type) {
+  const fields = collectExtFields();
+  const endpoint = type === 'pdf' ? '/ext-delivery/export/pdf' : '/ext-delivery/export/docx';
+  const mimeType = type === 'pdf' ? 'application/pdf' : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+  const ext      = type === 'pdf' ? 'pdf' : 'docx';
+  try {
+    const res = await apiFetch(`${API}${endpoint}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(fields)
+    });
+    if (!res || !res.ok) { showToast('Export failed.', 'error'); return; }
+    const blob = await res.blob();
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = `ext-delivery-${Date.now()}.${ext}`;
+    a.click();
+    URL.revokeObjectURL(url);
+  } catch { showToast('Export error.', 'error'); }
+}
+
+async function exportExtFromRecord(id, type) {
+  const res = await apiFetch(`${API}/ext-delivery`);
+  if (!res) return;
+  const rows = await res.json();
+  const r = rows.find(x => x.delivery_id === id);
+  if (!r) return;
+  // Populate form silently then export
+  const savedId = currentExtId;
+  currentExtId = id;
+  // Build fields object directly from record
+  const intVal = r.integrity || null;
+  const fields = {
+    patient_name: r.patient_name, destination: r.destination,
+    delivery_date: r.delivery_date ? r.delivery_date.slice(0,10) : null,
+    delivery_hour: r.delivery_hour, technician_name: r.technician_name,
+    frbc_unit_no: r.frbc_unit_no, frbc_blood_group: r.frbc_blood_group,
+    frbc_expiry_date: r.frbc_expiry_date ? r.frbc_expiry_date.slice(0,10) : null, frbc_notes: r.frbc_notes,
+    ffp_unit_no: r.ffp_unit_no, ffp_blood_group: r.ffp_blood_group,
+    ffp_expiry_date: r.ffp_expiry_date ? r.ffp_expiry_date.slice(0,10) : null, ffp_notes: r.ffp_notes,
+    plt_unit_no: r.plt_unit_no, plt_blood_group: r.plt_blood_group,
+    plt_expiry_date: r.plt_expiry_date ? r.plt_expiry_date.slice(0,10) : null, plt_notes: r.plt_notes,
+    other1_component: r.other1_component, other1_unit_no: r.other1_unit_no,
+    other1_blood_group: r.other1_blood_group,
+    other1_expiry_date: r.other1_expiry_date ? r.other1_expiry_date.slice(0,10) : null, other1_notes: r.other1_notes,
+    other2_component: r.other2_component, other2_unit_no: r.other2_unit_no,
+    other2_blood_group: r.other2_blood_group,
+    other2_expiry_date: r.other2_expiry_date ? r.other2_expiry_date.slice(0,10) : null, other2_notes: r.other2_notes,
+    test_hiv: r.test_hiv, test_hbsag: r.test_hbsag, test_hcv: r.test_hcv,
+    test_hb_core: r.test_hb_core, test_sts: r.test_sts, test_iat: r.test_iat, test_kell: r.test_kell,
+    integrity: intVal,
+    components: r.components || null
+  };
+  const endpoint = type === 'pdf' ? '/ext-delivery/export/pdf' : '/ext-delivery/export/docx';
+  const ext      = type === 'pdf' ? 'pdf' : 'docx';
+  currentExtId = savedId;
+  try {
+    const res2 = await apiFetch(`${API}${endpoint}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(fields)
+    });
+    if (!res2 || !res2.ok) { showToast('Export failed.', 'error'); return; }
+    const blob = await res2.blob();
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = `ext-delivery-${r.patient_name || id}.${ext}`;
+    a.click();
+    URL.revokeObjectURL(url);
+  } catch { showToast('Export error.', 'error'); }
+}
+
+// Init
+loadHistory();
+</script>
+
+<!-- ── BLOOD COMPATIBILITY WARNING MODAL ── -->
+<div class="compat-overlay" id="compatOverlay">
+  <div class="compat-modal">
+    <div class="compat-icon">⚠️</div>
+    <div class="compat-title">Blood Group Mismatch</div>
+    <div class="compat-subtitle">The blood unit group is <strong>not compatible</strong> with the patient's blood group.</div>
+    <div class="compat-groups">
+      <div class="compat-group-box">
+        <div class="compat-group-label">Patient</div>
+        <div class="compat-group-value patient" id="compatPatientGroup">—</div>
+      </div>
+      <div class="compat-arrow">✕</div>
+      <div class="compat-group-box">
+        <div class="compat-group-label">Blood Unit</div>
+        <div class="compat-group-value unit" id="compatUnitGroup">—</div>
+      </div>
+    </div>
+    <div class="compat-warning-text">This may be life-threatening. Do not proceed unless you are certain this is correct.</div>
+    <div class="compat-btns">
+      <button class="compat-btn-cancel" id="compatBtnCancel">Cancel — Go Back</button>
+      <button class="compat-btn-override" id="compatBtnOverride">Override</button>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
