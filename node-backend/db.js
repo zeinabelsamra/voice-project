@@ -1,15 +1,16 @@
+require("dotenv").config();
 const sql = require("mssql");
 
 const config = {
-  server: "ELSAMRA-103080",
-  database: "BloodBankDB",
-  user: "bloodbank_user",
-  password: "BloodBank123!",
+  server:   process.env.DB_SERVER   || "ELSAMRA-103080",
+  database: process.env.DB_NAME     || "BloodBankDB",
+  user:     process.env.DB_USER     || "bloodbank_user",
+  password: process.env.DB_PASSWORD || "",
   options: {
     trustServerCertificate: true,
     enableArithAbort: true,
   },
-  port: 1433,
+  port: parseInt(process.env.DB_PORT) || 1433,
   pool: {
     max: 20,
     min: 2,

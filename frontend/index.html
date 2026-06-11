@@ -500,6 +500,21 @@
     .rt-status.pending{background:var(--mist);color:var(--text-soft);}
     .rt-empty{text-align:center;padding:32px;color:var(--text-soft);font-size:13px;}
 
+    /* ── WASTAGE PANEL ── */
+    .wastage-chips{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:4px;}
+    .wastage-chip{flex:1;min-width:110px;border-radius:10px;padding:14px 16px;text-align:center;border:1.5px solid var(--border);}
+    .wastage-chip.total{background:#fdf0ef;border-color:#f5b7b1;}
+    .wastage-chip.prc  {background:#fef9e7;border-color:#fde68a;}
+    .wastage-chip.ffp  {background:#eaf4fb;border-color:#aed6f1;}
+    .wastage-chip.plt  {background:#e8f5ee;border-color:#a8d5b8;}
+    .wastage-chip.rate {background:var(--mist);border-color:var(--border);}
+    .wc-num{font-size:26px;font-weight:800;color:var(--navy);line-height:1.1;}
+    .wastage-chip.total .wc-num{color:#c0392b;}
+    .wc-label{font-size:11px;color:var(--text-soft);margin-top:4px;font-weight:600;}
+    .wastage-badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;}
+    .wastage-badge.warn{background:#fdf0ef;color:#c0392b;border:1px solid #f5b7b1;}
+    .wastage-badge.ok  {background:#e8f5ee;color:#1a7f4b;border:1px solid #a8d5b8;}
+
     /* ── VALIDATION ── */
     .fi.field-error{border-color:#e74c3c!important;box-shadow:0 0 0 3px rgba(231,76,60,.18)!important;animation:shake .3s ease;}
     @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
@@ -1229,6 +1244,15 @@
       <div id="rtTableWrap">
         <div class="rt-empty">Loading…</div>
       </div>
+    </div>
+
+    <!-- Blood Wastage Tracker -->
+    <div class="dash-panel" style="margin-top:16px">
+      <div class="dash-panel-title">🗑 Blood Wastage Tracker
+        <span style="font-size:11px;font-weight:400;color:var(--text-soft);margin-left:8px">Ordered (Transfusion Request) vs. Delivered (Delivery Form) — last 90 days</span>
+      </div>
+      <div id="wastageSummary" style="margin-bottom:12px"></div>
+      <div id="wastageTableWrap"><div class="rt-empty">Loading…</div></div>
     </div>
   </div>
 
@@ -2196,8 +2220,9 @@ async function loadDashboard() {
     document.getElementById('dashSection').innerHTML += '<div class="dash-empty">Could not load dashboard — is the server running?</div>';
   }
 
-  // Response times (separate call — doesn't block dashboard on failure)
+  // Response times and wastage (separate calls — don't block main dashboard)
   loadResponseTimes();
+  loadWastageDashboard();
 }
 
 function renderDailyChart(days) {
@@ -2361,6 +2386,77 @@ async function loadResponseTimes() {
       </table>`;
   } catch (err) {
     wrapEl.innerHTML = '<div class="rt-empty">Could not load response times.</div>';
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// BLOOD WASTAGE DASHBOARD
+// ═══════════════════════════════════════════════════════
+async function loadWastageDashboard() {
+  const summaryEl = document.getElementById('wastageSummary');
+  const tableEl   = document.getElementById('wastageTableWrap');
+  try {
+    const res = await apiFetch(`${API}/dashboard/wastage`);
+    if (!res) return;
+    const data = await res.json();
+    if (data.error) { tableEl.innerHTML = '<div class="rt-empty">Wastage data unavailable.</div>'; return; }
+
+    const s = data.summary;
+    summaryEl.innerHTML = `
+      <div class="wastage-chips">
+        <div class="wastage-chip total">
+          <div class="wc-num">${s.totalWasted}</div>
+          <div class="wc-label">Total Units Wasted</div>
+        </div>
+        <div class="wastage-chip rate">
+          <div class="wc-num">${s.wastageRate}%</div>
+          <div class="wc-label">Wastage Rate</div>
+        </div>
+        <div class="wastage-chip prc">
+          <div class="wc-num">${s.prcWasted}</div>
+          <div class="wc-label">Packed Cells Wasted</div>
+        </div>
+        <div class="wastage-chip ffp">
+          <div class="wc-num">${s.ffpWasted}</div>
+          <div class="wc-label">FFP Wasted</div>
+        </div>
+        <div class="wastage-chip plt">
+          <div class="wc-num">${s.pltWasted}</div>
+          <div class="wc-label">Platelets Wasted</div>
+        </div>
+      </div>`;
+
+    if (!data.cases.length) {
+      tableEl.innerHTML = '<div class="rt-empty">No wastage records found in the last 90 days.<br>Wastage is calculated when a delivery record has fewer units than the linked transfusion request for the same patient.</div>';
+      return;
+    }
+
+    tableEl.innerHTML = `
+      <table class="rt-table">
+        <thead><tr>
+          <th>Patient</th><th>File #</th><th>Date</th><th>Component</th>
+          <th style="text-align:center">Ordered</th>
+          <th style="text-align:center">Used</th>
+          <th style="text-align:center">Wasted</th>
+        </tr></thead>
+        <tbody>
+          ${data.cases.map(c => `<tr>
+            <td><strong>${c.patient_name || '—'}</strong></td>
+            <td style="color:var(--text-soft);font-size:12px">${c.file_number || '—'}</td>
+            <td style="font-size:12px">${c.date || '—'}</td>
+            <td>${c.component}</td>
+            <td style="text-align:center;font-weight:700">${c.ordered}</td>
+            <td style="text-align:center">${c.used}</td>
+            <td style="text-align:center">
+              <span class="wastage-badge ${c.wasted > 0 ? 'warn' : 'ok'}">
+                ${c.wasted > 0 ? '⚠ ' + c.wasted + ' wasted' : '✓ None'}
+              </span>
+            </td>
+          </tr>`).join('')}
+        </tbody>
+      </table>`;
+  } catch {
+    tableEl.innerHTML = '<div class="rt-empty">Could not load wastage data.</div>';
   }
 }
 

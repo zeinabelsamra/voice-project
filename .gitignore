@@ -1,0 +1,14 @@
+# Environment variables — never commit these
+node-backend/.env
+.env
+
+# Dependencies
+node-backend/node_modules/
+python-service/venv/
+
+# Uploaded audio files
+node-backend/uploads/
+
+# OS files
+.DS_Store
+Thumbs.db

@@ -965,6 +965,88 @@ app.get('/patient/lookup', requireAuth, async (req, res) => {
 });
 
 // ════════════════════════════════════════════════════════════════
+// GET /dashboard/wastage
+// Compares ordered units (TransfusionRequests) vs delivered units
+// (BloodDeliveries.type_of_blood) for the same patient/file number.
+// ════════════════════════════════════════════════════════════════
+app.get('/dashboard/wastage', requireAuth, async (req, res) => {
+  if (!dbReady) return res.json({ error: 'db_not_ready' });
+  try {
+    const pool = await getPool();
+
+    const deliveries = await pool.request().query(`
+      SELECT delivery_id, patient_name, file_number,
+        CONVERT(NVARCHAR, delivery_date, 23) AS date,
+        type_of_blood, type_of_blood_requested, created_at
+      FROM BloodDeliveries
+      WHERE type_of_blood IS NOT NULL AND LEN(LTRIM(RTRIM(type_of_blood))) > 0
+        AND file_number IS NOT NULL AND LEN(LTRIM(RTRIM(file_number))) > 0
+        AND created_at >= DATEADD(day, -90, GETDATE())
+      ORDER BY created_at DESC
+    `);
+
+    const transfusions = await pool.request().query(`
+      SELECT request_id, file_number, fpc_units, ffp_units, plt_units, created_at
+      FROM TransfusionRequests
+      WHERE (fpc_units IS NOT NULL OR ffp_units IS NOT NULL OR plt_units IS NOT NULL)
+        AND file_number IS NOT NULL AND LEN(LTRIM(RTRIM(file_number))) > 0
+        AND created_at >= DATEADD(day, -90, GETDATE())
+    `);
+
+    const cases = [];
+    let totalOrdered = 0, totalUsed = 0;
+    let prcWasted = 0, ffpWasted = 0, pltWasted = 0;
+
+    for (const d of deliveries.recordset) {
+      const usedQty = parseInt(d.type_of_blood) || 0;
+      if (usedQty === 0) continue;
+
+      const dTime = new Date(d.created_at).getTime();
+      const match = transfusions.recordset.find(t => {
+        if (!t.file_number || t.file_number.trim() !== d.file_number.trim()) return false;
+        const diff = (dTime - new Date(t.created_at).getTime()) / 86400000;
+        return diff >= -1 && diff <= 7;
+      });
+      if (!match) continue;
+
+      const typeText = (d.type_of_blood_requested || '') + ' ' + (d.type_of_blood || '');
+      let ordered = 0, component = 'Blood';
+      if (/pack|prc|p\.?c/i.test(typeText)) {
+        ordered = match.fpc_units || 0; component = 'Packed Cells'; prcWasted += Math.max(0, ordered - usedQty);
+      } else if (/ffp|plasma|fresh/i.test(typeText)) {
+        ordered = match.ffp_units || 0; component = 'FFP';          ffpWasted += Math.max(0, ordered - usedQty);
+      } else if (/platelet|plt/i.test(typeText)) {
+        ordered = match.plt_units || 0; component = 'Platelets';    pltWasted += Math.max(0, ordered - usedQty);
+      } else {
+        ordered = (match.fpc_units || 0) + (match.ffp_units || 0) + (match.plt_units || 0);
+        component = d.type_of_blood_requested || 'Blood';
+      }
+      if (ordered === 0) continue;
+
+      const wasted = Math.max(0, ordered - usedQty);
+      totalOrdered += ordered;
+      totalUsed    += usedQty;
+      cases.push({
+        patient_name: d.patient_name, file_number: d.file_number,
+        date: d.date, component, ordered, used: usedQty, wasted,
+      });
+    }
+
+    cases.sort((a, b) => b.wasted - a.wasted);
+    const totalWasted = prcWasted + ffpWasted + pltWasted;
+    const wastageRate = totalOrdered > 0 ? Math.round((totalWasted / totalOrdered) * 100) : 0;
+
+    res.json({
+      summary: { totalOrdered, totalUsed, totalWasted, wastageRate, prcWasted, ffpWasted, pltWasted },
+      cases: cases.slice(0, 30),
+    });
+  } catch (err) {
+    console.error('Wastage error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ════════════════════════════════════════════════════════════════
 // GET /response-times
 // For each transfusion request, finds the nearest delivery by the
 // same file_number and calculates the elapsed minutes.
