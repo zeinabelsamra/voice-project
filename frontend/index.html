@@ -508,6 +508,40 @@
     .dash-date-clear{padding:4px 10px;border:1.5px solid var(--border);border-radius:6px;font-size:11px;background:#fff;color:var(--text-soft);cursor:pointer;font-weight:600;}
     .dash-date-clear:hover{border-color:var(--blood);color:var(--blood);}
 
+    /* ── EXT DELIVERY CARDS ── */
+    .ext-card{background:var(--white);border:1.5px solid var(--border);border-radius:12px;padding:0;box-shadow:var(--shadow-sm);transition:box-shadow .18s,border-color .18s;overflow:hidden;}
+    .ext-card:hover{box-shadow:var(--shadow-md);border-color:#aed6f1;}
+    .ext-card-head{display:flex;align-items:flex-start;justify-content:space-between;padding:14px 16px 10px;background:linear-gradient(135deg,#f0f6ff,#fafcff);border-bottom:1px solid var(--border);}
+    .ext-card-name{font-size:15px;font-weight:700;color:var(--navy);line-height:1.2;}
+    .ext-card-meta{font-size:11px;color:var(--text-soft);margin-top:3px;}
+    .ext-card-badges{display:flex;flex-direction:column;align-items:flex-end;gap:5px;flex-shrink:0;margin-left:10px;}
+    .ext-badge{display:inline-block;padding:3px 9px;border-radius:20px;font-size:10px;font-weight:700;white-space:nowrap;}
+    .ext-badge.intact{background:#e8f5ee;color:#1a7f4b;border:1px solid #a8d5b8;}
+    .ext-badge.not-intact{background:#fdf0ef;color:#c0392b;border:1px solid #f5b7b1;}
+    .ext-badge.date{background:#eaf4fb;color:#1a5276;border:1px solid #aed6f1;}
+    .ext-card-body{padding:12px 16px;display:flex;flex-direction:column;gap:8px;}
+    .ext-info-row{display:flex;align-items:center;gap:8px;font-size:12.5px;}
+    .ext-info-icon{font-size:14px;flex-shrink:0;width:20px;text-align:center;}
+    .ext-info-label{color:var(--text-soft);font-weight:600;font-size:11px;min-width:80px;}
+    .ext-info-val{color:var(--text);font-weight:500;}
+    .ext-card-section{margin-top:2px;}
+    .ext-section-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-soft);margin-bottom:5px;padding-bottom:4px;border-bottom:1px solid var(--mist);}
+    .ext-comp-table{width:100%;border-collapse:collapse;font-size:11.5px;}
+    .ext-comp-table th{text-align:left;padding:4px 6px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:var(--text-soft);border-bottom:1px solid var(--border);}
+    .ext-comp-table td{padding:5px 6px;border-bottom:1px solid var(--mist);color:var(--text);vertical-align:middle;}
+    .ext-comp-table tr:last-child td{border-bottom:none;}
+    .ext-comp-label{font-weight:600;color:var(--navy);}
+    .ext-tests{display:flex;flex-wrap:wrap;gap:5px;margin-top:2px;}
+    .ext-test-chip{display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;background:#e8f5ee;color:#1a7f4b;border:1px solid #a8d5b8;}
+    .ext-test-chip.pending{background:var(--mist);color:var(--text-soft);border-color:var(--border);}
+    .ext-card-actions{display:flex;gap:6px;padding:10px 16px;background:var(--mist);border-top:1px solid var(--border);flex-wrap:wrap;}
+    .ext-act-btn{flex:1;min-width:60px;padding:6px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;border:1.5px solid var(--border);background:#fff;color:var(--text);transition:all .15s;text-align:center;}
+    .ext-act-btn:hover{border-color:var(--blood);color:var(--blood);}
+    .ext-act-btn.primary{background:var(--navy);color:#fff;border-color:var(--navy);}
+    .ext-act-btn.primary:hover{background:#1a3a5c;}
+    .ext-act-btn.danger{border-color:#f5b7b1;color:#c0392b;}
+    .ext-act-btn.danger:hover{background:#fdf0ef;}
+
     /* ── WASTAGE PANEL ── */
     .wastage-chips{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:4px;}
     .wastage-chip{flex:1;min-width:110px;border-radius:10px;padding:14px 16px;text-align:center;border:1.5px solid var(--border);}
@@ -3427,27 +3461,78 @@ async function loadExtHistory() {
       grid.innerHTML = '<div class="empty-msg"><div class="empty-icon">🚚</div><div class="empty-text">No records yet.</div></div>';
       return;
     }
+    const TEST_LABELS = { test_hiv:'HIV', test_hbsag:'HBsAg', test_hcv:'HCV', test_hb_core:'HB Core', test_sts:'STS', test_iat:'IAT', test_kell:'Kell' };
     grid.innerHTML = rows.map(r => {
-      const dateStr = r.delivery_date ? r.delivery_date.slice(0, 10) : '—';
+      const dateStr  = r.delivery_date ? r.delivery_date.slice(0, 10) : null;
+      const timeStr  = r.delivery_hour || null;
+      const metaLine = [dateStr, timeStr].filter(Boolean).join(' · ') || '—';
+
+      // Integrity badge
+      const intBadge = r.integrity === 'yes'
+        ? '<span class="ext-badge intact">✓ Intact</span>'
+        : r.integrity === 'no'
+          ? '<span class="ext-badge not-intact">✗ Not Intact</span>'
+          : '';
+
+      // Components — only rows that have at least a unit number or blood group
+      const comps = (r.components || []).filter(c => c.unit_no || c.blood_group || c.expiry_date);
+      const compHtml = comps.length ? `
+        <div class="ext-card-section">
+          <div class="ext-section-title">Blood Components</div>
+          <table class="ext-comp-table">
+            <thead><tr><th>Component</th><th>Unit No.</th><th>Group</th><th>Expiry</th></tr></thead>
+            <tbody>${comps.map(c => `<tr>
+              <td class="ext-comp-label">${c.label || c.key}</td>
+              <td style="font-family:'JetBrains Mono',monospace;font-size:11px">${c.unit_no || '—'}</td>
+              <td><strong>${c.blood_group || '—'}</strong></td>
+              <td style="color:var(--text-soft)">${c.expiry_date || '—'}</td>
+            </tr>`).join('')}</tbody>
+          </table>
+        </div>` : '';
+
+      // Tests — show confirmed ones as green chips
+      const confirmedTests = Object.keys(TEST_LABELS).filter(k => r[k]);
+      const testHtml = `
+        <div class="ext-card-section">
+          <div class="ext-section-title">Serology Tests</div>
+          <div class="ext-tests">
+            ${Object.entries(TEST_LABELS).map(([k, label]) =>
+              `<span class="ext-test-chip ${r[k] ? '' : 'pending'}">${r[k] ? '✓' : '○'} ${label}</span>`
+            ).join('')}
+          </div>
+        </div>`;
+
+      const isAdmin = currentUser?.role === 'admin';
       return `
-        <div class="history-card" style="cursor:default">
-          <div class="card-header">
-            <div class="card-patient">${r.patient_name || '—'}</div>
-            <div class="card-date">${dateStr}</div>
+        <div class="ext-card">
+          <div class="ext-card-head">
+            <div>
+              <div class="ext-card-name">${r.patient_name || '—'}</div>
+              <div class="ext-card-meta">📅 ${metaLine}</div>
+            </div>
+            <div class="ext-card-badges">
+              ${intBadge}
+            </div>
           </div>
-          <div class="card-info-row">
-            <span class="card-info-label">Destination</span>
-            <span class="card-info-value">${r.destination || '—'}</span>
+          <div class="ext-card-body">
+            <div class="ext-info-row">
+              <span class="ext-info-icon">📍</span>
+              <span class="ext-info-label">Destination</span>
+              <span class="ext-info-val">${r.destination || '—'}</span>
+            </div>
+            <div class="ext-info-row">
+              <span class="ext-info-icon">👤</span>
+              <span class="ext-info-label">Technician</span>
+              <span class="ext-info-val">${r.technician_name || '—'}</span>
+            </div>
+            ${compHtml}
+            ${testHtml}
           </div>
-          <div class="card-info-row">
-            <span class="card-info-label">Technician</span>
-            <span class="card-info-value">${r.technician_name || '—'}</span>
-          </div>
-          <div class="card-actions" style="margin-top:10px;display:flex;gap:8px">
-            <button class="btn-edit" onclick="viewExtRecord(${r.delivery_id})">✏️ Edit</button>
-            <button class="btn-clear" onclick="exportExtFromRecord(${r.delivery_id},'pdf')">📄 PDF</button>
-            <button class="btn-clear" onclick="exportExtFromRecord(${r.delivery_id},'docx')">📝 Word</button>
-            <button class="delete-btn" onclick="deleteExtRecord(${r.delivery_id})" style="${currentUser?.role==='admin'?'':'display:none'}">🗑️</button>
+          <div class="ext-card-actions">
+            <button class="ext-act-btn primary" onclick="viewExtRecord(${r.delivery_id})">✏️ Edit</button>
+            <button class="ext-act-btn" onclick="exportExtFromRecord(${r.delivery_id},'pdf')">📄 PDF</button>
+            <button class="ext-act-btn" onclick="exportExtFromRecord(${r.delivery_id},'docx')">📝 Word</button>
+            ${isAdmin ? `<button class="ext-act-btn danger" onclick="deleteExtRecord(${r.delivery_id})">🗑️ Delete</button>` : ''}
           </div>
         </div>`;
     }).join('');
