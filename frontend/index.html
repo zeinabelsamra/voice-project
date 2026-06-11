@@ -500,6 +500,14 @@
     .rt-status.pending{background:var(--mist);color:var(--text-soft);}
     .rt-empty{text-align:center;padding:32px;color:var(--text-soft);font-size:13px;}
 
+    /* ── DATE FILTER BAR ── */
+    .dash-date-filter{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px;padding:8px 12px;background:var(--mist);border-radius:8px;border:1px solid var(--border);}
+    .dash-date-filter label{font-size:12px;font-weight:600;color:var(--text-soft);display:flex;align-items:center;gap:6px;}
+    .dash-date-filter input[type=date]{padding:4px 8px;border:1.5px solid var(--border);border-radius:6px;font-size:12px;color:var(--text);background:#fff;cursor:pointer;}
+    .dash-date-filter input[type=date]:focus{outline:none;border-color:var(--blood);}
+    .dash-date-clear{padding:4px 10px;border:1.5px solid var(--border);border-radius:6px;font-size:11px;background:#fff;color:var(--text-soft);cursor:pointer;font-weight:600;}
+    .dash-date-clear:hover{border-color:var(--blood);color:var(--blood);}
+
     /* ── WASTAGE PANEL ── */
     .wastage-chips{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:4px;}
     .wastage-chip{flex:1;min-width:110px;border-radius:10px;padding:14px 16px;text-align:center;border:1.5px solid var(--border);}
@@ -1240,6 +1248,11 @@
       <div class="dash-panel-title">⏱ Response Time Compliance
         <span style="font-size:11px;font-weight:400;color:var(--text-soft);margin-left:8px">Life-saving &lt;15 min · Urgent (Stat) &lt;45 min</span>
       </div>
+      <div class="dash-date-filter">
+        <label>From <input type="date" id="rtFrom" oninput="applyRtFilter()"></label>
+        <label>To <input type="date" id="rtTo" oninput="applyRtFilter()"></label>
+        <button class="dash-date-clear" onclick="clearRtFilter()">✕ Clear</button>
+      </div>
       <div class="rt-summary" id="rtSummary"></div>
       <div id="rtTableWrap">
         <div class="rt-empty">Loading…</div>
@@ -1250,6 +1263,11 @@
     <div class="dash-panel" style="margin-top:16px">
       <div class="dash-panel-title">🗑 Blood Wastage Tracker
         <span style="font-size:11px;font-weight:400;color:var(--text-soft);margin-left:8px">Ordered (Transfusion Request) vs. Delivered (Delivery Form) — last 90 days</span>
+      </div>
+      <div class="dash-date-filter">
+        <label>From <input type="date" id="wastageFrom" oninput="applyWastageFilter()"></label>
+        <label>To <input type="date" id="wastageTo" oninput="applyWastageFilter()"></label>
+        <button class="dash-date-clear" onclick="clearWastageFilter()">✕ Clear</button>
       </div>
       <div id="wastageSummary" style="margin-bottom:12px"></div>
       <div id="wastageTableWrap"><div class="rt-empty">Loading…</div></div>
@@ -2294,9 +2312,10 @@ function statusBadge(within, caseType) {
   return '<span class="rt-status pending">Awaiting</span>';
 }
 
+let _rtAllRows = [];
+
 async function loadResponseTimes() {
-  const summaryEl = document.getElementById('rtSummary');
-  const wrapEl    = document.getElementById('rtTableWrap');
+  const wrapEl = document.getElementById('rtTableWrap');
   try {
     const res = await apiFetch(`${API}/response-times`);
     if (!res) return;
@@ -2305,159 +2324,219 @@ async function loadResponseTimes() {
       wrapEl.innerHTML = '<div class="rt-empty">Response time data unavailable.</div>';
       return;
     }
-
-    const lsCases   = rows.filter(r => r.caseType === 'life_saving');
-    const statCases = rows.filter(r => r.caseType === 'urgent');
-
-    // For summary: a case is "met" if BOTH bb and nurse (when available) are within target.
-    // If only bb is filled, use bb; if only nurse is filled, use nurse.
-    function caseMet(r) {
-      const hasBB    = r.bb_diff_minutes    !== null;
-      const hasNurse = r.nurse_diff_minutes !== null;
-      if (!hasBB && !hasNurse) return false;
-      if (hasBB    && r.bbWithin    === false) return false;
-      if (hasNurse && r.nurseWithin === false) return false;
-      return true;
-    }
-
-    const lsMet    = lsCases.filter(caseMet).length;
-    const statMet  = statCases.filter(caseMet).length;
-    const lsPct    = lsCases.length  ? Math.round(lsMet  / lsCases.length  * 100) : null;
-    const statPct  = statCases.length ? Math.round(statMet / statCases.length * 100) : null;
-    const pending  = rows.filter(r => r.bb_diff_minutes === null && r.caseType !== 'routine').length;
-
-    summaryEl.innerHTML = `
-      <div class="rt-stat-box ${lsPct === null ? '' : lsPct === 100 ? 'ok' : 'warn'}">
-        <div class="rt-stat-label">Life-Saving (&lt;15 min)</div>
-        <div class="rt-stat-num">${lsPct !== null ? lsPct + '%' : '—'}</div>
-        <div class="rt-stat-sub">${lsMet} / ${lsCases.length} cases met target</div>
-      </div>
-      <div class="rt-stat-box ${statPct === null ? '' : statPct === 100 ? 'ok' : 'warn'}">
-        <div class="rt-stat-label">Urgent / Stat (&lt;45 min)</div>
-        <div class="rt-stat-num">${statPct !== null ? statPct + '%' : '—'}</div>
-        <div class="rt-stat-sub">${statMet} / ${statCases.length} cases met target</div>
-      </div>
-      <div class="rt-stat-box">
-        <div class="rt-stat-label">Pending Delivery</div>
-        <div class="rt-stat-num">${pending}</div>
-        <div class="rt-stat-sub">urgent/life-saving without BB delivery yet</div>
-      </div>`;
-
-    if (!rows.length) {
-      wrapEl.innerHTML = '<div class="rt-empty">No transfusion requests with date/time recorded yet.</div>';
-      return;
-    }
-
-    const display   = rows.filter(r => r.caseType !== 'routine');
-    const tableRows = (display.length ? display : rows).map(r => {
-      const reqDT    = r.request_date && r.request_time ? `${r.request_date} ${r.request_time}` : '—';
-      const bbDT     = r.delivery_date && r.delivery_time ? `${r.delivery_date} ${r.delivery_time}` : '—';
-      const nurseDT  = r.nurse_unit_date && r.nurse_unit_time ? `${r.nurse_unit_date} ${r.nurse_unit_time}` : '—';
-      const target   = r.targetMinutes ? r.targetMinutes + ' min' : '—';
-      const badgeCls = r.caseType === 'life_saving' ? 'life-saving' : r.caseType === 'urgent' ? 'urgent' : 'routine';
-      const badgeTxt = r.caseType === 'life_saving' ? '🔴 Life-Saving' : r.caseType === 'urgent' ? '⚠️ Urgent' : 'Routine';
-      return `<tr>
-        <td><strong>${r.patient_name || '—'}</strong><br><span style="font-size:11px;color:var(--text-soft)">${r.file_number || ''}</span></td>
-        <td><span class="rt-badge ${badgeCls}">${badgeTxt}</span></td>
-        <td>${reqDT}</td>
-        <td>
-          <div style="font-size:11px;color:var(--text-soft);margin-bottom:1px">BB:</div>${bbDT}
-          <div style="font-size:11px;color:var(--text-soft);margin-top:4px;margin-bottom:1px">Nurse:</div>${nurseDT}
-        </td>
-        <td style="font-weight:700">
-          <div style="font-size:11px;color:var(--text-soft);margin-bottom:1px">BB:</div>${fmtMins(r.bb_diff_minutes)}
-          <div style="font-size:11px;color:var(--text-soft);margin-top:4px;margin-bottom:1px">Nurse:</div>${fmtMins(r.nurse_diff_minutes)}
-        </td>
-        <td>${target}</td>
-        <td>
-          <div>${statusBadge(r.bbWithin, r.caseType)}</div>
-          <div style="margin-top:4px">${statusBadge(r.nurseWithin, r.caseType)}</div>
-        </td>
-      </tr>`;
-    }).join('');
-
-    wrapEl.innerHTML = `
-      <table class="rt-table">
-        <thead><tr>
-          <th>Patient</th><th>Case Type</th><th>Request Time</th>
-          <th>Delivery / Nurse Receipt</th><th>Elapsed</th><th>Target</th><th>Status</th>
-        </tr></thead>
-        <tbody>${tableRows}</tbody>
-      </table>`;
+    _rtAllRows = rows;
+    renderResponseTimes(rows);
   } catch (err) {
     wrapEl.innerHTML = '<div class="rt-empty">Could not load response times.</div>';
   }
 }
 
+function applyRtFilter() {
+  const from = document.getElementById('rtFrom').value;
+  const to   = document.getElementById('rtTo').value;
+  const filtered = _rtAllRows.filter(r => {
+    const d = r.request_date || '';
+    if (from && d < from) return false;
+    if (to   && d > to)   return false;
+    return true;
+  });
+  renderResponseTimes(filtered);
+}
+
+function clearRtFilter() {
+  document.getElementById('rtFrom').value = '';
+  document.getElementById('rtTo').value   = '';
+  renderResponseTimes(_rtAllRows);
+}
+
+function renderResponseTimes(rows) {
+  const summaryEl = document.getElementById('rtSummary');
+  const wrapEl    = document.getElementById('rtTableWrap');
+
+  const lsCases   = rows.filter(r => r.caseType === 'life_saving');
+  const statCases = rows.filter(r => r.caseType === 'urgent');
+
+  function caseMet(r) {
+    const hasBB    = r.bb_diff_minutes    !== null;
+    const hasNurse = r.nurse_diff_minutes !== null;
+    if (!hasBB && !hasNurse) return false;
+    if (hasBB    && r.bbWithin    === false) return false;
+    if (hasNurse && r.nurseWithin === false) return false;
+    return true;
+  }
+
+  const lsMet   = lsCases.filter(caseMet).length;
+  const statMet = statCases.filter(caseMet).length;
+  const lsPct   = lsCases.length  ? Math.round(lsMet  / lsCases.length  * 100) : null;
+  const statPct = statCases.length ? Math.round(statMet / statCases.length * 100) : null;
+  const pending = rows.filter(r => r.bb_diff_minutes === null && r.caseType !== 'routine').length;
+
+  summaryEl.innerHTML = `
+    <div class="rt-stat-box ${lsPct === null ? '' : lsPct === 100 ? 'ok' : 'warn'}">
+      <div class="rt-stat-label">Life-Saving (&lt;15 min)</div>
+      <div class="rt-stat-num">${lsPct !== null ? lsPct + '%' : '—'}</div>
+      <div class="rt-stat-sub">${lsMet} / ${lsCases.length} cases met target</div>
+    </div>
+    <div class="rt-stat-box ${statPct === null ? '' : statPct === 100 ? 'ok' : 'warn'}">
+      <div class="rt-stat-label">Urgent / Stat (&lt;45 min)</div>
+      <div class="rt-stat-num">${statPct !== null ? statPct + '%' : '—'}</div>
+      <div class="rt-stat-sub">${statMet} / ${statCases.length} cases met target</div>
+    </div>
+    <div class="rt-stat-box">
+      <div class="rt-stat-label">Pending Delivery</div>
+      <div class="rt-stat-num">${pending}</div>
+      <div class="rt-stat-sub">urgent/life-saving without BB delivery yet</div>
+    </div>`;
+
+  if (!rows.length) {
+    wrapEl.innerHTML = '<div class="rt-empty">No records match the selected date range.</div>';
+    return;
+  }
+
+  const display   = rows.filter(r => r.caseType !== 'routine');
+  const tableRows = (display.length ? display : rows).map(r => {
+    const reqDT   = r.request_date && r.request_time ? `${r.request_date} ${r.request_time}` : '—';
+    const bbDT    = r.delivery_date && r.delivery_time ? `${r.delivery_date} ${r.delivery_time}` : '—';
+    const nurseDT = r.nurse_unit_date && r.nurse_unit_time ? `${r.nurse_unit_date} ${r.nurse_unit_time}` : '—';
+    const target  = r.targetMinutes ? r.targetMinutes + ' min' : '—';
+    const badgeCls = r.caseType === 'life_saving' ? 'life-saving' : r.caseType === 'urgent' ? 'urgent' : 'routine';
+    const badgeTxt = r.caseType === 'life_saving' ? '🔴 Life-Saving' : r.caseType === 'urgent' ? '⚠️ Urgent' : 'Routine';
+    return `<tr>
+      <td><strong>${r.patient_name || '—'}</strong><br><span style="font-size:11px;color:var(--text-soft)">${r.file_number || ''}</span></td>
+      <td><span class="rt-badge ${badgeCls}">${badgeTxt}</span></td>
+      <td>${reqDT}</td>
+      <td>
+        <div style="font-size:11px;color:var(--text-soft);margin-bottom:1px">BB:</div>${bbDT}
+        <div style="font-size:11px;color:var(--text-soft);margin-top:4px;margin-bottom:1px">Nurse:</div>${nurseDT}
+      </td>
+      <td style="font-weight:700">
+        <div style="font-size:11px;color:var(--text-soft);margin-bottom:1px">BB:</div>${fmtMins(r.bb_diff_minutes)}
+        <div style="font-size:11px;color:var(--text-soft);margin-top:4px;margin-bottom:1px">Nurse:</div>${fmtMins(r.nurse_diff_minutes)}
+      </td>
+      <td>${target}</td>
+      <td>
+        <div>${statusBadge(r.bbWithin, r.caseType)}</div>
+        <div style="margin-top:4px">${statusBadge(r.nurseWithin, r.caseType)}</div>
+      </td>
+    </tr>`;
+  }).join('');
+
+  wrapEl.innerHTML = `
+    <table class="rt-table">
+      <thead><tr>
+        <th>Patient</th><th>Case Type</th><th>Request Time</th>
+        <th>Delivery / Nurse Receipt</th><th>Elapsed</th><th>Target</th><th>Status</th>
+      </tr></thead>
+      <tbody>${tableRows}</tbody>
+    </table>`;
+}
+
 // ═══════════════════════════════════════════════════════
 // BLOOD WASTAGE DASHBOARD
 // ═══════════════════════════════════════════════════════
+let _wastageAllCases = [];
+
 async function loadWastageDashboard() {
-  const summaryEl = document.getElementById('wastageSummary');
-  const tableEl   = document.getElementById('wastageTableWrap');
+  const tableEl = document.getElementById('wastageTableWrap');
   try {
     const res = await apiFetch(`${API}/dashboard/wastage`);
     if (!res) return;
     const data = await res.json();
     if (data.error) { tableEl.innerHTML = '<div class="rt-empty">Wastage data unavailable.</div>'; return; }
-
-    const s = data.summary;
-    summaryEl.innerHTML = `
-      <div class="wastage-chips">
-        <div class="wastage-chip total">
-          <div class="wc-num">${s.totalWasted}</div>
-          <div class="wc-label">Total Units Wasted</div>
-        </div>
-        <div class="wastage-chip rate">
-          <div class="wc-num">${s.wastageRate}%</div>
-          <div class="wc-label">Wastage Rate</div>
-        </div>
-        <div class="wastage-chip prc">
-          <div class="wc-num">${s.prcWasted}</div>
-          <div class="wc-label">Packed Cells Wasted</div>
-        </div>
-        <div class="wastage-chip ffp">
-          <div class="wc-num">${s.ffpWasted}</div>
-          <div class="wc-label">FFP Wasted</div>
-        </div>
-        <div class="wastage-chip plt">
-          <div class="wc-num">${s.pltWasted}</div>
-          <div class="wc-label">Platelets Wasted</div>
-        </div>
-      </div>`;
-
-    if (!data.cases.length) {
-      tableEl.innerHTML = '<div class="rt-empty">No wastage records found in the last 90 days.<br><small>The delivery\'s <strong>Type of Blood</strong> field must include a number (e.g. "2 FFP", "3 P.C") and a matching transfusion request with the same file number must exist.</small></div>';
-      return;
-    }
-
-    tableEl.innerHTML = `
-      <table class="rt-table">
-        <thead><tr>
-          <th>Patient</th><th>File #</th><th>Date</th><th>Component</th>
-          <th style="text-align:center">Ordered</th>
-          <th style="text-align:center">Used</th>
-          <th style="text-align:center">Wasted</th>
-        </tr></thead>
-        <tbody>
-          ${data.cases.map(c => `<tr>
-            <td><strong>${c.patient_name || '—'}</strong></td>
-            <td style="color:var(--text-soft);font-size:12px">${c.file_number || '—'}</td>
-            <td style="font-size:12px">${c.date || '—'}</td>
-            <td>${c.component}</td>
-            <td style="text-align:center;font-weight:700">${c.ordered}</td>
-            <td style="text-align:center">${c.used}</td>
-            <td style="text-align:center">
-              <span class="wastage-badge ${c.wasted > 0 ? 'warn' : 'ok'}">
-                ${c.wasted > 0 ? '⚠ ' + c.wasted + ' wasted' : '✓ None'}
-              </span>
-            </td>
-          </tr>`).join('')}
-        </tbody>
-      </table>`;
+    _wastageAllCases = data.cases;
+    renderWastageDashboard(data.cases);
   } catch {
     tableEl.innerHTML = '<div class="rt-empty">Could not load wastage data.</div>';
   }
+}
+
+function applyWastageFilter() {
+  const from = document.getElementById('wastageFrom').value;
+  const to   = document.getElementById('wastageTo').value;
+  const filtered = _wastageAllCases.filter(c => {
+    const d = c.date || '';
+    if (from && d < from) return false;
+    if (to   && d > to)   return false;
+    return true;
+  });
+  renderWastageDashboard(filtered);
+}
+
+function clearWastageFilter() {
+  document.getElementById('wastageFrom').value = '';
+  document.getElementById('wastageTo').value   = '';
+  renderWastageDashboard(_wastageAllCases);
+}
+
+function renderWastageDashboard(cases) {
+  const summaryEl = document.getElementById('wastageSummary');
+  const tableEl   = document.getElementById('wastageTableWrap');
+
+  // Recalculate summary from filtered cases
+  let totalOrdered = 0, totalUsed = 0, prcWasted = 0, ffpWasted = 0, pltWasted = 0;
+  cases.forEach(c => {
+    totalOrdered += c.ordered;
+    totalUsed    += c.used;
+    if (c.component === 'Packed Cells') prcWasted += c.wasted;
+    else if (c.component === 'FFP')     ffpWasted += c.wasted;
+    else if (c.component === 'Platelets') pltWasted += c.wasted;
+  });
+  const totalWasted  = prcWasted + ffpWasted + pltWasted;
+  const wastageRate  = totalOrdered > 0 ? Math.round((totalWasted / totalOrdered) * 100) : 0;
+
+  summaryEl.innerHTML = `
+    <div class="wastage-chips">
+      <div class="wastage-chip total">
+        <div class="wc-num">${totalWasted}</div>
+        <div class="wc-label">Total Units Wasted</div>
+      </div>
+      <div class="wastage-chip rate">
+        <div class="wc-num">${wastageRate}%</div>
+        <div class="wc-label">Wastage Rate</div>
+      </div>
+      <div class="wastage-chip prc">
+        <div class="wc-num">${prcWasted}</div>
+        <div class="wc-label">Packed Cells Wasted</div>
+      </div>
+      <div class="wastage-chip ffp">
+        <div class="wc-num">${ffpWasted}</div>
+        <div class="wc-label">FFP Wasted</div>
+      </div>
+      <div class="wastage-chip plt">
+        <div class="wc-num">${pltWasted}</div>
+        <div class="wc-label">Platelets Wasted</div>
+      </div>
+    </div>`;
+
+  if (!cases.length) {
+    tableEl.innerHTML = '<div class="rt-empty">No wastage records match the selected date range.</div>';
+    return;
+  }
+
+  tableEl.innerHTML = `
+    <table class="rt-table">
+      <thead><tr>
+        <th>Patient</th><th>File #</th><th>Date</th><th>Component</th>
+        <th style="text-align:center">Ordered</th>
+        <th style="text-align:center">Used</th>
+        <th style="text-align:center">Wasted</th>
+      </tr></thead>
+      <tbody>
+        ${cases.map(c => `<tr>
+          <td><strong>${c.patient_name || '—'}</strong></td>
+          <td style="color:var(--text-soft);font-size:12px">${c.file_number || '—'}</td>
+          <td style="font-size:12px">${c.date || '—'}</td>
+          <td>${c.component}</td>
+          <td style="text-align:center;font-weight:700">${c.ordered}</td>
+          <td style="text-align:center">${c.used}</td>
+          <td style="text-align:center">
+            <span class="wastage-badge ${c.wasted > 0 ? 'warn' : 'ok'}">
+              ${c.wasted > 0 ? '⚠ ' + c.wasted + ' wasted' : '✓ None'}
+            </span>
+          </td>
+        </tr>`).join('')}
+      </tbody>
+    </table>`;
 }
 
 // ═══════════════════════════════════════════════════════
