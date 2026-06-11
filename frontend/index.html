@@ -2427,7 +2427,7 @@ async function loadWastageDashboard() {
       </div>`;
 
     if (!data.cases.length) {
-      tableEl.innerHTML = '<div class="rt-empty">No wastage records found in the last 90 days.<br>Wastage is calculated when a delivery record has fewer units than the linked transfusion request for the same patient.</div>';
+      tableEl.innerHTML = '<div class="rt-empty">No wastage records found in the last 90 days.<br><small>The delivery\'s <strong>Type of Blood</strong> field must include a number (e.g. "2 FFP", "3 P.C") and a matching transfusion request with the same file number must exist.</small></div>';
       return;
     }
 

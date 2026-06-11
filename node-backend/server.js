@@ -997,31 +997,37 @@ app.get('/dashboard/wastage', requireAuth, async (req, res) => {
     let totalOrdered = 0, totalUsed = 0;
     let prcWasted = 0, ffpWasted = 0, pltWasted = 0;
 
+    console.log(`[wastage] deliveries found: ${deliveries.recordset.length}, transfusions found: ${transfusions.recordset.length}`);
     for (const d of deliveries.recordset) {
-      const usedQty = parseInt(d.type_of_blood) || 0;
-      if (usedQty === 0) continue;
+      // Extract number from anywhere in the field: "2 FFP", "FFP 3", "3 units FFP" all work
+      const numMatch = (d.type_of_blood || '').match(/\d+/);
+      const usedQty  = numMatch ? parseInt(numMatch[0]) : 0;
+      if (usedQty === 0) { console.log(`[wastage] SKIP file=${d.file_number} type_of_blood="${d.type_of_blood}" — no number found`); continue; }
 
-      const dTime = new Date(d.created_at).getTime();
-      const match = transfusions.recordset.find(t => {
-        if (!t.file_number || t.file_number.trim() !== d.file_number.trim()) return false;
-        const diff = (dTime - new Date(t.created_at).getTime()) / 86400000;
-        return diff >= -1 && diff <= 7;
-      });
-      if (!match) continue;
+      const match = transfusions.recordset.find(t =>
+        t.file_number && t.file_number.trim() === d.file_number.trim()
+      );
+      if (!match) { console.log(`[wastage] SKIP file=${d.file_number} — no matching transfusion request for this file number`); continue; }
 
-      const typeText = (d.type_of_blood_requested || '') + ' ' + (d.type_of_blood || '');
+      // Use type_of_blood_requested to detect component type (avoids false "PC" match inside type_of_blood qty field)
+      const reqText  = (d.type_of_blood_requested || '').toLowerCase();
+      const typeText = reqText + ' ' + (d.type_of_blood || '').toLowerCase();
       let ordered = 0, component = 'Blood';
-      if (/pack|prc|p\.?c/i.test(typeText)) {
-        ordered = match.fpc_units || 0; component = 'Packed Cells'; prcWasted += Math.max(0, ordered - usedQty);
-      } else if (/ffp|plasma|fresh/i.test(typeText)) {
+      if (/ffp|plasma|fresh/i.test(reqText)) {
         ordered = match.ffp_units || 0; component = 'FFP';          ffpWasted += Math.max(0, ordered - usedQty);
-      } else if (/platelet|plt/i.test(typeText)) {
+      } else if (/platelet|plt/i.test(reqText)) {
         ordered = match.plt_units || 0; component = 'Platelets';    pltWasted += Math.max(0, ordered - usedQty);
+      } else if (/pack|prc|p\.?c/i.test(reqText)) {
+        ordered = match.fpc_units || 0; component = 'Packed Cells'; prcWasted += Math.max(0, ordered - usedQty);
       } else {
-        ordered = (match.fpc_units || 0) + (match.ffp_units || 0) + (match.plt_units || 0);
-        component = d.type_of_blood_requested || 'Blood';
+        // fallback: check the full combined text
+        if (/ffp|plasma|fresh/i.test(typeText))       { ordered = match.ffp_units || 0; component = 'FFP';          ffpWasted += Math.max(0, ordered - usedQty); }
+        else if (/platelet|plt/i.test(typeText))      { ordered = match.plt_units || 0; component = 'Platelets';    pltWasted += Math.max(0, ordered - usedQty); }
+        else if (/pack|prc|p\.?c/i.test(typeText))   { ordered = match.fpc_units || 0; component = 'Packed Cells'; prcWasted += Math.max(0, ordered - usedQty); }
+        else { ordered = (match.fpc_units || 0) + (match.ffp_units || 0) + (match.plt_units || 0); component = d.type_of_blood_requested || 'Blood'; }
       }
-      if (ordered === 0) continue;
+      console.log(`[wastage] file=${d.file_number} reqText="${reqText}" usedQty=${usedQty} ordered=${ordered} component=${component} fpc=${match.fpc_units} ffp=${match.ffp_units} plt=${match.plt_units}`);
+      if (ordered === 0) { console.log(`[wastage] SKIP file=${d.file_number} — ordered=0 (transfusion request has no units for this component)`); continue; }
 
       const wasted = Math.max(0, ordered - usedQty);
       totalOrdered += ordered;
