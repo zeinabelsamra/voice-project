@@ -174,7 +174,7 @@
     @keyframes toastOut{to{opacity:0;transform:translateY(-6px)}}
 
     /* ── LAYOUT ── */
-    .main{padding:24px 28px 48px;max-width:1440px;margin:0 auto;}
+    .main{padding:24px 28px 48px;}
     .forms-row{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
     @media(max-width:960px){.forms-row{grid-template-columns:1fr;}}
 
@@ -339,11 +339,15 @@
     .bq-actions{display:flex;gap:8px;justify-content:flex-end;}
     .bq-skip{background:var(--mist)!important;color:var(--text-soft)!important;border:1px solid #ddd!important;}
     .bq-next{background:#7c3aed!important;color:#fff!important;}
-    /* ── PAGE NAV TABS ── */
-    .page-nav{display:flex;gap:6px;padding:10px 24px 0;background:var(--navy);}
-    .page-tab{padding:8px 20px;border:none;border-radius:8px 8px 0 0;font-family:'Instrument Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;color:rgba(255,255,255,.55);background:transparent;transition:all .18s;}
-    .page-tab:hover{color:rgba(255,255,255,.85);}
-    .page-tab.active{background:var(--off-white);color:var(--navy);}
+    /* ── SIDEBAR LAYOUT ── */
+    .app-layout{display:flex;align-items:flex-start;}
+    .sidebar{width:210px;flex-shrink:0;background:var(--navy);border-right:1px solid var(--border-dark);display:flex;flex-direction:column;position:sticky;top:0;min-height:100vh;overflow-y:auto;}
+    .sidebar-nav{padding:10px 8px 4px;display:flex;flex-direction:column;gap:2px;}
+    .sidebar-nav-btn{display:flex;align-items:center;gap:10px;width:100%;padding:10px 12px;border:none;border-radius:8px;background:transparent;color:rgba(255,255,255,.5);font-family:'Instrument Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;text-align:left;transition:all .18s;white-space:nowrap;}
+    .sidebar-nav-btn:hover{background:rgba(255,255,255,.08);color:rgba(255,255,255,.85);}
+    .sidebar-nav-btn.active{background:var(--blood);color:#fff;}
+    .sidebar-nav-icon{font-size:15px;flex-shrink:0;}
+    .content-area{flex:1;min-width:0;}
     /* ── DASHBOARD ── */
     .dash-section{display:none;padding:24px;}
     .dash-section.show{display:block;}
@@ -840,13 +844,26 @@
   <span class="ts-text" id="transcriptText"></span>
 </div>
 
-<div class="page-nav">
-  <button class="page-tab active" id="tabForms"     onclick="showPage('forms')">📋 Forms</button>
-  <button class="page-tab"        id="tabDashboard" onclick="showPage('dashboard')">📊 Dashboard</button>
-  <button class="page-tab"        id="tabAdmin"     onclick="showPage('admin')"       style="display:none">👥 Users</button>
-  <button class="page-tab"        id="tabExtDel"    onclick="showPage('extdel')"      style="display:none">🚚 Ext. Delivery</button>
-</div>
+<div class="app-layout">
 
+<aside class="sidebar">
+  <nav class="sidebar-nav">
+    <button class="sidebar-nav-btn active" id="tabForms" onclick="showPage('forms')">
+      <span class="sidebar-nav-icon">📋</span> Forms
+    </button>
+    <button class="sidebar-nav-btn" id="tabDashboard" onclick="showPage('dashboard')">
+      <span class="sidebar-nav-icon">📊</span> Dashboard
+    </button>
+    <button class="sidebar-nav-btn" id="tabAdmin" onclick="showPage('admin')" style="display:none">
+      <span class="sidebar-nav-icon">👥</span> Users
+    </button>
+    <button class="sidebar-nav-btn" id="tabExtDel" onclick="showPage('extdel')" style="display:none">
+      <span class="sidebar-nav-icon">🚚</span> Ext. Delivery
+    </button>
+  </nav>
+</aside>
+
+<div class="content-area">
 <main class="main">
   <div class="forms-row">
 
@@ -1458,6 +1475,8 @@
   </div>
 
 </main>
+</div><!-- .content-area -->
+</div><!-- .app-layout -->
 
 <script>
 // ═══════════════════════════════════════════════════════
@@ -2194,9 +2213,19 @@ function fillExtFields(fields) {
   if (checkedTests > 0) showToast('Tests', checkedTests + ' confirmed');
 
   if (fields.ext_components && fields.ext_components.length > 0) {
+    const usedIdx = new Set(); // track rows already claimed in this pass
     fields.ext_components.forEach(extracted => {
-      const idx = extComponents.findIndex(c => c.key === extracted.key && !c.unit_no);
+      // __bare__ means no component keyword was said — put into first empty row
+      let idx = extracted.key === '__bare__'
+        ? extComponents.findIndex((c, i) => !usedIdx.has(i) && !c.unit_no)
+        : extComponents.findIndex((c, i) => !usedIdx.has(i) && c.key === extracted.key && !c.unit_no);
+      // No available row of this type — auto-add one
+      if (idx === -1 && extracted.key !== '__bare__') {
+        addExtCompRow(extracted.key);
+        idx = extComponents.findIndex((c, i) => !usedIdx.has(i) && c.key === extracted.key && !c.unit_no);
+      }
       if (idx !== -1) {
+        usedIdx.add(idx);
         if (extracted.unit_no)     extComponents[idx].unit_no     = extracted.unit_no;
         if (extracted.blood_group) extComponents[idx].blood_group = extracted.blood_group;
         if (extracted.expiry_date) extComponents[idx].expiry_date = extracted.expiry_date;
@@ -2235,8 +2264,15 @@ function showPage(page) {
   const extDelTab = document.getElementById('tabExtDelivery');
   if (extDelTab) extDelTab.style.display = isExtDel ? '' : 'none';
   document.getElementById('btnMulti').style.display = isExtDel ? 'none' : '';
-  if (isExtDel) setForm('ext_delivery');
-  else if (!isForm && activeForm === 'ext_delivery') setForm('both');
+  if (isExtDel) {
+    // Batch mode doesn't apply to ext delivery — reset it so recording goes to the right endpoint
+    if (batchMode) {
+      batchMode = false;
+      document.getElementById('btnMulti').classList.remove('active');
+      document.getElementById('batchBanner').style.display = 'none';
+    }
+    setForm('ext_delivery');
+  } else if (!isForm && activeForm === 'ext_delivery') setForm('both');
   if (isDash)   loadDashboard();
   if (isAdmin)  loadUsers();
   if (isExtDel) { renderExtCompTable(); loadExtHistory(); }

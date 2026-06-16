@@ -9,7 +9,7 @@ function titleCase(s) {
 }
 
 // ── STOP WORDS (not part of a name) ─────────────────────────────
-const STOP_WORDS = /^(room|ward|file|blood|diagnosis|time|date|am|pm|and|with|for|the|is|are|was|positive|negative|rh|routine|stat|units|unit|packed|ffp|platelet|hemodialysis|dialysis|anemia|surgery|trauma|cancer|dr|doctor|nurse|technician|orderly|a|b|o|ab|at|in|on|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirty|fifteen|forty|twenty|today|yesterday|delivery|transfusion|next|new|another|name|number|num)$/i;
+const STOP_WORDS = /^(room|ward|file|blood|diagnosis|time|date|am|pm|and|with|for|the|is|are|was|positive|negative|rh|routine|stat|units|unit|packed|ffp|platelet|hemodialysis|dialysis|anemia|surgery|trauma|cancer|dr|doctor|nurse|technician|orderly|a|b|o|ab|at|in|on|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirty|fifteen|forty|twenty|today|yesterday|delivery|transfusion|next|new|another|name|number|num|destination|hospital|send|going|transfer|component|integrity|expiry|expiration|technician)$/i;
 
 const WORD_NUM = { one:1, two:2, three:3, four:4, five:5, six:6, seven:7, eight:8, nine:9, ten:10 };
 
@@ -52,56 +52,73 @@ function normalizeTranscript(text) {
 
 // ── TIME → HH:MM (24hr) ──────────────────────────────────────────
 function extractTime(text) {
-  const t = text.toLowerCase();
+  const W = { one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9,ten:10,eleven:11,twelve:12 };
+  const MIN = { thirty:30,fifteen:15,fortyfive:45,forty:40,twentyfive:25,twenty:20,ten:10 };
 
-  let m = t.match(/\b(\d{1,2})[:\.](\d{2})\s*(am|pm)?\b/);
-  if (m) {
-    let h = parseInt(m[1]), min = m[2], p = (m[3] || '').toLowerCase();
+  const t = text.toLowerCase()
+    .replace(/\b(\d{1,2})(am|pm)\b/g, '$1 $2')  // "3am"→"3 am", "3pm"→"3 pm"
+    .replace(/\bp\.?\s*m\.?\b/g, 'pm')
+    .replace(/\ba\.?\s*m\.?\b/g, 'am')
+    .replace(/\bo'?clock\b/g, '');
+
+  function applyPeriod(h, p) {
     if (p === 'pm' && h !== 12) h += 12;
     if (p === 'am' && h === 12) h = 0;
-    return String(h).padStart(2, '0') + ':' + min;
+    return h;
   }
 
-  const W = { one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9,ten:10,eleven:11,twelve:12 };
+  // Scan every "am"/"pm" and look at what appears immediately before it
+  const apRe = /\b(am|pm)\b/g;
+  let ap;
+  while ((ap = apRe.exec(t)) !== null) {
+    const period = ap[1];
+    const before = t.slice(0, ap.index).trimEnd();
 
-  m = t.match(/\b(one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)\s+(thirty|fifteen|forty[\s\-]?five|forty|twenty[\s\-]?five|twenty|ten)?\s*(am|pm)\b/i);
-  if (m) {
-    let h = W[m[1].toLowerCase()] || 0, min = 0;
-    const mw = (m[2] || '').toLowerCase().replace(/[\s\-]/g, '');
-    if (mw === 'thirty') min = 30; else if (mw === 'fifteen') min = 15;
-    else if (mw === 'fortyfive') min = 45; else if (mw === 'forty') min = 40;
-    else if (mw === 'twenty') min = 20; else if (mw === 'ten') min = 10;
-    const p = (m[3] || '').toLowerCase();
-    if (p === 'pm' && h !== 12) h += 12; if (p === 'am' && h === 12) h = 0;
-    return String(h).padStart(2, '0') + ':' + String(min).padStart(2, '0');
+    // "3:30 pm"
+    let nm = before.match(/\b(\d{1,2})[:\.](\d{2})[,\s]*$/);
+    if (nm) return String(applyPeriod(parseInt(nm[1]), period)).padStart(2,'0') + ':' + nm[2];
+
+    // "3 pm" / "3,pm"
+    nm = before.match(/\b(\d{1,2})[,\s]*$/);
+    if (nm) return String(applyPeriod(parseInt(nm[1]), period)).padStart(2,'0') + ':00';
+
+    // "three thirty pm" / "three pm"
+    nm = before.match(/\b(one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)[,\s]*(thirty|fifteen|forty[\s-]?five|forty|twenty[\s-]?five|twenty|ten)?[,\s]*$/i);
+    if (nm) {
+      let h = W[nm[1].toLowerCase()] || 0;
+      const mw = (nm[2] || '').toLowerCase().replace(/[\s-]/g,'');
+      h = applyPeriod(h, period);
+      return String(h).padStart(2,'0') + ':' + String(MIN[mw] || 0).padStart(2,'0');
+    }
   }
 
-  m = t.match(/(?:^|[\s,])(?:time\s+(?:is\s+)?|at\s+)(one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)\s*(thirty|fifteen|forty[\s\-]?five|forty|twenty|ten|o'?clock)?\b/i);
-  if (m) {
-    let h = W[m[1].toLowerCase()] || 0, min = 0;
-    const mw = (m[2] || '').toLowerCase().replace(/[\s\-]/g, '');
-    if (mw === 'thirty') min = 30; else if (mw === 'fifteen') min = 15;
-    else if (mw === 'fortyfive') min = 45; else if (mw === 'forty') min = 40;
-    else if (mw === 'twenty') min = 20; else if (mw === 'ten') min = 10;
-    return String(h).padStart(2, '0') + ':' + String(min).padStart(2, '0');
-  }
+  // No am/pm — unambiguous formats only
+  let m = t.match(/\b(\d{1,2})[:\.](\d{2})\b/);
+  if (m) return String(parseInt(m[1])).padStart(2,'0') + ':' + m[2];
 
   const W24 = { thirteen:13,fourteen:14,fifteen:15,sixteen:16,seventeen:17,eighteen:18,nineteen:19 };
-  m = t.match(/\b(thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen)\s*(thirty|fifteen|forty|twenty|ten|hundred|zero\s*zero)?\b/i);
+  m = t.match(/\b(thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen)[,\s]*(thirty|fifteen|forty|twenty|ten)?\b/i);
   if (m) {
-    let h = W24[m[1].toLowerCase()] || 0, min = 0;
-    const mw = (m[2] || '').toLowerCase().replace(/[\s\-]/g, '');
-    if (mw === 'thirty') min = 30; else if (mw === 'fifteen') min = 15;
-    else if (mw === 'forty') min = 40; else if (mw === 'twenty') min = 20;
-    else if (mw === 'ten') min = 10;
-    return String(h).padStart(2, '0') + ':' + String(min).padStart(2, '0');
+    const h = W24[m[1].toLowerCase()] || 0;
+    const mw = (m[2]||'').toLowerCase();
+    return String(h).padStart(2,'0') + ':' + String(MIN[mw]||0).padStart(2,'0');
+  }
+
+  // "hour 3 pm" already caught above; handle "hour three" / "at three" with no am/pm
+  m = t.match(/(?:at|hour|time\s*(?:is)?)[,\s]+(\d{1,2})\b/i)
+    || t.match(/(?:at|hour|time\s*(?:is)?)[,\s]+(one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)\b/i);
+  if (m) {
+    const raw = m[1].toLowerCase();
+    const h = W[raw] !== undefined ? W[raw] : parseInt(raw);
+    return String(h).padStart(2,'0') + ':00';
   }
 
   m = t.match(/half\s+past\s+(one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)/i);
-  if (m) return String(W[m[1].toLowerCase()]).padStart(2, '0') + ':30';
+  if (m) return String(W[m[1].toLowerCase()]).padStart(2,'0') + ':30';
   m = t.match(/quarter\s+past\s+(one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)/i);
-  if (m) return String(W[m[1].toLowerCase()]).padStart(2, '0') + ':15';
+  if (m) return String(W[m[1].toLowerCase()]).padStart(2,'0') + ':15';
 
+  console.log('⏰ extractTime: no match in:', t.slice(0,150));
   return null;
 }
 
@@ -134,18 +151,17 @@ function extractPatientName(raw) {
   let m;
 
   // ── Priority 1: "patient name [,]? Name" ────────────────────────
-  // Handles "patient name Zainab" AND "patient name, Zainab" (comma after name)
-  m = raw.match(/patient\s+name[,\s]+(?:is\s+)?([A-Za-z][A-Za-z\s\-\']{1,40})/i);
-  if (m) { const n = stopAtKeyword(m[1]); if (n && n.trim().length >= 2) return titleCase(n); }
+  // Allow commas inside the name (Whisper pauses between name parts become commas after normalization)
+  m = raw.match(/patient\s+name[,\s]+(?:is\s+)?([A-Za-z][A-Za-z\s\-\',]{1,50})/i);
+  if (m) { const n = stopAtKeyword(m[1].replace(/,\s*/g, ' ').replace(/\s+/g, ' ').trim()); if (n && n.trim().length >= 2) return titleCase(n); }
 
   // ── Priority 2: "patient [,]? Name" ─────────────────────────────
-  m = raw.match(/\bpatient[,\s]+(?:is\s+)?([A-Za-z][A-Za-z\s\-\']{1,40})/i);
-  if (m) { const n = stopAtKeyword(m[1]); if (n && n.trim().length >= 2) return titleCase(n); }
+  m = raw.match(/\bpatient[,\s]+(?:is\s+)?([A-Za-z][A-Za-z\s\-\',]{1,50})/i);
+  if (m) { const n = stopAtKeyword(m[1].replace(/,\s*/g, ' ').replace(/\s+/g, ' ').trim()); if (n && n.trim().length >= 2) return titleCase(n); }
 
   // ── Priority 3: "name [,]? Name" ────────────────────────────────
-  // The key fix: allow comma between "name" and the actual name
-  m = raw.match(/\bname[,\s]+(?:is\s+)?([A-Za-z][A-Za-z\s\-\']{1,40})/i);
-  if (m) { const n = stopAtKeyword(m[1]); if (n && n.trim().length >= 2) return titleCase(n); }
+  m = raw.match(/\bname[,\s]+(?:is\s+)?([A-Za-z][A-Za-z\s\-\',]{1,50})/i);
+  if (m) { const n = stopAtKeyword(m[1].replace(/,\s*/g, ' ').replace(/\s+/g, ' ').trim()); if (n && n.trim().length >= 2) return titleCase(n); }
 
   // ── Priority 4: "for Name" ───────────────────────────────────────
   m = raw.match(/\bfor\s+([A-Za-z][A-Za-z\s\-\']{2,40})/i);
@@ -217,8 +233,8 @@ function extractBloodGroup(t) {
 function extractExtComponents(raw) {
   const results = [];
   const COMP_DEFS = [
-    { key:'frbc', label:'Filtered RBC', re:/filtered\s+r\.?[bp]\.?c\.?|filtered\s+packed\s+cells?|f\.?r\.?[bp]\.?c/i },
-    { key:'ffp',  label:'FFP',          re:/\bffp\b|fresh\s+frozen\s+plasma/i },
+    { key:'frbc', label:'Filtered RBC', re:/filtered\s+r\.?[bp]\.?c\.?|filtered\s+packed\s+cells?|f\.?r\.?[bp]\.?c\.?|\bfrbc\b|filtered\s+red\s+blood\s+cells?/i },
+    { key:'ffp',  label:'FFP',          re:/\bffp\b|fresh\s+frozen(?:\s+plasma)?|\bplasma\b/i },
     { key:'plt',  label:'Platelets',    re:/\bplatelets?\b|\bplt\b/i },
   ];
   const hits = [];
@@ -229,24 +245,67 @@ function extractExtComponents(raw) {
       hits.push({ pos: m.index, end: m.index + m[0].length, key: def.key, label: def.label });
     }
   }
-  if (hits.length === 0) return results;
-  hits.sort((a, b) => a.pos - b.pos);
-  for (let i = 0; i < hits.length; i++) {
-    const hit = hits[i];
-    const segEnd = i + 1 < hits.length ? hits[i + 1].pos : raw.length;
-    const segment = raw.slice(hit.end, segEnd).trim();
+
+  // Helper to extract unit/blood group/date/notes from a text segment
+  function extractCompData(segment) {
     const seg = segment.toLowerCase();
-    const comp = { key: hit.key, label: hit.label, unit_no: '', blood_group: '', expiry_date: '', notes: '' };
-    // Match 7-digit number — also handles "1, 2, 3, 4, 5, 6, 7" (Whisper reads digits aloud)
-    const unitM = segment.match(/\b(\d{7})\b/)
-               || segment.match(/\b(\d)\s*,\s*(\d)\s*,\s*(\d)\s*,\s*(\d)\s*,\s*(\d)\s*,\s*(\d)\s*,\s*(\d)\b/);
-    if (unitM) comp.unit_no = unitM[1].length === 7 ? unitM[1] : unitM.slice(1, 8).join('');
+    const comp = { unit_no: '', blood_group: '', expiry_date: '', notes: '' };
+    const DW = { zero:0,one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9 };
+
+    // 1. Solid 7-digit number
+    let unitM = segment.match(/\b(\d{7})\b/);
+    if (unitM) {
+      comp.unit_no = unitM[1];
+    } else {
+      // 2. Seven single digits separated by commas or spaces ("3, 4, 5, 6, 7, 8, 9")
+      unitM = segment.match(/\b(\d)[,\s]+(\d)[,\s]+(\d)[,\s]+(\d)[,\s]+(\d)[,\s]+(\d)[,\s]+(\d)\b/);
+      if (unitM) {
+        comp.unit_no = unitM.slice(1, 8).join('');
+      } else {
+        // 3. Seven word-digits after "unit number" keyword ("one, two, three, four, five, six, seven")
+        const uKeyM = seg.match(/unit\s*(?:number|no\.?|#|:)?[,\s]*/i);
+        if (uKeyM) {
+          const afterKey = seg.slice(uKeyM.index + uKeyM[0].length);
+          const wordDigits = [...afterKey.matchAll(/\b(zero|one|two|three|four|five|six|seven|eight|nine)\b/g)];
+          if (wordDigits.length >= 7) {
+            comp.unit_no = wordDigits.slice(0, 7).map(m => DW[m[1]]).join('');
+          }
+        }
+      }
+    }
+
     const bgResult = extractBloodGroup(seg);
     if (bgResult) comp.blood_group = bgResult.bg + (bgResult.rh === 'Pos' ? '+' : bgResult.rh === 'Neg' ? '-' : '');
     const expDate = extractDate(seg);
     if (expDate) comp.expiry_date = expDate;
-    results.push(comp);
+    const noteM = segment.match(/\b(?:notes?|remark|comment)\s*[,:\-]?\s*([A-Za-z][A-Za-z0-9\s\-]{1,60}?)(?:,|$)/i);
+    if (noteM) comp.notes = noteM[1].trim();
+    return comp;
   }
+
+  if (hits.length > 0) {
+    hits.sort((a, b) => a.pos - b.pos);
+    for (let i = 0; i < hits.length; i++) {
+      const hit = hits[i];
+      const segEnd = i + 1 < hits.length ? hits[i + 1].pos : raw.length;
+      const segment = raw.slice(hit.end, segEnd).trim();
+      const data = extractCompData(segment);
+      results.push({ key: hit.key, label: hit.label, ...data });
+    }
+    return results;
+  }
+
+  // No component keyword — look for bare 7-digit unit numbers and put them in order
+  const bareUnits = [...raw.matchAll(/\bunit\s*(?:number|no\.?|#|:)?\s*:?\s*(\d{7})\b/gi)];
+  for (const um of bareUnits) {
+    // Extract data from the text following the unit number (up to next "unit" keyword or end)
+    const nextUm = raw.indexOf('unit', um.index + um[0].length);
+    const segEnd = nextUm !== -1 ? nextUm : raw.length;
+    const segment = raw.slice(um.index, segEnd);
+    const data = extractCompData(segment);
+    if (data.unit_no) results.push({ key: '__bare__', label: '', ...data });
+  }
+
   return results;
 }
 
@@ -260,21 +319,33 @@ function parseExtDelivery(raw, t) {
   const nameVal = extractPatientName(raw);
   if (nameVal) result.ext_patient_name = nameVal;
 
-  // ── Destination — multiple trigger patterns ──────────────────────
-  // Allow comma OR space after keyword (Whisper inserts periods that normalize to commas)
-  let m = raw.match(/(?:destination|send\s+to|deliver\s+to|going\s+to|transfer\s+to)[,\s]+(?:is[,\s]+)?([A-Za-z][A-Za-z\s\-]+?)(?:,|$)/i)
-        || raw.match(/\bto\s+(?:hospital\s+)?([A-Z][A-Za-z\s\-]{3,30}?)(?:\s+hospital)?\s*(?:,|$)/);
-  if (m) result.ext_destination = titleCase(m[1].trim().replace(/\s+/g, ' '));
+  // ── Destination — strip commas (Whisper pauses), stop at field keywords ──
+  // "hospital" intentionally NOT a stop word — it's part of the destination name
+  const DEST_STOP = /^(today|yesterday|date|time|technician|integrity|test|filtered|ffp|platelet|note|unit|patient)$/i;
+  let m = raw.match(/(?:destination|send\s+to|deliver\s+to|going\s+to|transfer\s+to)[,\s]+(?:is[,\s]+)?([A-Za-z][A-Za-z\s\-\',]{2,60})/i)
+        || raw.match(/\bto\s+(?:hospital\s+)?([A-Za-z][A-Za-z\s\-\',]{3,50}?)(?:\s+hospital)?\s*(?:,|$)/i);
+  if (m) {
+    const destWords = [];
+    for (const w of m[1].replace(/,\s*/g, ' ').replace(/\s+/g, ' ').trim().split(/\s+/)) {
+      if (DEST_STOP.test(w.replace(/[.\-']/g, '').toLowerCase())) break;
+      destWords.push(w.replace(/[,.]$/g, ''));
+    }
+    if (destWords.length) result.ext_destination = titleCase(destWords.join(' '));
+  }
 
   // ── Date & Time ─────────────────────────────────────────────────
   const dateVal = extractDate(t);
   if (dateVal) result.ext_delivery_date = dateVal;
   const timeVal = extractTime(t);
+  console.log('⏰ timeVal:', timeVal, '| searched in:', t.slice(0, 120));
   if (timeVal) result.ext_delivery_hour = timeVal;
 
-  // ── Technician (up to 4-word name) ──────────────────────────────
-  m = raw.match(/technician[,\s]+(?:name[,\s]+)?(?:is[,\s]+)?([A-Za-z]+(?:[\s\-][A-Za-z]+){0,3})/i);
-  if (m) result.ext_technician_name = titleCase(m[1]);
+  // ── Technician — allow commas between name parts from Whisper pauses ──
+  m = raw.match(/technician[,\s]+(?:name[,\s]+)?(?:is[,\s]+)?([A-Za-z][A-Za-z\s\-\',]{1,50})/i);
+  if (m) {
+    const n = stopAtKeyword(m[1].replace(/,\s*/g, ' ').replace(/\s+/g, ' ').trim());
+    if (n && n.trim().length >= 2) result.ext_technician_name = titleCase(n);
+  }
 
   // ── Integrity ────────────────────────────────────────────────────
   if (/integrity[,\s]+(?:is[,\s]+)?(?:yes|ok|okay|good|intact|fine|complete|proper|pass)/i.test(t))
@@ -283,9 +354,9 @@ function parseExtDelivery(raw, t) {
     result.ext_integrity = 'no';
 
   // ── Test checkboxes ──────────────────────────────────────────────
-  const allConfirmed = /all\s+tests?\s+(?:confirmed|negative|ok|clear)/i.test(t)
-                    || /tests?\s+all\s+(?:confirmed|negative|ok|clear)/i.test(t)
-                    || /all\s+(?:confirmed|negative|results?\s+negative)/i.test(t);
+  const allConfirmed = /all[,\s]+tests?[,\s]+(?:confirmed|negative|ok|clear)/i.test(t)
+                    || /tests?[,\s]+all[,\s]+(?:confirmed|negative|ok|clear)/i.test(t)
+                    || /all[,\s]+(?:confirmed|negative|results?[,\s]+negative)/i.test(t);
   if (allConfirmed) {
     ['hiv','hbsag','hcv','hb_core','sts','iat','kell'].forEach(k => { result['ext_test_' + k] = true; });
   } else {
@@ -441,45 +512,73 @@ function parseWithRules(transcript, formType) {
 
   // ── BLOOD COMPONENTS (transfusion only) ─────────────────────────
   if (!isDelivery) {
-    if (/pack\s+cells?|packed\s+cells?|filtered\s+packed|prc|prbc|fpc|red\s+cells?/i.test(t)) {
-      m = t.match(/(\d+)\s+(?:units?\s+)?(?:of\s+)?(?:pack|packed|filtered|prc|fpc)/i)
-        || t.match(/(?:pack|packed|filtered|prc|fpc)[^\d]*(\d+)/i);
-      if (m) result.fpc_units = parseInt(m[1]);
-    }
-    if (/\bffp\b|fresh\s+frozen|plasma/i.test(t)) {
-      m = t.match(/(\d+)\s+(?:units?\s+)?(?:of\s+)?(?:ffp|plasma)/i)
-        || t.match(/(?:ffp|plasma)[^\d]*(\d+)/i);
-      if (m) result.ffp_units = parseInt(m[1]);
-    }
-    if (/platelet|plt/i.test(t)) {
-      m = t.match(/(\d+)\s+(?:units?\s+)?(?:of\s+)?(?:platelet|plt)/i)
-        || t.match(/(?:platelet|plt)[^\d]*(\d+)/i);
-      if (m) result.plt_units = parseInt(m[1]);
-    }
-    if (!result.fpc_units) {
+    // Word-number matches run FIRST so "three filtered packed cells" is caught
+    // before the digit fallback can grab "24" from "24 hours" later in the text.
+    if (/pack\s+cells?|packed\s+cells?|filtered\s+packed|\bfiltered\b|prc|prbc|fpc|red\s+cells?/i.test(t)) {
       m = t.match(/\b(one|two|three|four|five|six|seven|eight|nine|ten)\s+(?:units?\s+(?:of\s+)?)?(?:pack\s+cells?|packed\s+cells?|filtered|prc|fpc|red\s+cells?)/i);
       if (m) result.fpc_units = WORD_NUM[m[1].toLowerCase()] || 1;
+      if (!result.fpc_units) {
+        // digit before keyword, or digit within the same comma-segment after keyword
+        m = t.match(/(\d+)\s+(?:units?\s+)?(?:of\s+)?(?:pack|packed|filtered|prc|fpc)/i)
+          || t.match(/(?:pack|packed|filtered|prc|fpc)[^,\d]{0,15}(\d+)/i);
+        if (m) result.fpc_units = parseInt(m[1]);
+      }
     }
-    if (!result.ffp_units) {
+    if (/\bffp\b|fresh\s+frozen|plasma/i.test(t)) {
       m = t.match(/\b(one|two|three|four|five|six|seven|eight|nine|ten)\s+(?:units?\s+(?:of\s+)?)?(?:ffp|plasma|fresh\s+frozen)/i);
       if (m) result.ffp_units = WORD_NUM[m[1].toLowerCase()] || 1;
+      if (!result.ffp_units) {
+        m = t.match(/(\d+)\s+(?:units?\s+)?(?:of\s+)?(?:ffp|plasma)/i)
+          || t.match(/(?:ffp|plasma)[^,\d]{0,15}(\d+)/i);
+        if (m) result.ffp_units = parseInt(m[1]);
+      }
     }
-    if (!result.plt_units) {
+    if (/platelet|plt/i.test(t)) {
       m = t.match(/\b(one|two|three|four|five|six|seven|eight|nine|ten)\s+(?:units?\s+(?:of\s+)?)?(?:platelet|plt)/i);
       if (m) result.plt_units = WORD_NUM[m[1].toLowerCase()] || 1;
+      if (!result.plt_units) {
+        m = t.match(/(\d+)\s+(?:units?\s+)?(?:of\s+)?(?:platelet|plt)/i)
+          || t.match(/(?:platelet|plt)[^,\d]{0,15}(\d+)/i);
+        if (m) result.plt_units = parseInt(m[1]);
+      }
     }
     if (!result.fpc_units && !result.ffp_units && !result.plt_units) {
-      m = t.match(/\b(\d+)\s+units?\b/i);
-      if (m) result.fpc_units = parseInt(m[1]);
+      // Last resort: a bare digit+units with no component name
+      m = t.match(/\b(\d{1,2})\s+units?\b/i);
+      if (m && parseInt(m[1]) <= 20) result.fpc_units = parseInt(m[1]);
     }
-    const cType = /\bstat\b/i.test(t) ? 'Stat'
-      : /\broutine\b/i.test(t) ? 'Routine'
-      : /pre[\s\-]?op/i.test(t) ? 'Pre-Op 24hrs'
-      : null;
-    if (cType) {
-      if (result.fpc_units !== undefined) result.fpc_type = cType;
-      if (result.ffp_units !== undefined) result.ffp_type = cType;
-      if (result.plt_units !== undefined) result.plt_type = cType;
+    // Per-component urgency: find each component's position and read the
+    // urgency keyword from its own segment, not the whole transcript.
+    const COMP_TYPE_DEFS = [
+      // \bfiltered\b catches Whisper mishearing "filtered packed cells" as "filtered patterns" etc.
+      { key: 'fpc', re: /\bfiltered\b|pack\s*cells?|packed\s*cells?|prc|prbc|fpc|red\s*cells?/i },
+      { key: 'ffp', re: /\bffp\b|fresh\s*frozen|plasma/i },
+      { key: 'plt', re: /platelet|plt/i },
+    ];
+    const cHits = [];
+    for (const c of COMP_TYPE_DEFS) {
+      const mt = new RegExp(c.re.source, 'i').exec(t);
+      if (mt) cHits.push({ key: c.key, pos: mt.index, endPos: mt.index + mt[0].length });
+    }
+    cHits.sort((a, b) => a.pos - b.pos);
+    for (let i = 0; i < cHits.length; i++) {
+      const hit = cHits[i];
+      // Urgency always follows the component name in speech ("3 packed cells STAT").
+      // Start segment AT the component keyword — never look back into the previous
+      // component's territory, which would bleed its urgency word into this segment.
+      const segStart = hit.pos;
+      const segEnd   = i + 1 < cHits.length ? cHits[i + 1].pos : t.length;
+      const seg = t.slice(segStart, segEnd);
+      console.log(`  → [${hit.key}] seg: "${seg.trim()}"`);
+      const compType = /\bstat\b/i.test(seg) ? 'Stat'
+        : /\broutine\b/i.test(seg) ? 'Routine'
+        : /pre[\s\-]?op|pre[\s\-]?operative|preoperative|\b24[\s\-]?hours?\b/i.test(seg) ? 'Pre-Op 24hrs'
+        : null;
+      if (compType) {
+        if (hit.key === 'fpc' && result.fpc_units !== undefined) result.fpc_type = compType;
+        else if (hit.key === 'ffp' && result.ffp_units !== undefined) result.ffp_type = compType;
+        else if (hit.key === 'plt' && result.plt_units !== undefined) result.plt_type = compType;
+      }
     }
   }
 

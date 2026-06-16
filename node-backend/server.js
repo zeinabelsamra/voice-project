@@ -289,7 +289,7 @@ app.post("/upload", requireAuth, upload.single("audio"), async (req, res) => {
 
     const whisperRes = await axios.post("http://localhost:5001/transcribe", formData, {
       headers: formData.getHeaders(),
-      timeout: 120000,
+      timeout: 300000,
     });
 
     if (fs.existsSync(req.file.path)) fs.unlinkSync(req.file.path);

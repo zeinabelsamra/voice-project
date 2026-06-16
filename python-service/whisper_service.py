@@ -25,27 +25,19 @@ INITIAL_PROMPT = (
 
 # ── Exact hallucination strings ──────────────────────────────────
 HALLUCINATIONS = {
-    "thank you.", "thanks for watching.", "thanks for watching",
-    "please subscribe.", "subscribe.", "thanks.", "thank you",
+    "thank you.", "thank you", "thanks for watching.", "thanks for watching",
+    "please subscribe.", "subscribe.", "thanks.", "thanks",
     "you", ".", "", " ", "uh", "um", "hmm", ",", "...", "…",
     "subtitles by", "subtitles", "www.", ".com",
     "bye.", "bye", "goodbye.", "goodbye",
     "okay.", "okay", "ok.", "ok",
     "yes.", "yes", "no.", "no",
     "hello.", "hello", "hi.", "hi",
-    "the", "the.", "a", "an", "and", "or",
+    "the", "the.", "an", "and", "or",
     "i", "i.", "oh", "oh.", "ah", "ah.",
     "hmm.", "hm.", "hm", "mm.", "mm",
     "so", "so.", "well", "well.",
     "right", "right.", "sure", "sure.",
-    "transfusion.", "transfusion", "patient.", "patient",
-    "blood.", "blood", "room.", "room",
-    "next patient.", "next patient",
-    "delivery.", "delivery",
-    "blood bank.", "blood bank",
-    "packed cells.", "packed cells",
-    "ffp.", "ffp",
-    "platelets.", "platelets",
     "شكراً", "شكرا", "مرحبا",
 }
 
@@ -70,8 +62,9 @@ def is_hallucination(text):
         if pattern in cleaned:
             return True
 
-    # Less than 3 words with a medical prompt = almost always hallucination
-    if len(stripped.split()) < 3:
+    # Single-word segments are almost always hallucinations
+    # (2+ word segments are allowed — short phrases like "A positive", "unit 1234567" are valid)
+    if len(stripped.split()) < 2:
         return True
 
     return False
@@ -91,7 +84,8 @@ def transcribe():
     print(f"Received audio: {file_size} bytes")
 
     # ── Reject silent/too-short recordings ──────────────────────────
-    if file_size < 20000:
+    # 4 KB covers ~0.25s at highest webm quality — genuine silence is < 3 KB
+    if file_size < 4000:
         return jsonify({"text": "No speech detected", "language": "en", "word_count": 0})
 
     # ── Convert to WAV ───────────────────────────────────────────────
@@ -133,27 +127,16 @@ def transcribe():
         return jsonify({"text": "No speech detected", "language": "en", "word_count": 0})
 
     # ── Transcribe ───────────────────────────────────────────────────
-    # beam_size=5            — more candidates = better accuracy (was 3)
-    # best_of=5              — pick best of 5 samples (was 3)
-    # temperature=[0,0.2]    — fallback if 0.0 is low confidence
-    # vad_filter=True        — built-in silence skipping
-    # condition_on_previous_text=True — helps with multi-segment consistency
     segments, info = model.transcribe(
         wav_path,
         language="en",
         beam_size=5,
         best_of=5,
         temperature=[0.0, 0.2],
-        condition_on_previous_text=True,
-        no_speech_threshold=0.5,
-        log_prob_threshold=-0.6,
-        compression_ratio_threshold=2.4,
+        condition_on_previous_text=False,
+        no_speech_threshold=0.8,
         initial_prompt=INITIAL_PROMPT,
-        vad_filter=True,
-        vad_parameters=dict(
-            min_silence_duration_ms=300,
-            speech_pad_ms=200,
-        ),
+        vad_filter=False,
     )
 
     segment_list = list(segments)
@@ -164,7 +147,7 @@ def transcribe():
         print(f"  [{s.start:.2f}s→{s.end:.2f}s] '{s.text}' | no_speech={s.no_speech_prob:.2f}")
 
         # Reject silence
-        if s.no_speech_prob > 0.50:
+        if s.no_speech_prob > 0.80:
             print(f"  ⚠️ Rejected (no_speech_prob={s.no_speech_prob:.2f})")
             continue
 
@@ -197,4 +180,4 @@ def transcribe():
 
 if __name__ == "__main__":
     print("✅ Whisper service running on port 5001")
-    app.run(port=5001, debug=True)
+    app.run(port=5001, debug=False, use_reloader=False)
