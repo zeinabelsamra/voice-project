@@ -9,7 +9,7 @@ function titleCase(s) {
 }
 
 // ── STOP WORDS (not part of a name) ─────────────────────────────
-const STOP_WORDS = /^(room|ward|file|blood|diagnosis|time|date|am|pm|and|with|for|the|is|are|was|positive|negative|rh|routine|stat|units|unit|packed|ffp|platelet|hemodialysis|dialysis|anemia|surgery|trauma|cancer|dr|doctor|nurse|technician|orderly|a|b|o|ab|at|in|on|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirty|fifteen|forty|twenty|today|yesterday|delivery|transfusion|next|new|another|name|number|num|destination|hospital|send|going|transfer|component|integrity|expiry|expiration|technician)$/i;
+const STOP_WORDS = /^(room|ward|file|blood|diagnosis|time|date|am|pm|and|with|for|the|is|are|was|positive|negative|rh|routine|stat|units|unit|packed|ffp|platelet|hemodialysis|dialysis|anemia|surgery|trauma|cancer|dr|doctor|nurse|technician|orderly|a|b|o|ab|at|in|on|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirty|fifteen|forty|twenty|today|yesterday|delivery|transfusion|next|new|another|name|number|num|destination|hospital|send|going|transfer|component|integrity|expiry|expiration|technician|no|leakage|gas|gases|received|volume|milliliter|milliliters|temperature|degrees|allerg|allergies)$/i;
 
 const WORD_NUM = { one:1, two:2, three:3, four:4, five:5, six:6, seven:7, eight:8, nine:9, ten:10 };
 
@@ -44,10 +44,37 @@ function looksLikeName(str) {
 // Convert them to commas so the parser sees natural separators.
 function normalizeTranscript(text) {
   return text
-    .replace(/\.\s+/g, ', ')   // ". " → ", "
-    .replace(/\.$/, '')         // trailing period
-    .replace(/,\s*,/g, ',')     // double commas
+    .replace(/\.\s+/g, ', ')                      // ". " → ", "
+    .replace(/\.$/, '')                            // trailing period
+    .replace(/,\s*,/g, ',')                        // double commas
+    .replace(/\bback\s+cells?\b/gi, 'packed cells')   // Whisper mishearings
+    .replace(/\bpact\s+cells?\b/gi, 'packed cells')
+    .replace(/\bpak\s+cells?\b/gi, 'packed cells')
+    .replace(/\bthe\s+clinician\b/gi, 'technician')
+    .replace(/\bclinician\b/gi, 'technician')
     .trim();
+}
+
+// ── BLOOD UNIT NUMBER EXTRACTOR ──────────────────────────────────
+// Handles: solid 7-digit, "1 2 3 4 5 6 7", "one two three four five six seven"
+function extractAllUnitNums(t) {
+  const DW = { zero:0,one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9 };
+  const found = [], seen = new Set();
+  const add = n => { if (!seen.has(n)) { seen.add(n); found.push(n); } };
+
+  // 1. Solid 7-digit numbers anywhere
+  for (const m of t.matchAll(/\b(\d{7})\b/g)) add(m[1]);
+
+  // 2. After "blood unit" keyword: 7 comma/space-separated single digits or 7 word-digits
+  for (const m of t.matchAll(/\bblood\s+unit[,\s]+/gi)) {
+    const after = t.slice(m.index + m[0].length);
+    const dm = after.match(/^(\d)[,\s]+(\d)[,\s]+(\d)[,\s]+(\d)[,\s]+(\d)[,\s]+(\d)[,\s]+(\d)\b/);
+    if (dm) { add(dm.slice(1, 8).join('')); continue; }
+    const wm = [...after.matchAll(/\b(zero|one|two|three|four|five|six|seven|eight|nine)\b/g)];
+    if (wm.length >= 7) add(wm.slice(0, 7).map(x => DW[x[1]]).join(''));
+  }
+
+  return found;
 }
 
 // ── TIME → HH:MM (24hr) ──────────────────────────────────────────
@@ -407,11 +434,29 @@ function parseWithRules(transcript, formType) {
   }
 
   // ── DATE ────────────────────────────────────────────────────────
-  const dateVal = extractDate(t);
-  if (dateVal) {
-    if (/expir/i.test(t))     result.expiry_date   = dateVal;
-    else if (isDelivery)      result.delivery_date = dateVal;
-    else                      result.request_date  = dateVal;
+  if (isDelivery) {
+    // Delivery date: today/yesterday always maps here even if "expiry" is also in text
+    if (/\b(today|day\s+to\s+day)\b/i.test(t)) {
+      result.delivery_date = new Date().toISOString().split('T')[0];
+    } else if (/\byesterday\b/i.test(t)) {
+      const _d = new Date(); _d.setDate(_d.getDate() - 1);
+      result.delivery_date = _d.toISOString().split('T')[0];
+    } else {
+      const dateVal = extractDate(t);
+      if (dateVal) result.delivery_date = dateVal;
+    }
+    // Expiry date: extract from segment immediately after "expiry" keyword
+    const expSegM = t.match(/expir\w*[,\s]+(.{3,60})/i);
+    if (expSegM) {
+      const expDate = extractDate(expSegM[1]);
+      if (expDate && expDate !== result.delivery_date) result.expiry_date = expDate;
+    }
+  } else {
+    const dateVal = extractDate(t);
+    if (dateVal) {
+      if (/expir/i.test(t)) result.expiry_date = dateVal;
+      else                  result.request_date = dateVal;
+    }
   }
 
   // ── ROOM ────────────────────────────────────────────────────────
@@ -582,8 +627,8 @@ function parseWithRules(transcript, formType) {
     }
   }
 
-  // ── BLOOD UNIT NUMBERS (7 digits) ───────────────────────────────
-  const unitNums = [...t.matchAll(/\b(\d{7})\b/g)].map(x => x[1]);
+  // ── BLOOD UNIT NUMBERS ───────────────────────────────────────────
+  const unitNums = extractAllUnitNums(t);
   if (unitNums.length > 0) {
     if (isDelivery) result.blood_unit_numbers = unitNums.join('/');
     else unitNums.slice(0, 8).forEach((u, i) => result[`blood_unit_${i + 1}`] = u);
@@ -593,8 +638,16 @@ function parseWithRules(transcript, formType) {
   if (!isDelivery) {
     if (/previous\s+transfusion|transfused\s+before|had\s+transfusion/i.test(t))
       result.previous_transfusion = !/no\s+previous|not\s+transfused|never/i.test(t);
-    m = t.match(/(?:previous|prior)\s+(?:transfusion\s+)?(?:at|in)\s+([a-z\s]+?)(?:\.|,|$)/i);
-    if (m) result.prev_transfusion_place = titleCase(m[1].trim());
+    m = t.match(/(?:previous|prior)\s+(?:transfusion\s+)?(?:at|in)\s+([a-z][a-z\s\-\',]{2,40}?)(?:\.|,|$)/i);
+    if (m) {
+      const PLACE_STOP = /^(fever|chill|rash|no|none|reaction|allergic|dr|doctor|nurse|phlebotomist|and|the|a|an)$/i;
+      const placeWords = [];
+      for (const w of m[1].trim().split(/\s+/)) {
+        if (PLACE_STOP.test(w.replace(/[,.']/g, ''))) break;
+        placeWords.push(w.replace(/[,.]$/g, ''));
+      }
+      if (placeWords.length) result.prev_transfusion_place = titleCase(placeWords.join(' '));
+    }
     if      (/no\s+reaction/i.test(t))        result.prev_transfusion_reaction = 'None';
     else if (/fever/i.test(t))                result.prev_transfusion_reaction = 'Fever';
     else if (/chill/i.test(t))                result.prev_transfusion_reaction = 'Chills';
@@ -604,32 +657,54 @@ function parseWithRules(transcript, formType) {
   }
 
   // ── STAFF ────────────────────────────────────────────────────────
-  m = raw.match(/(?:dr|doctor|physician)\.?\s+([A-Za-z]+(?:[\s\-][A-Za-z]+)?)/i);
+  m = raw.match(/(?:dr|doctor|physician)\.?[,\s]+([A-Za-z][A-Za-z\s\-\',]{1,50})/i);
   if (m) {
-    const dr = 'Dr. ' + titleCase(m[1]);
+    const dr = 'Dr. ' + titleCase(stopAtKeyword(m[1].replace(/,\s*/g, ' ').replace(/\s+/g, ' ').trim()) || m[1].trim());
     if (/life\s+sav/i.test(t) && isDelivery)  result.ls_physician_d = dr;
     else if (/life\s+sav/i.test(t))            result.ls_physician_t = dr;
     else if (!isDelivery)                       result.physician = dr;
   }
-  m = raw.match(/(?:nurse|phlebotomist)\s+(?:name\s+)?(?:is\s+)?([A-Za-z]+(?:[\s\-][A-Za-z]+)?)/i);
-  if (m) { if (isDelivery) result.nurse = titleCase(m[1]); else result.phlebotomist = titleCase(m[1]); }
-  m = raw.match(/technician\s+(?:name\s+)?(?:is\s+)?([A-Za-z]+(?:[\s\-][A-Za-z]+)?)/i);
-  if (m) result.technician = titleCase(m[1]);
-  m = raw.match(/orderly\s+(?:name\s+)?(?:is\s+)?([A-Za-z]+(?:[\s\-][A-Za-z]+)?)/i);
-  if (m) result.orderly = titleCase(m[1]);
-  m = raw.match(/received\s+by\s+([A-Za-z]+(?:[\s\-][A-Za-z]+)?)/i);
-  if (m) result.received_by = titleCase(m[1]);
+  m = raw.match(/(?:nurse|phlebotomist)[,\s]+(?:name[,\s]+)?(?:is[,\s]+)?([A-Za-z][A-Za-z\s\-\',]{1,50})/i);
+  if (m) {
+    const n = stopAtKeyword(m[1].replace(/,\s*/g, ' ').replace(/\s+/g, ' ').trim());
+    if (n && n.trim().length >= 2) {
+      if (isDelivery) result.nurse = titleCase(n); else result.phlebotomist = titleCase(n);
+    }
+  }
+  m = raw.match(/technician[,\s]+(?:name[,\s]+)?(?:is[,\s]+)?([A-Za-z][A-Za-z\s\-\',]{1,50})/i);
+  if (m) {
+    const n = stopAtKeyword(m[1].replace(/,\s*/g, ' ').replace(/\s+/g, ' ').trim());
+    if (n && n.trim().length >= 2) result.technician = titleCase(n);
+  }
+  m = raw.match(/orderly[,\s]+(?:name[,\s]+)?(?:is[,\s]+)?([A-Za-z][A-Za-z\s\-\',]{1,50})/i);
+  if (m) {
+    const n = stopAtKeyword(m[1].replace(/,\s*/g, ' ').replace(/\s+/g, ' ').trim());
+    if (n && n.trim().length >= 2) result.orderly = titleCase(n);
+  }
+  m = raw.match(/received[,\s]+by[,\s]+([A-Za-z][A-Za-z\s\-\',]{1,50})/i);
+  if (m) {
+    const n = stopAtKeyword(m[1].replace(/,\s*/g, ' ').replace(/\s+/g, ' ').trim());
+    if (n && n.trim().length >= 2) result.received_by = titleCase(n);
+  }
 
   // ── TYPE OF BLOOD (delivery only) ───────────────────────────────
   if (isDelivery) {
-    if (/pack\s+cells?|packed\s+cells?/i.test(t))      result.blood_type_requested = 'Packed Cells';
-    else if (/\bffp\b|plasma/i.test(t))                result.blood_type_requested = 'FFP';
-    else if (/platelet/i.test(t))                      result.blood_type_requested = 'Platelets';
-    m = t.match(/(\d+)\s*(p\.?c\.?|packed\s+cells?)/i);
-    if (m)                                             result.type_of_blood = `${m[1]} P.C`;
-    else if (/pack\s+cells?|packed\s+cells?/i.test(t)) result.type_of_blood = 'Packed Cells';
-    else if (/\bffp\b|fresh\s+frozen/i.test(t))        result.type_of_blood = 'FFP';
-    else if (/platelet/i.test(t))                      result.type_of_blood = 'Platelets';
+    const isPacked = /pack\s+cells?|packed\s+cells?|\bpieces?\b/i.test(t);
+    if (isPacked)                            result.blood_type_requested = 'Packed Cells';
+    else if (/\bffp\b|plasma/i.test(t))     result.blood_type_requested = 'FFP';
+    else if (/platelet/i.test(t))           result.blood_type_requested = 'Platelets';
+
+    // type_of_blood: digit or word number + packed cells / pieces
+    m = t.match(/(\d+)\s*(?:p\.?c\.?|packed\s+cells?|pieces?)/i);
+    if (m) {
+      result.type_of_blood = `${m[1]} P.C`;
+    } else {
+      m = t.match(/\b(one|two|three|four|five|six|seven|eight|nine|ten)\s+(?:p\.?c\.?|packed\s+cells?|pieces?)/i);
+      if (m)            result.type_of_blood = `${WORD_NUM[m[1].toLowerCase()]} P.C`;
+      else if (isPacked) result.type_of_blood = 'Packed Cells';
+      else if (/\bffp\b|fresh\s+frozen/i.test(t)) result.type_of_blood = 'FFP';
+      else if (/platelet/i.test(t))               result.type_of_blood = 'Platelets';
+    }
   }
 
   // ── INTEGRITY (delivery only) ────────────────────────────────────
