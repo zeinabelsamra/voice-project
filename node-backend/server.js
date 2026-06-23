@@ -1488,4 +1488,904 @@ app.post('/ext-delivery/export/docx', requireAdmin, async (req, res) => {
   }
 });
 
+// ════════════════════════════════════════════════════════════════
+// EXCEL FILES DASHBOARD
+// ════════════════════════════════════════════════════════════════
+const xlsx = require('xlsx');
+
+const EXCEL_DIR = path.join(__dirname, 'uploads', 'excel');
+if (!fs.existsSync(EXCEL_DIR)) fs.mkdirSync(EXCEL_DIR, { recursive: true });
+
+const excelUpload = multer({
+  storage: multer.diskStorage({
+    destination: EXCEL_DIR,
+    filename: (req, file, cb) => cb(null, `_tmp_${Date.now()}_${file.originalname}`)
+  }),
+  fileFilter: (req, file, cb) => {
+    if (/\.(xlsx|xls)$/i.test(file.originalname)) cb(null, true);
+    else cb(new Error('Only .xlsx and .xls files are allowed'));
+  }
+});
+
+app.get('/api/excel/files', requireAuth, (req, res) => {
+  try {
+    const files = fs.readdirSync(EXCEL_DIR)
+      .filter(f => /\.(xlsx|xls)$/i.test(f))
+      .map(f => {
+        const stat = fs.statSync(path.join(EXCEL_DIR, f));
+        return { name: f, size: stat.size, modified: stat.mtime };
+      });
+    res.json(files);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/excel/upload', requireAuth, excelUpload.single('file'), (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+  const targetName = path.basename((req.body && req.body.targetName) || req.file.originalname);
+  if (!/\.(xlsx|xls)$/i.test(targetName)) {
+    fs.unlinkSync(req.file.path);
+    return res.status(400).json({ error: 'Invalid file type' });
+  }
+  const finalPath = path.join(EXCEL_DIR, targetName);
+  fs.renameSync(req.file.path, finalPath);
+  excelFileCache.delete(targetName);   // bust cache so next query reads fresh data
+  res.json({ success: true, name: targetName });
+});
+
+app.delete('/api/excel/files/:filename', requireAdmin, (req, res) => {
+  try {
+    const filePath = path.join(EXCEL_DIR, path.basename(req.params.filename));
+    if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'File not found' });
+    fs.unlinkSync(filePath);
+    excelFileCache.delete(path.basename(req.params.filename));
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ── Excel shared date normaliser (module-level) ─────────────
+function normalizeExcelDate(val) {
+  if (!val && val !== 0) return '';
+  if (val instanceof Date) return val.toISOString().split('T')[0];
+  const s = String(val).trim();
+  const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (m) return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.substring(0, 10);
+  return s;
+}
+
+// Normalises any Excel cell value — handles both dates and time-only cells.
+// SheetJS builds Date objects using local time, so we use local-time getters
+// to avoid timezone-offset errors (e.g. UTC+2 would show times 2 hrs early).
+function normalizeExcelValue(val) {
+  if (!(val instanceof Date)) return val;
+  // Time-only cells: Excel epoch is 1899-12-30 (local year = 1899)
+  if (val.getFullYear() === 1899) {
+    const h = String(val.getHours()).padStart(2, '0');
+    const m = String(val.getMinutes()).padStart(2, '0');
+    return `${h}:${m}`;
+  }
+  // Regular date: use local date parts to avoid UTC midnight shift
+  const y  = val.getFullYear();
+  const mo = String(val.getMonth() + 1).padStart(2, '0');
+  const d  = String(val.getDate()).padStart(2, '0');
+  return `${y}-${mo}-${d}`;
+}
+
+// ── Parsed-file cache: filename → { columns, rows, mtime } ──
+const excelFileCache = new Map();
+
+function getCachedRows(filename) {
+  const filePath = path.join(EXCEL_DIR, filename);
+  const mtime    = fs.statSync(filePath).mtime.getTime();
+  const cached   = excelFileCache.get(filename);
+  if (cached && cached.mtime === mtime) return cached;
+
+  const workbook = xlsx.readFile(filePath, { cellDates: true });
+  const sheet    = workbook.Sheets[workbook.SheetNames[0]];
+  const rawRows  = xlsx.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+
+  // Deduplicate header names
+  const headerRow = rawRows[0] || [];
+  const columns   = [];
+  const colSeen   = {};
+  headerRow.forEach(h => {
+    const name = String(h).trim() || '(empty)';
+    colSeen[name] = colSeen[name] ?? -1;
+    colSeen[name]++;
+    columns.push(colSeen[name] === 0 ? name : `${name}_${colSeen[name]}`);
+  });
+
+  const rows = rawRows.slice(1)
+    .filter(r => r.some(v => v !== '' && v !== null && v !== undefined))
+    .map(r => {
+      const obj = {};
+      columns.forEach((c, i) => {
+        const v = r[i] ?? '';
+        obj[c] = (v instanceof Date) ? normalizeExcelValue(v) : v;
+      });
+      return obj;
+    });
+
+  const entry = { columns, rows, mtime };
+  excelFileCache.set(filename, entry);
+  return entry;
+}
+
+// ── Excel type detection & summary helpers ──────────────────
+function detectExcelType(columns) {
+  const s = new Set(columns.map(c => String(c).toLowerCase().trim()));
+  // Donors first — dob+gender is unique to registered donor files; donor+nationality
+  // also covers donor sheets that may lack a dob column. Must run before external_units
+  // because donor registration files also contain seq/donation type/bag columns.
+  if ((s.has('dob') && s.has('gender')) || (s.has('donor') && s.has('nationality') && s.has('dob'))) return 'donors';
+  // External units from other centres
+  if (s.has('seq') && s.has('donation type') && s.has('bag'))                                return 'external_units';
+  // Units sent to other centres — hospital + expiry are unique to this type
+  if (s.has('hospital') && s.has('expiry'))                                                  return 'sent_to_centres';
+  // Patient requests — IAT or Request type are unique
+  if (s.has('request type') || s.has('iat'))                                                 return 'requests';
+  // Wasted units — Reason column is unique (exclude transfusion files that also have destination)
+  if (s.has('reason') && s.has('unit') && !s.has('destination'))                             return 'wasted';
+  // Transfusion: 'issued' is the strongest signal; fall back to patient number or destination+returned
+  if (s.has('issued') || s.has('patient number') || (s.has('destination') && s.has('returned'))) return 'transfusion';
+  // Donors fallback — donor+nationality without dob (older file formats)
+  if (s.has('donor') && s.has('nationality'))                                                 return 'donors';
+  return 'generic';
+}
+
+function excelCountBy(rows, col, topN) {
+  if (!col) return [];
+  const map = {};
+  rows.forEach(r => {
+    const v = String(r[col] ?? '').trim();
+    if (v && v !== '-') map[v] = (map[v] || 0) + 1;
+  });
+  const arr = Object.entries(map).sort((a, b) => b[1] - a[1]).map(([label, count]) => ({ label, count }));
+  return topN ? arr.slice(0, topN) : arr;
+}
+
+function excelFindCol(columns, ...names) {
+  for (const name of names) {
+    const m = columns.find(c => c.toLowerCase().trim() === name.toLowerCase());
+    if (m) return m;
+  }
+  return null;
+}
+
+function peakHours(rows, columns) {
+  const timeCol = excelFindCol(columns, 'time');
+  if (!timeCol) return [];
+  const counts = new Array(24).fill(0);
+  rows.forEach(row => {
+    const t = String(row[timeCol] || '').trim();
+    const m = t.match(/^(\d{1,2}):/);
+    if (m) { const h = parseInt(m[1]); if (h >= 0 && h < 24) counts[h]++; }
+  });
+  return counts.map((count, h) => ({ label: `${String(h).padStart(2,'0')}:00`, count })).filter(d => d.count > 0);
+}
+
+function excelSummary(type, rows, columns) {
+  const g = (...n) => excelFindCol(columns, ...n);
+  switch (type) {
+    case 'transfusion': {
+      const retCol  = g('returned');
+      const retList = excelCountBy(rows, retCol);
+      const retYes  = retList.find(x => /yes/i.test(x.label))?.count || 0;
+      const patCol  = g('patient number');
+      return {
+        uniquePatients:   patCol ? new Set(rows.map(r => r[patCol]).filter(Boolean)).size : 0,
+        returnedCount:    retYes,
+        notReturnedCount: rows.length - retYes,
+        byGroup:       excelCountBy(rows, g('group'),       10),
+        byComponent:   excelCountBy(rows, g('component'),   10),
+        byReturned:    retList,
+        byDestination: excelCountBy(rows, g('destination'), 10),
+        byHour:        peakHours(rows, columns)
+      };
+    }
+    case 'requests': {
+      const patCol = g('patient');
+      const iatCol = g('iat');
+      const iatList = excelCountBy(rows, iatCol);
+      const iatPos  = iatList.find(x => /pos|\+/i.test(x.label))?.count || 0;
+      return {
+        uniquePatients: patCol ? new Set(rows.map(r => r[patCol]).filter(Boolean)).size : 0,
+        iatPositive:    iatPos,
+        iatTotal:       iatCol ? rows.filter(r => r[iatCol] && String(r[iatCol]).trim()).length : 0,
+        byDepartment:   excelCountBy(rows, g('department'),   10),
+        byGroup:        excelCountBy(rows, g('group'),        10),
+        byRequestType:  excelCountBy(rows, g('request type'), 10),
+        byIAT:          iatList,
+        byHour:         peakHours(rows, columns)
+      };
+    }
+    case 'donors': {
+      const gList  = excelCountBy(rows, g('gender'));
+      const male   = gList.find(x => /^male$/i.test(x.label))?.count || 0;
+      const female = gList.find(x => /female/i.test(x.label))?.count || 0;
+
+      // Age groups from DOB column
+      const dobCol = g('dob');
+      const now    = new Date();
+      const ageBuckets = { 'Under 18': 0, '18–25': 0, '26–35': 0, '36–45': 0, '46–55': 0, '56+': 0 };
+      if (dobCol) {
+        rows.forEach(row => {
+          const raw = String(row[dobCol] || '').trim();
+          if (!raw) return;
+          let yr, mo = 0, dy = 1;
+          const m1 = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+          const m2 = raw.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+          if (m1)      { yr = +m1[1]; mo = +m1[2] - 1; dy = +m1[3]; }
+          else if (m2) { yr = +m2[3]; mo = +m2[2] - 1; dy = +m2[1]; }
+          else return;
+          if (!yr || yr < 1900 || yr > now.getFullYear()) return;
+          let age = now.getFullYear() - yr;
+          if (now.getMonth() < mo || (now.getMonth() === mo && now.getDate() < dy)) age--;
+          if      (age < 18)  ageBuckets['Under 18']++;
+          else if (age <= 25) ageBuckets['18–25']++;
+          else if (age <= 35) ageBuckets['26–35']++;
+          else if (age <= 45) ageBuckets['36–45']++;
+          else if (age <= 55) ageBuckets['46–55']++;
+          else                ageBuckets['56+']++;
+        });
+      }
+      const byAgeGroup = Object.entries(ageBuckets)
+        .filter(([, c]) => c > 0)
+        .map(([label, count]) => ({ label, count }));
+
+      // New vs returning donors
+      const donorCol = g('donor', 'donor id', 'donor no', 'name');
+      let newDonors = 0, returningDonors = 0;
+      const byFrequentDonors = [];
+      if (donorCol) {
+        const donorMap = {};
+        rows.forEach(row => {
+          const id = String(row[donorCol] || '').trim();
+          if (id) donorMap[id] = (donorMap[id] || 0) + 1;
+        });
+        Object.values(donorMap).forEach(c => { if (c === 1) newDonors++; else returningDonors++; });
+        Object.entries(donorMap).sort((a,b) => b[1]-a[1]).slice(0,10)
+          .forEach(([label, count]) => byFrequentDonors.push({ label, count }));
+      }
+
+      const cityCol  = excelFindCol(columns, 'city/town', 'city', 'town');
+      const mohaCol  = excelFindCol(columns, 'mohafaza', 'region', 'province', 'governorate');
+      return {
+        maleCount: male, femaleCount: female,
+        newDonors, returningDonors,
+        byGender:         gList,
+        byGroup:          excelCountBy(rows, g('group'),       10),
+        byNationality:    excelCountBy(rows, g('nationality'), 8),
+        byAgeGroup,
+        byFrequentDonors,
+        byCity:           excelCountBy(rows, cityCol, 15),
+        byMohafaza:       excelCountBy(rows, mohaCol, 20)
+      };
+    }
+    case 'wasted': {
+      const reasonCol = g('reason');
+      let expiryWaste = 0, operationalWaste = 0;
+      if (reasonCol) {
+        rows.forEach(row => {
+          const r = String(row[reasonCol] || '').trim();
+          if (!r) return;
+          if (/expir|منتهي|تالف/i.test(r)) expiryWaste++;
+          else operationalWaste++;
+        });
+      }
+      const byWasteType = [
+        expiryWaste      ? { label: 'Expiry-Related', count: expiryWaste }      : null,
+        operationalWaste ? { label: 'Operational',    count: operationalWaste }  : null
+      ].filter(Boolean);
+
+      // Pareto: sorted reasons with cumulative %
+      const rawReasons = excelCountBy(rows, reasonCol, 20);
+      const reasonTotal = rawReasons.reduce((s, d) => s + d.count, 0);
+      let cumulative = 0;
+      const byReasonPareto = rawReasons
+        .sort((a, b) => b.count - a.count)
+        .map(d => {
+          cumulative += d.count;
+          return { label: d.label, count: d.count, cumPct: Math.round((cumulative / reasonTotal) * 100) };
+        });
+
+      // Expiry days histogram: days between waste date and expiry date
+      const dateCol   = excelFindCol(columns, 'date');
+      const expiryCol = excelFindCol(columns, 'expiry', 'expiry date');
+      const expiryDaysHist = [];
+      if (dateCol && expiryCol) {
+        const bins = { '0-2 days': 0, '3-7 days': 0, '8-14 days': 0, '15-30 days': 0, '>30 days': 0 };
+        rows.forEach(row => {
+          const d = new Date(normalizeExcelDate(row[dateCol]));
+          const e = new Date(normalizeExcelDate(row[expiryCol]));
+          if (isNaN(d.getTime()) || isNaN(e.getTime())) return;
+          const days = Math.round((e - d) / 86400000);
+          if (days < 0) return;
+          if      (days <= 2)  bins['0-2 days']++;
+          else if (days <= 7)  bins['3-7 days']++;
+          else if (days <= 14) bins['8-14 days']++;
+          else if (days <= 30) bins['15-30 days']++;
+          else                 bins['>30 days']++;
+        });
+        Object.entries(bins).forEach(([label, count]) => { if (count > 0) expiryDaysHist.push({ label, count }); });
+      }
+
+      return {
+        expiryWaste, operationalWaste,
+        byWasteType,
+        byReason:        excelCountBy(rows, reasonCol,      10),
+        byReasonPareto,
+        byComponent:     excelCountBy(rows, g('component'), 10),
+        byGroup:         excelCountBy(rows, g('group'),     10),
+        expiryDaysHist
+      };
+    }
+    case 'sent_to_centres': {
+      const retCol  = g('returned');
+      const retList = excelCountBy(rows, retCol);
+      const retYes  = retList.find(x => /yes/i.test(x.label))?.count || 0;
+      const compCols    = columns.filter(c => /^component/i.test(c.trim()));
+      const textCompCol = compCols.find(c => rows.slice(0, 20).some(r => r[c] && isNaN(String(r[c]).trim())));
+
+      // Near-expiry: units sent within 14 days of their expiry date
+      const dateCol   = columns.find(k => k.toLowerCase().trim() === 'date');
+      const expiryCol = g('expiry');
+      let nearExpiryCount = 0;
+      if (dateCol && expiryCol) {
+        rows.forEach(row => {
+          const sent   = new Date(normalizeExcelDate(row[dateCol]));
+          const expiry = new Date(normalizeExcelDate(row[expiryCol]));
+          if (isNaN(sent.getTime()) || isNaN(expiry.getTime())) return;
+          const days = (expiry - sent) / 86400000;
+          if (days >= 0 && days <= 14) nearExpiryCount++;
+        });
+      }
+
+      return {
+        returnedCount: retYes, notReturnedCount: rows.length - retYes,
+        nearExpiryCount,
+        byHospital:  excelCountBy(rows, g('hospital'),             10),
+        byGroup:     excelCountBy(rows, g('group'),                10),
+        byReturned:  retList,
+        byComponent: excelCountBy(rows, textCompCol || compCols[0], 10)
+      };
+    }
+    case 'external_units': {
+      return {
+        byDonationType: excelCountBy(rows, g('donation type'), 10),
+        byBag:          excelCountBy(rows, g('bag'),           10),
+        byGroup:        excelCountBy(rows, g('group'),         10)
+      };
+    }
+    default:
+      return { byGroup: excelCountBy(rows, g('group'), 10) };
+  }
+}
+
+// GET /api/excel/categories  — files grouped by detected type
+app.get('/api/excel/categories', requireAuth, (req, res) => {
+  try {
+    const files = fs.readdirSync(EXCEL_DIR).filter(f => /\.(xlsx|xls)$/i.test(f));
+    const cats  = {};
+    const now       = new Date();
+    const pad       = n => String(n).padStart(2, '0');
+    const thisMo    = `${now.getFullYear()}-${pad(now.getMonth() + 1)}`;
+    const lastMoDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const lastMo    = `${lastMoDate.getFullYear()}-${pad(lastMoDate.getMonth() + 1)}`;
+
+    for (const f of files) {
+      try {
+        const stat = fs.statSync(path.join(EXCEL_DIR, f));
+        const { columns, rows } = getCachedRows(f);
+        const type    = detectExcelType(columns);
+        const dateCol = columns.find(k => k.toLowerCase().trim() === 'date');
+        let thisMonth = 0, lastMonth = 0;
+        if (dateCol) {
+          rows.forEach(row => {
+            const ds = normalizeExcelDate(row[dateCol]);
+            if (!ds || ds.length < 7) return;
+            const mo = ds.substring(0, 7);
+            if (mo === thisMo) thisMonth++;
+            if (mo === lastMo) lastMonth++;
+          });
+        }
+        if (!cats[type]) cats[type] = [];
+        cats[type].push({ name: f, size: stat.size, modified: stat.mtime, rowCount: rows.length, thisMonth, lastMonth });
+      } catch (_) { /* skip unreadable files */ }
+    }
+
+    // Top departments/wards aggregated across transfusion + requests
+    const deptMap = {};
+    for (const type of ['transfusion', 'requests']) {
+      for (const fi of (cats[type] || [])) {
+        try {
+          const { columns, rows } = getCachedRows(fi.name);
+          const deptCol = excelFindCol(columns, 'destination', 'department', 'dept', 'ward');
+          if (!deptCol) continue;
+          rows.forEach(row => {
+            const v = String(row[deptCol] || '').trim();
+            if (v) deptMap[v] = (deptMap[v] || 0) + 1;
+          });
+        } catch (_) {}
+      }
+    }
+    const _topDepts = Object.entries(deptMap)
+      .sort((a, b) => b[1] - a[1]).slice(0, 10)
+      .map(([label, count]) => ({ label, count }));
+
+    // Monthly comparison: requests vs issued (transfusion)
+    const moMap = {};
+    for (const type of ['transfusion', 'requests']) {
+      for (const fi of (cats[type] || [])) {
+        try {
+          const { columns: fc, rows: fr } = getCachedRows(fi.name);
+          const dc = fc.find(k => k.toLowerCase().trim() === 'date');
+          if (!dc) continue;
+          fr.forEach(row => {
+            const ds = normalizeExcelDate(row[dc]);
+            if (!ds || ds.length < 7) return;
+            const mo = ds.substring(0, 7);
+            if (!moMap[mo]) moMap[mo] = { requests: 0, transfusion: 0 };
+            moMap[mo][type]++;
+          });
+        } catch (_) {}
+      }
+    }
+    const _monthlyComparison = Object.entries(moMap)
+      .sort(([a],[b]) => a.localeCompare(b))
+      .map(([label, d]) => ({ label, requests: d.requests, transfusion: d.transfusion }));
+
+    res.json({ ...cats, _topDepts, _monthlyComparison });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// POST /api/excel/category-query  — combined query across all files in a category
+app.post('/api/excel/category-query', requireAuth, (req, res) => {
+  try {
+    const { category, dateFrom, dateTo, search, page = 1, pageSize = 100 } = req.body;
+    if (!category) return res.status(400).json({ error: 'category required' });
+
+    const files   = fs.readdirSync(EXCEL_DIR).filter(f => /\.(xlsx|xls)$/i.test(f));
+    const catFiles = [];
+    const colSet   = new Set();
+
+    for (const f of files) {
+      try {
+        const { columns } = getCachedRows(f);
+        if (detectExcelType(columns) === category) {
+          catFiles.push(f);
+          columns.forEach(c => colSet.add(c));
+        }
+      } catch (_) {}
+    }
+
+    if (catFiles.length === 0) {
+      return res.json({ columns: [], rows: [], total: 0, filtered: 0,
+        type: category, summary: {}, monthlyChart: [], files: [],
+        page: 1, pageSize: 100, totalPages: 0 });
+    }
+
+    const columns = [...colSet];
+    const dateCol = columns.find(k => k.toLowerCase().trim() === 'date');
+
+    // Merge all rows, tagging each with its source file
+    const allRows = [];
+    for (const f of catFiles) {
+      getCachedRows(f).rows.forEach(row => allRows.push({ ...row, _file: f }));
+    }
+
+    // Date filter
+    let filtered = allRows;
+    if (dateCol && (dateFrom || dateTo)) {
+      filtered = allRows.filter(row => {
+        const ds = normalizeExcelDate(row[dateCol]);
+        if (!ds) return true;
+        if (dateFrom && ds < dateFrom) return false;
+        if (dateTo   && ds > dateTo)   return false;
+        return true;
+      });
+    }
+
+    // Search filter
+    if (search && search.trim()) {
+      const q = search.trim().toLowerCase();
+      filtered = filtered.filter(row =>
+        Object.values(row).some(v => v !== null && v !== undefined && String(v).toLowerCase().includes(q))
+      );
+    }
+
+    // Monthly chart
+    const monthMap = {};
+    if (dateCol) {
+      filtered.forEach(row => {
+        const ds = normalizeExcelDate(row[dateCol]);
+        if (!ds || ds.length < 7) return;
+        const mo = ds.substring(0, 7);
+        monthMap[mo] = (monthMap[mo] || 0) + 1;
+      });
+    }
+    const monthlyChart = Object.entries(monthMap)
+      .sort(([a],[b]) => a.localeCompare(b))
+      .map(([label, count]) => ({ label, count }));
+
+    const summary  = excelSummary(category, filtered, columns);
+
+    // Per-file breakdown (total rows vs filtered rows)
+    const fileBreakdown = catFiles.map(f => ({
+      name:     f,
+      total:    allRows .filter(r => r._file === f).length,
+      filtered: filtered.filter(r => r._file === f).length
+    }));
+
+    const total         = allRows.length;
+    const filteredTotal = filtered.length;
+    const pageInt       = Math.max(1, parseInt(page));
+    const pageSizeInt   = Math.min(500, Math.max(1, parseInt(pageSize)));
+    const paginatedRows = filtered.slice((pageInt-1)*pageSizeInt, pageInt*pageSizeInt);
+
+    res.json({
+      columns: [...columns, '_file'],
+      rows: paginatedRows,
+      total, filtered: filteredTotal,
+      dateColumn: dateCol || null,
+      monthlyChart, type: category, summary,
+      files: fileBreakdown,
+      page: pageInt, pageSize: pageSizeInt,
+      totalPages: Math.ceil(filteredTotal / pageSizeInt)
+    });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// POST /api/excel/category-export  — download all filtered rows as XLSX
+app.post('/api/excel/category-export', requireAuth, (req, res) => {
+  try {
+    const { category, dateFrom, dateTo, search } = req.body;
+    if (!category) return res.status(400).json({ error: 'category required' });
+
+    const files = fs.readdirSync(EXCEL_DIR).filter(f => /\.(xlsx|xls)$/i.test(f));
+    const colSet = new Set();
+    const catFiles = [];
+    for (const f of files) {
+      try {
+        const { columns } = getCachedRows(f);
+        if (detectExcelType(columns) === category) { catFiles.push(f); columns.forEach(c => colSet.add(c)); }
+      } catch (_) {}
+    }
+
+    const columns = [...colSet];
+    const dateCol = columns.find(k => k.toLowerCase().trim() === 'date');
+
+    let rows = [];
+    for (const f of catFiles) getCachedRows(f).rows.forEach(row => rows.push({ ...row, _file: f }));
+
+    if (dateCol && (dateFrom || dateTo)) {
+      rows = rows.filter(row => {
+        const ds = normalizeExcelDate(row[dateCol]);
+        if (!ds) return true;
+        if (dateFrom && ds < dateFrom) return false;
+        if (dateTo   && ds > dateTo)   return false;
+        return true;
+      });
+    }
+    if (search && search.trim()) {
+      const q = search.trim().toLowerCase();
+      rows = rows.filter(row => Object.values(row).some(v => v !== null && v !== undefined && String(v).toLowerCase().includes(q)));
+    }
+
+    const wb = xlsx.utils.book_new();
+    const ws = xlsx.utils.json_to_sheet(rows, { header: [...columns, '_file'] });
+    xlsx.utils.book_append_sheet(wb, ws, category.substring(0, 31));
+    const buf = xlsx.write(wb, { type: 'buffer', bookType: 'xlsx' });
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="${category}-export.xlsx"`);
+    res.send(buf);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// GET /api/excel/alerts — rule-based smart alerts from all Excel data
+app.get('/api/excel/alerts', requireAuth, (req, res) => {
+  try {
+    const alerts = [];
+    const files = fs.readdirSync(EXCEL_DIR).filter(f => /\.(xlsx|xls)$/i.test(f));
+
+    // Build per-category data (columns + rows) using cache
+    const catData = {};
+    for (const f of files) {
+      try {
+        const { columns, rows } = getCachedRows(f);
+        const type = detectExcelType(columns);
+        if (!catData[type]) catData[type] = { columns: [], rows: [] };
+        rows.forEach(r => catData[type].rows.push({ ...r, _file: f }));
+        columns.forEach(c => { if (!catData[type].columns.includes(c)) catData[type].columns.push(c); });
+      } catch (_) {}
+    }
+
+    const now = new Date();
+    const pad = n => String(n).padStart(2, '0');
+    const thisMo = `${now.getFullYear()}-${pad(now.getMonth() + 1)}`;
+    const lastMoDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const lastMo = `${lastMoDate.getFullYear()}-${pad(lastMoDate.getMonth() + 1)}`;
+
+    const moFilter = (rows, columns, mo) => {
+      const dateCol = columns.find(k => k.toLowerCase().trim() === 'date');
+      if (!dateCol) return [];
+      return rows.filter(r => {
+        const ds = normalizeExcelDate(r[dateCol]);
+        return ds && ds.substring(0, 7) === mo;
+      });
+    };
+
+    // ── Rule 1: Wastage spike (this month vs last month > 20%)
+    if (catData.wasted) {
+      const { rows, columns } = catData.wasted;
+      const thisCount = moFilter(rows, columns, thisMo).length;
+      const lastCount = moFilter(rows, columns, lastMo).length;
+      if (lastCount > 0 && thisCount > lastCount * 1.2) {
+        const pct = Math.round((thisCount - lastCount) / lastCount * 100);
+        alerts.push({
+          id: 'wastage_spike',
+          severity: pct > 50 ? 'critical' : 'warning',
+          icon: 'trash',
+          title: 'Wastage Spike Detected',
+          message: `Blood wastage is up ${pct}% compared to last month (${thisCount} vs ${lastCount} units). Review expiry management.`,
+          category: 'wasted'
+        });
+      }
+    }
+
+    // ── Rule 2: High IAT positive rate (> 5% of this month's requests)
+    if (catData.requests) {
+      const { rows, columns } = catData.requests;
+      const thisRows = moFilter(rows, columns, thisMo);
+      const iatCol = excelFindCol(columns, 'iat');
+      if (iatCol && thisRows.length >= 5) {
+        const iatPos = thisRows.filter(r => /pos|\+/i.test(String(r[iatCol] || ''))).length;
+        const iatPct = (iatPos / thisRows.length) * 100;
+        if (iatPct > 5) {
+          alerts.push({
+            id: 'iat_high',
+            severity: iatPct > 10 ? 'critical' : 'warning',
+            icon: 'flask',
+            title: 'High IAT Positive Rate',
+            message: `${iatPct.toFixed(1)}% of blood requests this month are IAT positive (${iatPos} of ${thisRows.length}). Check for alloimmunized patients.`,
+            category: 'requests'
+          });
+        }
+      }
+    }
+
+    // ── Rule 3: Requests surge (this month > last month by > 30%)
+    if (catData.requests) {
+      const { rows, columns } = catData.requests;
+      const thisCount = moFilter(rows, columns, thisMo).length;
+      const lastCount = moFilter(rows, columns, lastMo).length;
+      if (lastCount > 0 && thisCount > lastCount * 1.3) {
+        const pct = Math.round((thisCount - lastCount) / lastCount * 100);
+        alerts.push({
+          id: 'requests_surge',
+          severity: pct > 60 ? 'critical' : 'warning',
+          icon: 'chart',
+          title: 'Blood Requests Surge',
+          message: `Requests jumped ${pct}% vs last month (${thisCount} vs ${lastCount}). Consider increasing stock levels.`,
+          category: 'requests'
+        });
+      }
+    }
+
+    // ── Rule 4: High return rate in transfusion (returned > 15% of issued)
+    if (catData.transfusion) {
+      const { rows, columns } = catData.transfusion;
+      const thisRows = moFilter(rows, columns, thisMo);
+      const retCol = excelFindCol(columns, 'returned');
+      if (retCol && thisRows.length >= 5) {
+        const returned = thisRows.filter(r => /yes|1|true/i.test(String(r[retCol] || ''))).length;
+        const retPct = (returned / thisRows.length) * 100;
+        if (retPct > 15) {
+          alerts.push({
+            id: 'high_return_rate',
+            severity: retPct > 30 ? 'critical' : 'warning',
+            icon: 'return',
+            title: 'High Transfusion Return Rate',
+            message: `${retPct.toFixed(1)}% of issued units were returned this month (${returned} of ${thisRows.length}). Investigate over-ordering.`,
+            category: 'transfusion'
+          });
+        }
+      }
+    }
+
+    // ── Rule 5: Rare blood group — very few donations this month
+    if (catData.donors) {
+      const { rows, columns } = catData.donors;
+      const thisRows = moFilter(rows, columns, thisMo);
+      const groupCol = excelFindCol(columns, 'group');
+      if (groupCol && thisRows.length > 0) {
+        const rareGroups = ['AB-', 'B-', 'O-', 'A-'];
+        const groupCounts = {};
+        thisRows.forEach(r => {
+          const g = String(r[groupCol] || '').trim().toUpperCase();
+          if (g) groupCounts[g] = (groupCounts[g] || 0) + 1;
+        });
+        const shortage = rareGroups.filter(g => !groupCounts[g] || groupCounts[g] < 2);
+        if (shortage.length > 0) {
+          const critical = shortage.some(g => g === 'O-' || g === 'AB-');
+          alerts.push({
+            id: 'rare_blood_low',
+            severity: critical ? 'critical' : 'warning',
+            icon: 'blood',
+            title: 'Rare Blood Group Shortage',
+            message: `Critical blood groups with very few or no donations this month: ${shortage.join(', ')}. Drive donation campaigns.`,
+            category: 'donors'
+          });
+        }
+      }
+    }
+
+    // ── Rule 6: Near-expiry units sent (≤ 7 days to expiry)
+    if (catData.sent_to_centres) {
+      const { rows, columns } = catData.sent_to_centres;
+      const dateCol = columns.find(k => k.toLowerCase().trim() === 'date');
+      const expiryCol = excelFindCol(columns, 'expiry');
+      if (dateCol && expiryCol) {
+        const thisRows = moFilter(rows, columns, thisMo);
+        const nearExpiry = thisRows.filter(r => {
+          const sent = new Date(normalizeExcelDate(r[dateCol]));
+          const exp  = new Date(normalizeExcelDate(r[expiryCol]));
+          if (isNaN(sent) || isNaN(exp)) return false;
+          const days = (exp - sent) / 86400000;
+          return days >= 0 && days <= 14;
+        }).length;
+        if (nearExpiry > 0) {
+          alerts.push({
+            id: 'near_expiry_sent',
+            severity: nearExpiry >= 5 ? 'critical' : 'warning',
+            icon: 'clock',
+            title: 'Near-Expiry Units Sent Out',
+            message: `${nearExpiry} unit${nearExpiry > 1 ? 's' : ''} sent to other centres this month had 14 days or less until expiry. Review inventory rotation.`,
+            category: 'sent_to_centres'
+          });
+        }
+      }
+    }
+
+    // ── Rule 7: Expiry-related waste > 50% of total waste this month
+    if (catData.wasted) {
+      const { rows, columns } = catData.wasted;
+      const thisRows = moFilter(rows, columns, thisMo);
+      const reasonCol = excelFindCol(columns, 'reason');
+      if (reasonCol && thisRows.length >= 3) {
+        const expiryWaste = thisRows.filter(r => /expir|منتهي|تالف/i.test(String(r[reasonCol] || ''))).length;
+        const pct = (expiryWaste / thisRows.length) * 100;
+        if (pct > 50 && !alerts.find(a => a.id === 'wastage_spike')) {
+          alerts.push({
+            id: 'expiry_waste_high',
+            severity: 'warning',
+            icon: 'calendar',
+            title: 'High Expiry-Related Waste',
+            message: `${pct.toFixed(0)}% of wasted units this month expired before use (${expiryWaste} of ${thisRows.length}). Consider earlier redistribution to centres.`,
+            category: 'wasted'
+          });
+        }
+      }
+    }
+
+    // Sort: critical first, then warning
+    alerts.sort((a, b) => (a.severity === 'critical' ? -1 : 1) - (b.severity === 'critical' ? -1 : 1));
+
+    res.json({ alerts, generatedAt: new Date().toISOString() });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.post('/api/excel/query', requireAuth, (req, res) => {
+  try {
+    const { filename, dateFrom, dateTo, page = 1, pageSize = 100 } = req.body;
+    if (!filename) return res.status(400).json({ error: 'filename required' });
+
+    const filePath = path.join(EXCEL_DIR, path.basename(filename));
+    if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'File not found' });
+
+    const workbook = xlsx.readFile(filePath, { cellDates: true });
+    const sheetName = workbook.SheetNames[0];
+    const sheet = workbook.Sheets[sheetName];
+
+    // Read as arrays first so we can deduplicate column headers
+    const rawRows = xlsx.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+    if (rawRows.length === 0) {
+      return res.json({ columns: [], rows: [], total: 0, filtered: 0, dateColumn: null, monthlyChart: [], type: 'generic', summary: {} });
+    }
+
+    // Build unique column names (handles duplicate headers like two "Component" columns)
+    const headerRow = rawRows[0];
+    const columns = [];
+    const colSeen = {};
+    headerRow.forEach(h => {
+      const name = String(h).trim() || '(empty)';
+      colSeen[name] = (colSeen[name] || 0);
+      columns.push(colSeen[name] === 0 ? name : `${name}_${colSeen[name]}`);
+      colSeen[name]++;
+    });
+
+    // Build object rows
+    const rows = rawRows.slice(1)
+      .filter(r => r.some(v => v !== '' && v !== null && v !== undefined))
+      .map(r => {
+        const obj = {};
+        columns.forEach((c, i) => { obj[c] = r[i] ?? ''; });
+        return obj;
+      });
+
+    if (rows.length === 0) {
+      return res.json({ columns, rows: [], total: 0, filtered: 0, dateColumn: null, monthlyChart: [], type: detectExcelType(columns), summary: {} });
+    }
+
+    const dateCol = columns.find(k => k.toLowerCase().trim() === 'date');
+
+    function normalizeDate(val) {
+      if (!val && val !== 0) return '';
+      if (val instanceof Date) return val.toISOString().split('T')[0];
+      const s = String(val).trim();
+      const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+      if (m) return `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`;
+      if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.substring(0, 10);
+      return s;
+    }
+
+    const normalizedRows = rows.map(row => {
+      const nr = {};
+      for (const [k, v] of Object.entries(row)) {
+        nr[k] = (v instanceof Date) ? normalizeDate(v) : v;
+      }
+      return nr;
+    });
+
+    let filtered = normalizedRows;
+    if (dateCol && (dateFrom || dateTo)) {
+      filtered = normalizedRows.filter(row => {
+        const ds = normalizeDate(row[dateCol]);
+        if (!ds) return true;
+        if (dateFrom && ds < dateFrom) return false;
+        if (dateTo   && ds > dateTo)   return false;
+        return true;
+      });
+    }
+
+    // Monthly chart
+    const monthMap = {};
+    if (dateCol) {
+      filtered.forEach(row => {
+        const ds = normalizeDate(row[dateCol]);
+        if (!ds || ds.length < 7) return;
+        const month = ds.substring(0, 7);
+        monthMap[month] = (monthMap[month] || 0) + 1;
+      });
+    }
+    const monthlyChart = Object.entries(monthMap)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([label, count]) => ({ label, count }));
+
+    const type          = detectExcelType(columns);
+    const summary       = excelSummary(type, filtered, columns);
+    const total         = normalizedRows.length;
+    const filteredTotal = filtered.length;
+    const pageInt       = Math.max(1, parseInt(page));
+    const pageSizeInt   = Math.min(500, Math.max(1, parseInt(pageSize)));
+    const paginatedRows = filtered.slice((pageInt - 1) * pageSizeInt, pageInt * pageSizeInt);
+
+    res.json({
+      columns, rows: paginatedRows,
+      total, filtered: filteredTotal,
+      dateColumn: dateCol || null,
+      monthlyChart, type, summary,
+      page: pageInt, pageSize: pageSizeInt,
+      totalPages: Math.ceil(filteredTotal / pageSizeInt)
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.listen(3000, () => console.log("✅ Blood Bank server running on http://localhost:3000"));

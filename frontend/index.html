@@ -692,7 +692,113 @@
     border: none; border-radius: 8px; font-size: 14px; cursor: pointer;
   }
   .modal-err { color: #dc2626; font-size: 12px; margin-top: 8px; }
+
+    /* ── EXCEL DASHBOARD ── */
+    .excel-section{padding:24px;display:none;}
+    .excel-section.show{display:block;}
+    .excel-dash-header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:20px;}
+    .excel-dash-title{font-size:20px;font-weight:800;color:var(--navy);}
+    .excel-upload-btn{padding:8px 16px;background:var(--blood);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;}
+    .excel-upload-btn:hover{background:#a01f1f;}
+    .excel-back-btn{padding:7px 14px;border:1.5px solid var(--border);border-radius:8px;background:#fff;color:var(--text-soft);cursor:pointer;font-size:12px;font-weight:700;}
+    .excel-back-btn:hover{border-color:var(--blood);color:var(--blood);}
+    /* category cards */
+    .excel-cat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px;margin-bottom:8px;}
+    .excel-cat-card{background:#fff;border:1.5px solid var(--border);border-radius:14px;padding:22px 18px;cursor:pointer;transition:border-color .15s,box-shadow .15s,transform .1s;text-align:center;}
+    .excel-cat-card:hover{border-color:var(--blood);box-shadow:0 4px 18px rgba(192,57,43,.12);transform:translateY(-2px);}
+    .excel-cat-icon{font-size:38px;margin-bottom:10px;line-height:1;}
+    .excel-cat-name{font-size:13px;font-weight:800;color:var(--navy);line-height:1.35;margin-bottom:10px;}
+    .excel-cat-meta{font-size:11px;color:var(--text-soft);display:flex;align-items:center;justify-content:center;gap:6px;}
+    .excel-cat-count{font-weight:700;color:var(--blood);}
+    /* file pills inside category dashboard */
+    .excel-file-list{background:#fff;border:1.5px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:16px;}
+    .excel-file-pills-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-soft);margin-bottom:10px;}
+    .excel-file-pills{display:flex;flex-wrap:wrap;gap:8px;}
+    .excel-file-pill{display:flex;align-items:center;gap:8px;padding:5px 10px;border:1.5px solid var(--border);border-radius:8px;background:var(--mist);font-size:11px;}
+    .excel-file-pill-name{font-weight:600;color:var(--navy);max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    .excel-file-pill-count{color:var(--text-soft);}
+    .excel-file-pill-upd{border:none;background:none;cursor:pointer;font-size:12px;padding:0 2px;opacity:.6;}
+    .excel-file-pill-upd:hover{opacity:1;}
+    .excel-no-files{text-align:center;padding:40px;color:var(--text-soft);font-size:13px;border:1.5px dashed var(--border);border-radius:12px;}
+    .excel-filter-bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:10px 14px;background:var(--mist);border-radius:8px;border:1px solid var(--border);margin-bottom:18px;}
+    .excel-filter-bar label{font-size:12px;font-weight:600;color:var(--text-soft);}
+    .excel-filter-bar input[type=date]{padding:5px 8px;border:1.5px solid var(--border);border-radius:6px;font-size:12px;color:var(--text);background:#fff;cursor:pointer;}
+    .excel-filter-bar input[type=date]:focus{outline:none;border-color:var(--blood);}
+    .excel-filter-apply{padding:5px 14px;background:var(--blood);color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;}
+    .excel-filter-clear{padding:5px 10px;border:1.5px solid var(--border);border-radius:6px;font-size:11px;background:#fff;color:var(--text-soft);cursor:pointer;font-weight:600;}
+    .excel-filter-clear:hover{border-color:var(--blood);color:var(--blood);}
+    .excel-summary-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:18px;}
+    .excel-card{background:#fff;border:1.5px solid var(--border);border-radius:10px;padding:14px 18px;}
+    .excel-card-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-soft);margin-bottom:6px;}
+    .excel-card-num{font-size:26px;font-weight:800;color:var(--navy);}
+    .excel-card.accent-red .excel-card-num{color:var(--blood);}
+    .excel-type-badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;background:var(--blood-glow);color:var(--blood);margin-left:10px;vertical-align:middle;}
+    .excel-chart-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px;}
+    .excel-chart-grid.cols-3{grid-template-columns:1fr 1fr 1fr;}
+    .excel-chart-grid.cols-1{grid-template-columns:1fr;}
+    @media(max-width:760px){.excel-chart-grid,.excel-chart-grid.cols-3{grid-template-columns:1fr;}}
+    .excel-chart-panel{background:#fff;border:1.5px solid var(--border);border-radius:12px;padding:18px;}
+    .excel-chart-panel.span-2{grid-column:span 2;}
+    .excel-chart-title{font-size:12px;font-weight:700;color:var(--navy);margin-bottom:12px;text-transform:uppercase;letter-spacing:.4px;}
+    .excel-table-wrap{background:#fff;border:1.5px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:18px;}
+    .excel-table-header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1.5px solid var(--border);}
+    .excel-table-title{font-size:12px;font-weight:700;color:var(--navy);text-transform:uppercase;letter-spacing:.4px;}
+    .excel-table-info{font-size:11px;color:var(--text-soft);}
+    .excel-table-scroll{overflow-x:auto;max-height:420px;overflow-y:auto;}
+    .excel-table{width:100%;border-collapse:collapse;font-size:12px;}
+    .excel-table th{text-align:left;padding:7px 10px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--text-soft);border-bottom:1.5px solid var(--border);background:#fafafa;position:sticky;top:0;white-space:nowrap;}
+    .excel-table td{padding:7px 10px;border-bottom:1px solid var(--mist);color:var(--text);white-space:nowrap;}
+    .excel-table tr:last-child td{border-bottom:none;}
+    .excel-table tr:hover td{background:var(--mist);}
+    .excel-pagination{display:flex;align-items:center;justify-content:center;gap:8px;padding:12px;}
+    .excel-page-btn{padding:4px 10px;border:1.5px solid var(--border);border-radius:6px;font-size:11px;font-weight:600;background:#fff;cursor:pointer;color:var(--text-soft);}
+    .excel-page-btn:hover:not(:disabled){border-color:var(--blood);color:var(--blood);}
+    .excel-page-btn:disabled{opacity:.4;cursor:not-allowed;}
+    .excel-page-info{font-size:11px;color:var(--text-soft);}
+    .excel-loading{text-align:center;padding:30px;color:var(--text-soft);font-size:13px;}
+    /* date shortcuts + search + export */
+    .excel-shortcut-btn{padding:3px 9px;border:1.5px solid var(--border);border-radius:6px;font-size:11px;font-weight:600;background:#fff;cursor:pointer;color:var(--text-soft);transition:border-color .15s,color .15s;}
+    .excel-shortcut-btn:hover{border-color:var(--blood);color:var(--blood);}
+    .excel-shortcut-btn.active{background:var(--blood);color:#fff;border-color:var(--blood);}
+    .excel-search-box{padding:5px 10px;border:1.5px solid var(--border);border-radius:6px;font-size:12px;width:180px;outline:none;transition:border-color .15s;}
+    .excel-search-box:focus{border-color:var(--blood);}
+    .excel-export-btn{padding:5px 12px;border:1.5px solid #38a169;border-radius:6px;font-size:12px;font-weight:600;background:#fff;color:#38a169;cursor:pointer;transition:background .15s,color .15s;}
+    .excel-export-btn:hover{background:#38a169;color:#fff;}
+    /* smart alerts */
+    .excel-alerts-wrap{display:flex;flex-direction:column;gap:8px;margin-bottom:20px;}
+    .excel-alert{display:flex;align-items:flex-start;gap:12px;padding:11px 16px;border-radius:10px;border-left:4px solid;animation:alertSlideIn .25s ease;}
+    @keyframes alertSlideIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+    .excel-alert.critical{background:#fff5f5;border-color:#e53e3e;}
+    .excel-alert.warning{background:#fffaf0;border-color:#dd6b20;}
+    .excel-alert.info{background:#ebf8ff;border-color:#4a9eff;}
+    .excel-alert-icon{font-size:1.1rem;line-height:1.4;flex-shrink:0;}
+    .excel-alert-body{flex:1;min-width:0;}
+    .excel-alert-title{font-size:12.5px;font-weight:700;color:#1a202c;display:flex;align-items:center;gap:6px;}
+    .excel-alert-badge{font-size:9px;font-weight:800;text-transform:uppercase;padding:1px 5px;border-radius:4px;letter-spacing:.04em;}
+    .critical .excel-alert-badge{background:#e53e3e;color:#fff;}
+    .warning .excel-alert-badge{background:#dd6b20;color:#fff;}
+    .excel-alert-msg{font-size:11.5px;color:#4a5568;margin-top:2px;line-height:1.5;}
+    .excel-alert-footer{display:flex;align-items:center;gap:10px;margin-top:5px;}
+    .excel-alert-link{font-size:11px;font-weight:600;cursor:pointer;text-decoration:underline;text-underline-offset:2px;background:none;border:none;padding:0;}
+    .critical .excel-alert-link{color:#e53e3e;}
+    .warning .excel-alert-link{color:#dd6b20;}
+    .excel-alert-dismiss{background:none;border:none;cursor:pointer;color:#a0aec0;font-size:16px;line-height:1;flex-shrink:0;padding:2px 4px;border-radius:4px;margin-top:-1px;}
+    .excel-alert-dismiss:hover{background:#edf2f7;color:#4a5568;}
+    .excel-alerts-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+    .excel-alerts-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--text-soft);}
+    .excel-alerts-dismiss-all{font-size:11px;color:#a0aec0;cursor:pointer;background:none;border:none;padding:0;text-decoration:underline;text-underline-offset:2px;}
+    .excel-alerts-dismiss-all:hover{color:#4a5568;}
+    .excel-no-alerts{display:flex;align-items:center;gap:8px;padding:10px 14px;background:#f0fff4;border-radius:10px;border-left:4px solid #38a169;font-size:12px;color:#276749;font-weight:600;}
+    /* overview strip */
+    .excel-overview-strip{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:24px;}
+    .excel-ov-card{flex:1;min-width:140px;background:#fff;border:1.5px solid var(--border);border-radius:12px;padding:16px 18px;display:flex;flex-direction:column;gap:3px;border-top-width:3px;}
+    .excel-ov-icon{font-size:1.3rem;line-height:1;}
+    .excel-ov-num{font-size:1.75rem;font-weight:800;line-height:1.1;margin-top:4px;}
+    .excel-ov-label{font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-soft);}
+    .excel-ov-sub{font-size:0.7rem;color:#a0aec0;margin-top:1px;}
   </style>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
 
@@ -859,6 +965,9 @@
     </button>
     <button class="sidebar-nav-btn" id="tabExtDel" onclick="showPage('extdel')" style="display:none">
       <span class="sidebar-nav-icon">🚚</span> Ext. Delivery
+    </button>
+    <button class="sidebar-nav-btn" id="tabExcel" onclick="showPage('excel')">
+      <span class="sidebar-nav-icon">📁</span> Excel Files
     </button>
   </nav>
 </aside>
@@ -1472,6 +1581,96 @@
         <div class="empty-msg"><div class="empty-icon">🚚</div><div class="empty-text">No records yet.</div></div>
       </div>
     </div>
+  </div>
+
+  <!-- ═══════════════ EXCEL FILES DASHBOARD ═══════════════ -->
+  <div class="excel-section" id="excelSection">
+
+    <!-- Shared header (always visible) -->
+    <div class="excel-dash-header">
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+        <button class="excel-back-btn" id="excelBackBtn" onclick="showExcelCategories()" style="display:none">← Categories</button>
+        <div class="excel-dash-title" id="excelViewTitle">📁 Excel Files Dashboard</div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <button id="excelReportBtn" onclick="generateMonthlyReport()" style="display:none;padding:7px 14px;border:1.5px solid #4a9eff;border-radius:8px;font-size:13px;font-weight:600;background:#fff;color:#4a9eff;cursor:pointer;transition:background .15s,color .15s;" onmouseover="this.style.background='#4a9eff';this.style.color='#fff'" onmouseout="this.style.background='#fff';this.style.color='#4a9eff'">📄 Monthly Report</button>
+        <label class="excel-upload-btn" style="cursor:pointer">
+          ⬆ Upload Excel
+          <input type="file" id="excelUploadInput" accept=".xlsx,.xls" style="display:none" onchange="uploadExcelFile(this,null)">
+        </label>
+        <input type="file" id="excelUpdateInput" accept=".xlsx,.xls" style="display:none" onchange="uploadExcelFile(this,excelUpdateTarget)">
+      </div>
+    </div>
+
+    <!-- VIEW 1 — Category grid -->
+    <div id="excelCatView">
+      <div id="excelAlertsSection" style="display:none"></div>
+      <div id="excelOverviewStrip" style="display:none"></div>
+      <div id="excelEfficiencyWrap" style="display:none;margin-bottom:24px;"></div>
+      <div id="excelMonthlyCompWrap" style="display:none;margin-bottom:24px;background:#fff;border:1.5px solid var(--border);border-radius:12px;padding:16px 20px;">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-soft);margin-bottom:12px;">Monthly — Requests vs Units Issued</div>
+        <div style="position:relative;height:220px;"><canvas id="excelMonthlyCompChart"></canvas></div>
+      </div>
+<div id="excelTopDeptsWrap" style="display:none;margin-bottom:24px;background:#fff;border:1.5px solid var(--border);border-radius:12px;padding:16px 20px;">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-soft);margin-bottom:12px;">Top Departments / Wards — Transfusion + Requests</div>
+        <div id="excelTopDeptsChartWrap" style="position:relative;">
+          <canvas id="excelTopDeptsChart"></canvas>
+        </div>
+      </div>
+      <div class="excel-cat-grid" id="excelCatGrid">
+        <div class="excel-no-files" style="grid-column:1/-1">No Excel files uploaded yet. Click "⬆ Upload Excel" to get started.</div>
+      </div>
+    </div>
+
+    <!-- VIEW 2 — Category dashboard -->
+    <div id="excelDashView" style="display:none">
+
+      <!-- Date filter -->
+      <div class="excel-filter-bar" id="excelFilterBar">
+        <label>From <input type="date" id="excelDateFrom"></label>
+        <label>To <input type="date" id="excelDateTo"></label>
+        <button class="excel-filter-apply" onclick="applyExcelFilter()">Apply</button>
+        <button class="excel-filter-clear" onclick="clearExcelFilter()">Clear</button>
+        <div style="display:flex;gap:5px;margin-left:6px;">
+          <button class="excel-shortcut-btn" id="shortcutThisMonth" onclick="excelShortcut('thisMonth')">This Month</button>
+          <button class="excel-shortcut-btn" id="shortcutLastMonth" onclick="excelShortcut('lastMonth')">Last Month</button>
+          <button class="excel-shortcut-btn" id="shortcutThisYear"  onclick="excelShortcut('thisYear')">This Year</button>
+          <button class="excel-shortcut-btn" id="shortcutAll"       onclick="excelShortcut('all')">All</button>
+        </div>
+        <span id="excelFilterStatus" style="font-size:11px;color:var(--text-soft);margin-left:4px;"></span>
+      </div>
+
+      <!-- KPI cards (filled dynamically) -->
+      <div class="excel-summary-cards" id="excelSummaryCards" style="display:none"></div>
+
+      <!-- Type-specific charts (filled dynamically) -->
+      <div id="excelChartGrid" style="display:none"></div>
+
+      <!-- Files in this category -->
+      <div class="excel-file-list" id="excelFileList" style="display:none"></div>
+
+      <!-- Data table -->
+      <div class="excel-table-wrap" id="excelTableWrap" style="display:none">
+        <div class="excel-table-header">
+          <div class="excel-table-title" id="excelTableTitle">Data</div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <input type="text" class="excel-search-box" id="excelSearchInput" placeholder="🔍 Search rows…" oninput="scheduleExcelSearch()">
+            <button class="excel-export-btn" onclick="exportExcelData()">⬇ Export</button>
+            <div class="excel-table-info" id="excelTableInfo"></div>
+          </div>
+        </div>
+        <div class="excel-table-scroll">
+          <table class="excel-table">
+            <thead id="excelTableHead"></thead>
+            <tbody id="excelTableBody"></tbody>
+          </table>
+        </div>
+        <div class="excel-pagination" id="excelPagination"></div>
+      </div>
+
+      <div class="excel-loading" id="excelLoading" style="display:none">Loading…</div>
+    </div>
+
   </div>
 
 </main>
@@ -2246,16 +2445,19 @@ function showPage(page) {
   const isDash   = page === 'dashboard';
   const isAdmin  = page === 'admin';
   const isExtDel = page === 'extdel';
+  const isExcel  = page === 'excel';
   document.getElementById('tabForms').classList.toggle('active', isForm);
   document.getElementById('tabDashboard').classList.toggle('active', isDash);
   document.getElementById('tabAdmin').classList.toggle('active', isAdmin);
   document.getElementById('tabExtDel').classList.toggle('active', isExtDel);
+  document.getElementById('tabExcel').classList.toggle('active', isExcel);
   document.querySelector('.forms-row').style.display    = isForm  ? '' : 'none';
   document.querySelector('.history-wrap').style.display = isForm  ? '' : 'none';
   document.querySelector('.voice-bar').style.display    = (isForm || isExtDel) ? '' : 'none';
   document.getElementById('dashSection').classList.toggle('show', isDash);
   document.getElementById('adminSection').style.display = isAdmin ? '' : 'none';
   document.getElementById('extDelSection').classList.toggle('show', isExtDel);
+  document.getElementById('excelSection').classList.toggle('show', isExcel);
   // Toggle voice bar seg-tabs: normal forms vs ext delivery
   ['tabBoth','tabTransfusion','tabDelivery'].forEach(id => {
     const el = document.getElementById(id);
@@ -2276,6 +2478,7 @@ function showPage(page) {
   if (isDash)   loadDashboard();
   if (isAdmin)  loadUsers();
   if (isExtDel) { renderExtCompTable(); loadExtHistory(); }
+  if (isExcel)  loadExcelFiles();
 }
 
 async function loadDashboard() {
@@ -3686,6 +3889,1332 @@ async function exportExtFromRecord(id, type) {
 
 // Init
 loadHistory();
+
+// ═══════════════════════════════════════════════════════
+// EXCEL FILES DASHBOARD — category-based
+// ═══════════════════════════════════════════════════════
+let excelActiveCategory = null;
+let excelCurrentPage    = 1;
+let excelChartInstances = [];
+let excelUpdateTarget   = null;
+let excelSearchTimer    = null;
+let excelActiveShortcut = null;
+
+const CAT_CONFIG = {
+  transfusion:     { icon: '🩸', label: 'Units Issued for Transfusion' },
+  requests:        { icon: '📋', label: 'Patient Requests' },
+  donors:          { icon: '🫀', label: 'Registered Donors' },
+  wasted:          { icon: '⚠️', label: 'Wasted / Withdrawn Units' },
+  sent_to_centres: { icon: '🚑', label: 'Sent to Other Centres' },
+  external_units:  { icon: '📥', label: 'External Units from Other Centres' },
+  generic:         { icon: '📊', label: 'Other Files' }
+};
+
+// Called by showPage('excel')
+async function loadExcelFiles() { await loadExcelCategories(); }
+
+// ── PDF Monthly Report ─────────────────────────────────────────────────────
+async function generateMonthlyReport() {
+  if (!_reportSnapshot) { alert('No data loaded yet. Please wait for the dashboard to finish loading.'); return; }
+  if (!window.jspdf) { alert('PDF library not loaded yet. Please try again in a moment.'); return; }
+
+  const btn = document.getElementById('excelReportBtn');
+  const origText = btn.textContent;
+  btn.textContent = '⏳ Generating...';
+  btn.disabled = true;
+
+  try {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+
+    const W = 210;
+    const H = 297;
+    const M = 14; // margin
+    const CW = W - M * 2;
+    let y = 0;
+
+    const COL = {
+      red:    [185, 28,  28],
+      redSoft:[254, 226, 226],
+      blue:   [37,  99,  235],
+      green:  [22,  163, 74],
+      orange: [234, 88,  12],
+      purple: [124, 58,  237],
+      navy:   [30,  58,  138],
+      dark:   [15,  23,  42],
+      soft:   [100, 116, 139],
+      border: [226, 232, 240],
+      bg:     [248, 250, 252],
+      white:  [255, 255, 255]
+    };
+
+    // ── helper: thin horizontal rule
+    const rule = (yy, color = COL.border) => {
+      doc.setDrawColor(...color);
+      doc.setLineWidth(0.3);
+      doc.line(M, yy, W - M, yy);
+    };
+
+    // ── helper: section header
+    const section = (title, yy) => {
+      doc.setFillColor(...COL.bg);
+      doc.roundedRect(M, yy, CW, 7, 1.5, 1.5, 'F');
+      doc.setFontSize(8);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(...COL.soft);
+      doc.text(title.toUpperCase(), M + 4, yy + 4.8);
+      return yy + 10;
+    };
+
+    // ══════════════════════════════════════════════════
+    //  PAGE 1 — Executive Summary
+    // ══════════════════════════════════════════════════
+
+    // Header banner
+    doc.setFillColor(...COL.red);
+    doc.rect(0, 0, W, 28, 'F');
+
+    doc.setFontSize(15);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(...COL.white);
+    doc.text('Al Rassoul Al-Aazam Hospital', M, 11);
+
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Blood Bank · Monthly Performance Report', M, 18);
+
+    const now = _reportSnapshot.generatedAt;
+    const monthLabel = now.toLocaleString('default', { month: 'long', year: 'numeric' });
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.text(monthLabel, W - M, 11, { align: 'right' });
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.text(`Generated: ${now.toLocaleDateString()} ${now.toLocaleTimeString()}`, W - M, 17, { align: 'right' });
+
+    y = 36;
+
+    // ── KPI Cards
+    y = section('Key Performance Indicators', y);
+
+    const { cats } = _reportSnapshot;
+    const total  = t => (cats[t] || []).reduce((s, f) => s + (f.rowCount  || 0), 0);
+    const thisMo = t => (cats[t] || []).reduce((s, f) => s + (f.thisMonth || 0), 0);
+    const lastMo = t => (cats[t] || []).reduce((s, f) => s + (f.lastMonth || 0), 0);
+
+    const issued   = total('transfusion');
+    const wasted   = total('wasted');
+    const donors   = total('donors');
+    const extUnits = total('external_units');
+    const sentOut  = total('sent_to_centres');
+    const requests = total('requests');
+    const allTotal = issued + wasted + donors + extUnits + sentOut + requests;
+    const wastageRate = issued > 0 ? ((wasted / issued) * 100).toFixed(1) : '—';
+
+    const kpis = [
+      { label: 'Total Records',    value: allTotal.toLocaleString(),   color: COL.blue,   sub: `${Object.keys(cats).filter(k=>cats[k]?.length).length} categories` },
+      { label: 'Units Issued',     value: issued.toLocaleString(),     color: COL.red,    sub: `This mo: ${thisMo('transfusion').toLocaleString()}` },
+      { label: 'Units Wasted',     value: wasted.toLocaleString(),     color: COL.orange, sub: `${wastageRate}% of issued` },
+      { label: 'Donors Registered',value: donors.toLocaleString(),     color: COL.green,  sub: `This mo: ${thisMo('donors').toLocaleString()}` },
+      { label: 'External Units',   value: extUnits.toLocaleString(),   color: COL.purple, sub: `This mo: ${thisMo('external_units').toLocaleString()}` },
+      { label: 'Sent to Centres',  value: sentOut.toLocaleString(),    color: COL.navy,   sub: `This mo: ${thisMo('sent_to_centres').toLocaleString()}` },
+    ].filter(k => k.value !== '0');
+
+    const cardW = (CW - 8) / 3;
+    const cardH = 22;
+    kpis.forEach((k, i) => {
+      const col = i % 3;
+      const row = Math.floor(i / 3);
+      const cx = M + col * (cardW + 4);
+      const cy = y + row * (cardH + 4);
+      doc.setFillColor(...COL.white);
+      doc.setDrawColor(...COL.border);
+      doc.setLineWidth(0.4);
+      doc.roundedRect(cx, cy, cardW, cardH, 2, 2, 'FD');
+      // top accent bar
+      doc.setFillColor(...k.color);
+      doc.roundedRect(cx, cy, cardW, 2.5, 1, 1, 'F');
+      doc.rect(cx, cy + 1.5, cardW, 1.5, 'F');
+      // value
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(...k.color);
+      doc.text(k.value, cx + cardW / 2, cy + 10, { align: 'center' });
+      // label
+      doc.setFontSize(7);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(...COL.soft);
+      doc.text(k.label.toUpperCase(), cx + cardW / 2, cy + 15, { align: 'center' });
+      // sub
+      doc.setFontSize(6.5);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(180, 190, 200);
+      doc.text(k.sub, cx + cardW / 2, cy + 19, { align: 'center' });
+    });
+
+    const kpiRows = Math.ceil(kpis.length / 3);
+    y += kpiRows * (cardH + 4) + 4;
+
+    // ── MoM summary row
+    const deltaStr = (cur, prev, invertColor) => {
+      if (!prev) return '—';
+      const pct = Math.round(((cur - prev) / prev) * 100);
+      const up = pct >= 0;
+      return `${up ? '↑' : '↓'}${Math.abs(pct)}% vs last month`;
+    };
+
+    y = section('Month-over-Month Summary', y);
+    const moItems = [
+      { label: 'Transfusion',   cur: thisMo('transfusion'),    prev: lastMo('transfusion'),    bad: false },
+      { label: 'Wastage',       cur: thisMo('wasted'),         prev: lastMo('wasted'),         bad: true  },
+      { label: 'Donors',        cur: thisMo('donors'),         prev: lastMo('donors'),         bad: false },
+      { label: 'Requests',      cur: thisMo('requests'),       prev: lastMo('requests'),       bad: false },
+      { label: 'External Units',cur: thisMo('external_units'), prev: lastMo('external_units'), bad: false },
+      { label: 'Sent Out',      cur: thisMo('sent_to_centres'),prev: lastMo('sent_to_centres'),bad: false },
+    ].filter(d => d.cur > 0 || d.prev > 0);
+
+    const momColW = CW / Math.min(moItems.length, 4);
+    const drawMoItem = (item, i, baseY) => {
+      const cx = M + i * momColW;
+      const pct = item.prev ? Math.round(((item.cur - item.prev) / item.prev) * 100) : null;
+      const up = pct !== null && pct >= 0;
+      const good = item.bad ? !up : up;
+      const trendColor = pct === null ? COL.soft : (good ? COL.green : COL.red);
+      const trendStr = pct === null ? '' : `${up ? '+' : '-'}${Math.abs(pct)}% vs last mo`;
+      doc.setFontSize(7.5); doc.setFont('helvetica', 'bold'); doc.setTextColor(...COL.dark);
+      doc.text(item.label, cx + momColW / 2, baseY, { align: 'center' });
+      doc.setFontSize(13); doc.setFont('helvetica', 'bold'); doc.setTextColor(...COL.dark);
+      doc.text(item.cur.toLocaleString(), cx + momColW / 2, baseY + 7, { align: 'center' });
+      if (trendStr) {
+        doc.setFontSize(6.5); doc.setFont('helvetica', 'bold'); doc.setTextColor(...trendColor);
+        doc.text(trendStr, cx + momColW / 2, baseY + 12, { align: 'center' });
+      }
+    };
+    moItems.slice(0, 4).forEach((item, i) => drawMoItem(item, i, y));
+    y += 18;
+    if (moItems.length > 4) {
+      moItems.slice(4).forEach((item, i) => drawMoItem(item, i, y));
+      y += 18;
+    }
+
+    // ── Efficiency Score
+    {
+      const supply  = total('donors') + total('external_units');
+      const used    = total('transfusion') + total('sent_to_centres');
+      const wasted_ = total('wasted');
+      if (supply > 0) {
+        y += 2;
+        y = section('Inventory Efficiency Score', y);
+        const eff       = Math.min(100, (used / supply) * 100);
+        const wasteR    = Math.min(100, (wasted_ / supply) * 100);
+        const effColor_ = eff >= 85 ? COL.green : eff >= 65 ? COL.orange : COL.red;
+        const grade_    = eff >= 85 ? 'Excellent' : eff >= 70 ? 'Good' : eff >= 55 ? 'Fair' : 'Needs Improvement';
+
+        // Score circle (simple filled circle with text)
+        doc.setFillColor(...effColor_);
+        doc.circle(M + 8, y + 7, 8, 'F');
+        doc.setFillColor(...COL.white);
+        doc.circle(M + 8, y + 7, 6, 'F');
+        doc.setFontSize(7); doc.setFont('helvetica','bold'); doc.setTextColor(...effColor_);
+        doc.text(`${eff.toFixed(0)}%`, M + 8, y + 8.5, { align:'center' });
+
+        doc.setFontSize(12); doc.setFont('helvetica','bold'); doc.setTextColor(...effColor_);
+        doc.text(grade_, M + 20, y + 5);
+        doc.setFontSize(8); doc.setFont('helvetica','normal'); doc.setTextColor(...COL.soft);
+        doc.text(`${eff.toFixed(1)}% efficiency  |  Supply: ${supply.toLocaleString()}  |  Used: ${used.toLocaleString()}  |  Wasted: ${wasted_.toLocaleString()} (${wasteR.toFixed(1)}%)`, M + 20, y + 11);
+        y += 20;
+      }
+    }
+
+    // ── Smart Alerts
+    const { alerts } = _reportSnapshot;
+    if (alerts.length > 0) {
+      y += 2;
+      y = section('Smart Alerts', y);
+      const iconMap = { trash:'🗑', flask:'🧪', chart:'📈', return:'↩', blood:'🩸', clock:'⏰', calendar:'📅' };
+      alerts.forEach(a => {
+        const isC = a.severity === 'critical';
+        const bColor = isC ? COL.red : COL.orange;
+        const bgColor = isC ? [255, 245, 245] : [255, 250, 240];
+        doc.setFillColor(...bgColor);
+        doc.setDrawColor(...bColor);
+        doc.setLineWidth(0.3);
+        doc.roundedRect(M, y, CW, 11, 1.5, 1.5, 'FD');
+        doc.setFillColor(...bColor);
+        doc.rect(M, y, 2.5, 11, 'F');
+        const safeText = t => t.replace(/[^\x00-\x7E]/g, '');
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(...bColor);
+        doc.text(`${safeText(a.title)}  [${a.severity.toUpperCase()}]`, M + 5, y + 4.5);
+        doc.setFontSize(7);
+        doc.setFont('helvetica', 'normal');
+        doc.setTextColor(...COL.soft);
+        const wrapped = doc.splitTextToSize(safeText(a.message), CW - 8);
+        doc.text(wrapped[0], M + 5, y + 8.5);
+        y += 13;
+        if (y > H - 20) { doc.addPage(); y = 14; }
+      });
+    } else {
+      y += 2;
+      doc.setFillColor(240, 255, 244);
+      doc.setDrawColor(22, 163, 74);
+      doc.setLineWidth(0.3);
+      doc.roundedRect(M, y, CW, 9, 1.5, 1.5, 'FD');
+      doc.setFontSize(8); doc.setFont('helvetica', 'bold'); doc.setTextColor(22, 101, 52);
+      doc.text('✓  No active alerts — all indicators within normal range.', M + 5, y + 5.5);
+      y += 12;
+    }
+
+    // ── Footer page 1
+    doc.setFontSize(7); doc.setFont('helvetica','normal'); doc.setTextColor(...COL.soft);
+    doc.text('Al Rassoul Al-Aazam Hospital — Blood Bank Management System', W/2, H-6, { align:'center' });
+    doc.text('Page 1', W - M, H - 6, { align: 'right' });
+
+    // ══════════════════════════════════════════════════
+    //  PAGE 2 — Charts
+    // ══════════════════════════════════════════════════
+    doc.addPage();
+    doc.setFillColor(...COL.red);
+    doc.rect(0, 0, W, 14, 'F');
+    doc.setFontSize(10); doc.setFont('helvetica','bold'); doc.setTextColor(...COL.white);
+    doc.text('Blood Bank Report — Charts & Trends', M, 9);
+    doc.setFontSize(8); doc.setFont('helvetica','normal');
+    doc.text(monthLabel, W - M, 9, { align: 'right' });
+
+    y = 22;
+
+    // Monthly comparison chart
+    if (excelMonthlyCompChart && _reportSnapshot.monthlyComp.length > 0) {
+      y = section('Monthly Trend — Requests vs Units Issued', y);
+      try {
+        const imgData = excelMonthlyCompChart.toBase64Image('image/png', 1);
+        const chartH = 65;
+        doc.addImage(imgData, 'PNG', M, y, CW, chartH);
+        y += chartH + 6;
+      } catch (_) {}
+    }
+
+    // Top departments chart
+    if (excelTopDeptsChart && _reportSnapshot.topDepts.length > 0) {
+      y = section('Top Departments / Wards by Blood Usage', y);
+      try {
+        const imgData = excelTopDeptsChart.toBase64Image('image/png', 1);
+        const chartH = Math.min(80, Math.max(30, _reportSnapshot.topDepts.length * 9));
+        doc.addImage(imgData, 'PNG', M, y, CW, chartH);
+        y += chartH + 6;
+      } catch (_) {}
+    }
+
+    // ── Monthly data table (text fallback / supplement)
+    if (_reportSnapshot.monthlyComp.length > 0) {
+      if (y > H - 60) { doc.addPage(); y = 14; }
+      y = section('Monthly Breakdown Table', y);
+      const tColW = [28, 35, 35, 35, 35];
+      const tHeaders = ['Month', 'Requests', 'Issued', 'Difference', 'Fill Rate'];
+      doc.setFontSize(7.5); doc.setFont('helvetica','bold'); doc.setTextColor(...COL.soft);
+      let tx = M;
+      tHeaders.forEach((h, i) => { doc.text(h, tx + (i === 0 ? 0 : tColW[i]/2), y, { align: i === 0 ? 'left' : 'center' }); tx += tColW[i]; });
+      y += 2;
+      rule(y);
+      y += 3;
+
+      const last12 = _reportSnapshot.monthlyComp.slice(-12);
+      last12.forEach((row, ri) => {
+        if (y > H - 16) { doc.addPage(); y = 14; }
+        if (ri % 2 === 0) { doc.setFillColor(...COL.bg); doc.rect(M, y - 2, CW, 6, 'F'); }
+        const req = row.requests    || 0;
+        const iss = row.transfusion || 0;
+        const diff = req - iss;
+        const fill = req > 0 ? ((iss / req) * 100).toFixed(0) + '%' : '—';
+        const diffColor = diff > 0 ? COL.orange : COL.green;
+        doc.setFontSize(7.5); doc.setFont('helvetica','normal'); doc.setTextColor(...COL.dark);
+        tx = M;
+        doc.text(row.label, tx, y + 2); tx += tColW[0];
+        doc.text(req.toLocaleString(), tx + tColW[1]/2, y + 2, { align:'center' }); tx += tColW[1];
+        doc.text(iss.toLocaleString(), tx + tColW[2]/2, y + 2, { align:'center' }); tx += tColW[2];
+        doc.setTextColor(...diffColor);
+        doc.text((diff > 0 ? '+' : '') + diff.toLocaleString(), tx + tColW[3]/2, y + 2, { align:'center' }); tx += tColW[3];
+        doc.setTextColor(...COL.dark);
+        doc.text(fill, tx + tColW[4]/2, y + 2, { align:'center' });
+        y += 6;
+      });
+    }
+
+    // ── Footer page 2
+    doc.setFontSize(7); doc.setFont('helvetica','normal'); doc.setTextColor(...COL.soft);
+    doc.text('Al Rassoul Al-Aazam Hospital — Blood Bank Management System', W/2, H-6, { align:'center' });
+    doc.text('Page 2', W - M, H - 6, { align: 'right' });
+
+    // ── Save
+    const fileName = `BloodBank-Report-${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}.pdf`;
+    doc.save(fileName);
+
+  } finally {
+    btn.textContent = origText;
+    btn.disabled = false;
+  }
+}
+
+let _reportSnapshot = null; // populated on each category load for PDF generation
+
+async function loadExcelCategories() {
+  try {
+    const [catRes, alertRes] = await Promise.all([
+      apiFetch(`${API}/api/excel/categories`),
+      apiFetch(`${API}/api/excel/alerts`)
+    ]);
+    if (!catRes) return;
+    const data          = await catRes.json();
+    const topDepts      = data._topDepts          || [];
+    const monthlyComp   = data._monthlyComparison || [];
+    const cats          = Object.fromEntries(Object.entries(data).filter(([k]) => !k.startsWith('_')));
+    renderCategoryGrid(cats);
+    renderTopDepts(topDepts);
+    renderMonthlyComparison(monthlyComp);
+    let activeAlerts = [];
+    if (alertRes) {
+      const alertData = await alertRes.json();
+      activeAlerts = alertData.alerts || [];
+      renderSmartAlerts(activeAlerts);
+    }
+    _reportSnapshot = { cats, topDepts, monthlyComp, alerts: activeAlerts, generatedAt: new Date() };
+    const reportBtn = document.getElementById('excelReportBtn');
+    if (reportBtn && !excelActiveCategory) reportBtn.style.display = '';
+  } catch (e) { console.error('loadExcelCategories', e); }
+}
+
+const _dismissedAlerts = new Set(JSON.parse(sessionStorage.getItem('bb_dismissed_alerts') || '[]'));
+
+function renderSmartAlerts(alerts) {
+  const section = document.getElementById('excelAlertsSection');
+  if (!section) return;
+
+  const active = alerts.filter(a => !_dismissedAlerts.has(a.id));
+
+  if (active.length === 0) {
+    // Show green "all clear" only if there were actually no alerts at all
+    if (alerts.length === 0) {
+      section.style.display = '';
+      section.innerHTML = `<div class="excel-no-alerts">✅ No active alerts — everything looks healthy for this month.</div>`;
+    } else {
+      section.style.display = 'none';
+    }
+    return;
+  }
+
+  const iconMap = {
+    trash:    '🗑️',
+    flask:    '🧪',
+    chart:    '📈',
+    return:   '↩️',
+    blood:    '🩸',
+    clock:    '⏰',
+    calendar: '📅'
+  };
+
+  const CAT_LABELS = {
+    transfusion: 'Transfusion', wasted: 'Wasted Units', donors: 'Donors',
+    external_units: 'External Units', sent_to_centres: 'Sent to Centres',
+    requests: 'Requests', generic: 'Other'
+  };
+
+  section.style.display = '';
+  section.innerHTML = `
+    <div class="excel-alerts-header">
+      <div class="excel-alerts-title">⚡ Smart Alerts — ${active.length} active</div>
+      <button class="excel-alerts-dismiss-all" onclick="dismissAllAlerts()">Dismiss all</button>
+    </div>
+    <div class="excel-alerts-wrap">
+      ${active.map(a => `
+        <div class="excel-alert ${a.severity}" id="alert_${a.id}">
+          <div class="excel-alert-icon">${iconMap[a.icon] || '⚠️'}</div>
+          <div class="excel-alert-body">
+            <div class="excel-alert-title">
+              ${a.title}
+              <span class="excel-alert-badge">${a.severity}</span>
+            </div>
+            <div class="excel-alert-msg">${a.message}</div>
+            <div class="excel-alert-footer">
+              ${a.category ? `<button class="excel-alert-link" onclick="selectCategory('${a.category}')">View ${CAT_LABELS[a.category] || a.category} →</button>` : ''}
+            </div>
+          </div>
+          <button class="excel-alert-dismiss" title="Dismiss" onclick="dismissAlert('${a.id}')">✕</button>
+        </div>`).join('')}
+    </div>`;
+}
+
+function dismissAlert(id) {
+  _dismissedAlerts.add(id);
+  sessionStorage.setItem('bb_dismissed_alerts', JSON.stringify([..._dismissedAlerts]));
+  const el = document.getElementById(`alert_${id}`);
+  if (el) { el.style.opacity = '0'; el.style.transform = 'translateY(-4px)'; el.style.transition = 'all .2s ease'; setTimeout(() => loadExcelCategories(), 220); }
+}
+
+function dismissAllAlerts() {
+  document.querySelectorAll('.excel-alert').forEach(el => {
+    const id = el.id.replace('alert_', '');
+    if (id) _dismissedAlerts.add(id);
+  });
+  sessionStorage.setItem('bb_dismissed_alerts', JSON.stringify([..._dismissedAlerts]));
+  loadExcelCategories();
+}
+
+function renderCategoryGrid(cats) {
+  const grid = document.getElementById('excelCatGrid');
+  const keys = Object.keys(cats).filter(k => !k.startsWith('_') && cats[k]?.length > 0);
+  if (keys.length === 0) {
+    grid.innerHTML = `<div class="excel-no-files" style="grid-column:1/-1">No Excel files uploaded yet. Click "⬆ Upload Excel" to get started.</div>`;
+    document.getElementById('excelOverviewStrip').style.display = 'none';
+    return;
+  }
+  grid.innerHTML = keys.map(type => {
+    const cfg   = CAT_CONFIG[type] || CAT_CONFIG.generic;
+    const files = cats[type];
+    const rows  = files.reduce((s, f) => s + (f.rowCount || 0), 0);
+    return `<div class="excel-cat-card" onclick="selectCategory('${type}')">
+      <div class="excel-cat-icon">${cfg.icon}</div>
+      <div class="excel-cat-name">${cfg.label}</div>
+      <div class="excel-cat-meta">
+        <span class="excel-cat-count">${files.length} ${files.length === 1 ? 'file' : 'files'}</span>
+        <span>·</span>
+        <span>${rows.toLocaleString()} rows</span>
+      </div>
+    </div>`;
+  }).join('');
+  renderOverviewStrip(cats);
+  renderEfficiencyScore(cats);
+}
+
+function renderEfficiencyScore(cats) {
+  const wrap = document.getElementById('excelEfficiencyWrap');
+  if (!wrap) return;
+
+  const total  = t => (cats[t] || []).reduce((s, f) => s + (f.rowCount  || 0), 0);
+  const thisMo = t => (cats[t] || []).reduce((s, f) => s + (f.thisMonth || 0), 0);
+  const lastMo = t => (cats[t] || []).reduce((s, f) => s + (f.lastMonth || 0), 0);
+
+  const supply  = total('donors') + total('external_units');
+  const used    = total('transfusion') + total('sent_to_centres');
+  const wasted  = total('wasted');
+
+  if (supply === 0) { wrap.style.display = 'none'; return; }
+
+  const eff       = Math.min(100, (used / supply) * 100);
+  const wasteRate = Math.min(100, (wasted / supply) * 100);
+  const issueRate = Math.min(100, (total('transfusion') / supply) * 100);
+  const sentRate  = Math.min(100, (total('sent_to_centres') / supply) * 100);
+  const unaccounted = Math.max(0, supply - used - wasted);
+
+  const supplyMo  = thisMo('donors') + thisMo('external_units');
+  const usedMo    = thisMo('transfusion') + thisMo('sent_to_centres');
+  const effMo     = supplyMo > 0 ? Math.min(100, (usedMo / supplyMo) * 100) : null;
+  const supplyLm  = lastMo('donors') + lastMo('external_units');
+  const usedLm    = lastMo('transfusion') + lastMo('sent_to_centres');
+  const effLm     = supplyLm > 0 ? Math.min(100, (usedLm / supplyLm) * 100) : null;
+
+  const effColor  = eff >= 85 ? '#38a169' : eff >= 65 ? '#dd6b20' : '#e53e3e';
+  const grade     = eff >= 85 ? 'Excellent' : eff >= 70 ? 'Good' : eff >= 55 ? 'Fair' : 'Needs Improvement';
+
+  let trendHTML = '';
+  if (effMo !== null && effLm !== null) {
+    const delta = (effMo - effLm);
+    const trendColor = delta >= 0 ? '#38a169' : '#e53e3e';
+    trendHTML = `<div style="font-size:11px;margin-top:4px;color:${trendColor};font-weight:700">${delta >= 0 ? '+' : ''}${delta.toFixed(1)}pp vs last month</div>`;
+  }
+
+  wrap.style.display = '';
+  wrap.innerHTML = `
+    <div style="background:#fff;border:1.5px solid var(--border);border-radius:12px;padding:20px 24px;">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-soft);margin-bottom:16px;">Inventory Efficiency Score</div>
+      <div style="display:flex;gap:28px;align-items:center;flex-wrap:wrap;">
+
+        <!-- Gauge ring -->
+        <div style="position:relative;width:96px;height:96px;flex-shrink:0;">
+          <div style="width:96px;height:96px;border-radius:50%;background:conic-gradient(${effColor} ${eff.toFixed(1)}%, #e2e8f0 0);display:flex;align-items:center;justify-content:center;">
+            <div style="width:70px;height:70px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;flex-direction:column;">
+              <span style="font-size:1.2rem;font-weight:800;color:${effColor};line-height:1">${eff.toFixed(0)}%</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Grade + trend -->
+        <div style="flex-shrink:0;min-width:130px;">
+          <div style="font-size:1.15rem;font-weight:800;color:${effColor}">${grade}</div>
+          <div style="font-size:11.5px;color:var(--text-soft);margin-top:2px;">Overall efficiency</div>
+          ${effMo !== null ? `<div style="font-size:12px;margin-top:6px;">This month: <strong style="color:${effColor}">${effMo.toFixed(0)}%</strong></div>` : ''}
+          ${trendHTML}
+        </div>
+
+        <!-- Supply / Used / Wasted numbers -->
+        <div style="flex:1;min-width:240px;display:grid;grid-template-columns:1fr 1fr;gap:10px 24px;">
+          <div>
+            <div style="font-size:9.5px;font-weight:700;text-transform:uppercase;color:var(--text-soft);">Total Supply</div>
+            <div style="font-size:1.1rem;font-weight:800;color:#1a202c">${supply.toLocaleString()}</div>
+            <div style="font-size:10px;color:#a0aec0">Donors: ${total('donors').toLocaleString()} · External: ${total('external_units').toLocaleString()}</div>
+          </div>
+          <div>
+            <div style="font-size:9.5px;font-weight:700;text-transform:uppercase;color:var(--text-soft);">Productively Used</div>
+            <div style="font-size:1.1rem;font-weight:800;color:#38a169">${used.toLocaleString()}</div>
+            <div style="font-size:10px;color:#a0aec0">Issued: ${total('transfusion').toLocaleString()} · Sent: ${total('sent_to_centres').toLocaleString()}</div>
+          </div>
+          <div>
+            <div style="font-size:9.5px;font-weight:700;text-transform:uppercase;color:var(--text-soft);">Wasted</div>
+            <div style="font-size:1.1rem;font-weight:800;color:#e53e3e">${wasted.toLocaleString()}</div>
+            <div style="font-size:10px;color:#a0aec0">${wasteRate.toFixed(1)}% of supply</div>
+          </div>
+          <div>
+            <div style="font-size:9.5px;font-weight:700;text-transform:uppercase;color:var(--text-soft);">Unaccounted</div>
+            <div style="font-size:1.1rem;font-weight:800;color:#718096">${unaccounted.toLocaleString()}</div>
+            <div style="font-size:10px;color:#a0aec0">In storage or unmatched</div>
+          </div>
+        </div>
+
+        <!-- Stacked breakdown bar -->
+        <div style="flex:1;min-width:200px;">
+          <div style="font-size:9.5px;font-weight:700;text-transform:uppercase;color:var(--text-soft);margin-bottom:7px;">Unit Breakdown</div>
+          <div style="height:16px;border-radius:8px;overflow:hidden;display:flex;background:#e2e8f0;">
+            <div title="Issued" style="width:${issueRate.toFixed(1)}%;background:#e53e3e;transition:width .6s ease;"></div>
+            <div title="Sent to Centres" style="width:${sentRate.toFixed(1)}%;background:#4a9eff;transition:width .6s ease;"></div>
+            <div title="Wasted" style="width:${wasteRate.toFixed(1)}%;background:#dd6b20;transition:width .6s ease;"></div>
+          </div>
+          <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:7px;font-size:10.5px;color:#4a5568;">
+            <span><span style="color:#e53e3e;font-weight:800;">■</span> Issued ${issueRate.toFixed(0)}%</span>
+            <span><span style="color:#4a9eff;font-weight:800;">■</span> Sent Out ${sentRate.toFixed(0)}%</span>
+            <span><span style="color:#dd6b20;font-weight:800;">■</span> Wasted ${wasteRate.toFixed(0)}%</span>
+            <span><span style="color:#cbd5e0;font-weight:800;">■</span> Other ${Math.max(0, 100 - issueRate - sentRate - wasteRate).toFixed(0)}%</span>
+          </div>
+        </div>
+
+      </div>
+    </div>`;
+}
+
+function renderOverviewStrip(cats) {
+  const strip = document.getElementById('excelOverviewStrip');
+  if (!strip) return;
+
+  const total  = t => (cats[t] || []).reduce((s, f) => s + (f.rowCount   || 0), 0);
+  const thisMo = t => (cats[t] || []).reduce((s, f) => s + (f.thisMonth  || 0), 0);
+  const lastMo = t => (cats[t] || []).reduce((s, f) => s + (f.lastMonth  || 0), 0);
+  const fcount = t => (cats[t] || []).length;
+
+  const issued   = total('transfusion');
+  const wasted   = total('wasted');
+  const donors   = total('donors');
+  const extUnits = total('external_units');
+  const sentOut  = total('sent_to_centres');
+  const requests = total('requests');
+  const allTotal = issued + wasted + donors + extUnits + sentOut + requests;
+  const wastageRate = issued > 0 ? ((wasted / issued) * 100).toFixed(1) : null;
+
+  const delta = (cur, prev, invertColor) => {
+    if (!prev) return '';
+    const pct  = Math.abs(((cur - prev) / prev) * 100).toFixed(0);
+    const up   = cur >= prev;
+    const good = invertColor ? !up : up;
+    const arrow = up ? '↑' : '↓';
+    const clr  = good ? '#38a169' : '#e53e3e';
+    return `<span style="font-size:0.68rem;font-weight:700;color:${clr}">${arrow}${pct}% vs last mo</span>`;
+  };
+
+  const cards = [
+    { icon: '📊', num: allTotal.toLocaleString(), label: 'Total Records',     sub: `${Object.keys(cats).filter(k=>!k.startsWith('_')&&cats[k]?.length).length} categories`, color: '#4a9eff', delta: '' },
+    issued    ? { icon: '🩸', num: issued.toLocaleString(),   label: 'Units Issued',      sub: `${fcount('transfusion')} file(s)`,           color: '#e53e3e', delta: delta(thisMo('transfusion'),  lastMo('transfusion'),  false) } : null,
+    wasted    ? { icon: '🗑️', num: wasted.toLocaleString(),   label: 'Units Wasted',      sub: wastageRate ? `${wastageRate}% of issued` : `${fcount('wasted')} file(s)`, color: '#dd6b20', delta: delta(thisMo('wasted'),       lastMo('wasted'),       true)  } : null,
+    donors    ? { icon: '👤', num: donors.toLocaleString(),   label: 'Donors Registered', sub: `${fcount('donors')} file(s)`,                color: '#38a169', delta: delta(thisMo('donors'),       lastMo('donors'),       false) } : null,
+    extUnits  ? { icon: '📥', num: extUnits.toLocaleString(), label: 'External Units',    sub: `${fcount('external_units')} file(s)`,        color: '#805ad5', delta: delta(thisMo('external_units'),lastMo('external_units'),false) } : null,
+    sentOut   ? { icon: '📤', num: sentOut.toLocaleString(),  label: 'Sent to Centres',   sub: `${fcount('sent_to_centres')} file(s)`,       color: '#2b6cb0', delta: delta(thisMo('sent_to_centres'),lastMo('sent_to_centres'),false) } : null,
+    requests  ? { icon: '📋', num: requests.toLocaleString(), label: 'Requests',           sub: `${fcount('requests')} file(s)`,              color: '#d69e2e', delta: delta(thisMo('requests'),     lastMo('requests'),     false) } : null,
+  ].filter(Boolean);
+
+  strip.style.display = '';
+  strip.innerHTML = `<div class="excel-overview-strip">${cards.map(c => `
+    <div class="excel-ov-card" style="border-top-color:${c.color}">
+      <div class="excel-ov-icon">${c.icon}</div>
+      <div class="excel-ov-num" style="color:${c.color}">${c.num}</div>
+      <div class="excel-ov-label">${c.label}</div>
+      <div class="excel-ov-sub">${c.sub}</div>
+      ${c.delta ? `<div style="margin-top:4px">${c.delta}</div>` : ''}
+    </div>`).join('')}
+  </div>`;
+}
+
+let excelMonthlyCompChart = null;
+function renderMonthlyComparison(data) {
+  const wrap = document.getElementById('excelMonthlyCompWrap');
+  if (!wrap) return;
+  if (!data || !data.length) { wrap.style.display = 'none'; return; }
+  wrap.style.display = '';
+  if (excelMonthlyCompChart) { excelMonthlyCompChart.destroy(); excelMonthlyCompChart = null; }
+  const ctx = document.getElementById('excelMonthlyCompChart').getContext('2d');
+  excelMonthlyCompChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: data.map(d => d.label),
+      datasets: [
+        { label: 'Requests',      data: data.map(d => d.requests),     backgroundColor: '#4a9eff', borderRadius: 3 },
+        { label: 'Units Issued',  data: data.map(d => d.transfusion),  backgroundColor: '#e53e3e', borderRadius: 3 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'top', labels: { font: { size: 11 } } } },
+      scales: {
+        x: { ticks: { font: { size: 9 }, maxRotation: 60, maxTicksLimit: 20 } },
+        y: { beginAtZero: true, ticks: { precision: 0, font: { size: 10 } } }
+      }
+    }
+  });
+}
+
+let excelTopDeptsChart = null;
+function renderTopDepts(topDepts) {
+  const wrap = document.getElementById('excelTopDeptsWrap');
+  if (!wrap) return;
+  if (!topDepts || !topDepts.length) { wrap.style.display = 'none'; return; }
+  wrap.style.display = '';
+  if (excelTopDeptsChart) { excelTopDeptsChart.destroy(); excelTopDeptsChart = null; }
+  // height: 36px per bar, min 120px, max 360px
+  const h = Math.min(360, Math.max(120, topDepts.length * 36));
+  const chartWrap = document.getElementById('excelTopDeptsChartWrap');
+  chartWrap.style.height = h + 'px';
+  const ctx = document.getElementById('excelTopDeptsChart').getContext('2d');
+  excelTopDeptsChart = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: topDepts.map(d => d.label),
+      datasets: [{
+        data: topDepts.map(d => d.count),
+        backgroundColor: topDepts.map((_, i) => `hsl(${210 + i * 15}, 70%, 55%)`),
+        borderRadius: 4
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` ${ctx.parsed.x.toLocaleString()} units` } } },
+      scales: {
+        x: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: '#f0f0f0' } },
+        y: { ticks: { font: { size: 12 }, color: '#374151' } }
+      },
+      responsive: true,
+      maintainAspectRatio: false
+    }
+  });
+}
+
+async function selectCategory(type) {
+  excelActiveCategory = type;
+  excelCurrentPage    = 1;
+  document.getElementById('excelCatView').style.display  = 'none';
+  document.getElementById('excelDashView').style.display = '';
+  document.getElementById('excelBackBtn').style.display  = '';
+  document.getElementById('excelReportBtn').style.display = 'none';
+  const cfg = CAT_CONFIG[type] || CAT_CONFIG.generic;
+  document.getElementById('excelViewTitle').textContent  = `${cfg.icon} ${cfg.label}`;
+  document.getElementById('excelDateFrom').value = '';
+  document.getElementById('excelDateTo').value   = '';
+  await queryCategoryData();
+}
+
+function showExcelCategories() {
+  excelActiveCategory = null;
+  excelActiveShortcut = null;
+  const si = document.getElementById('excelSearchInput');
+  if (si) si.value = '';
+  document.getElementById('excelDateFrom').value = '';
+  document.getElementById('excelDateTo').value   = '';
+  document.querySelectorAll('.excel-shortcut-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('excelCatView').style.display          = '';
+  document.getElementById('excelDashView').style.display         = 'none';
+  document.getElementById('excelBackBtn').style.display          = 'none';
+  document.getElementById('excelTopDeptsWrap').style.display     = 'none';
+  document.getElementById('excelMonthlyCompWrap').style.display  = 'none';
+  document.getElementById('excelViewTitle').textContent          = '📁 Excel Files Dashboard';
+  document.getElementById('excelReportBtn').style.display        = '';
+  loadExcelCategories();
+}
+
+async function queryCategoryData() {
+  if (!excelActiveCategory) return;
+  const loading   = document.getElementById('excelLoading');
+  const tableWrap = document.getElementById('excelTableWrap');
+  loading.style.display   = '';
+  tableWrap.style.display = 'none';
+  document.getElementById('excelSummaryCards').style.display = 'none';
+  document.getElementById('excelChartGrid').style.display    = 'none';
+  document.getElementById('excelFileList').style.display     = 'none';
+
+  try {
+    const body = {
+      category: excelActiveCategory,
+      dateFrom: document.getElementById('excelDateFrom').value || null,
+      dateTo:   document.getElementById('excelDateTo').value   || null,
+      search:   (document.getElementById('excelSearchInput')?.value || '').trim() || null,
+      page: excelCurrentPage, pageSize: 100
+    };
+    const r = await apiFetch(`${API}/api/excel/category-query`, { method: 'POST', body: JSON.stringify(body) });
+    if (!r) { loading.style.display = 'none'; return; }
+    const data = await r.json();
+    if (data.error) { loading.style.display = 'none'; return; }
+
+    const isFiltered = body.dateFrom || body.dateTo;
+    document.getElementById('excelFilterStatus').textContent = isFiltered
+      ? `Showing ${data.filtered.toLocaleString()} of ${data.total.toLocaleString()} rows` : '';
+
+    renderTypeCards(data.type, data.summary, data.total, data.filtered, data.dateColumn, data.columns.length);
+    renderTypeCharts(data.type, data.summary, data.monthlyChart);
+    renderFileList(data.files);
+    renderExcelTable(data.columns, data.rows, data.filtered, data.page, data.pageSize, data.totalPages);
+    tableWrap.style.display = '';
+    loading.style.display   = 'none';
+  } catch (e) {
+    console.error('queryCategoryData', e);
+    loading.style.display = 'none';
+  }
+}
+
+function applyExcelFilter() {
+  excelActiveShortcut = null;
+  document.querySelectorAll('.excel-shortcut-btn').forEach(b => b.classList.remove('active'));
+  excelCurrentPage = 1;
+  queryCategoryData();
+}
+function clearExcelFilter() {
+  document.getElementById('excelDateFrom').value = '';
+  document.getElementById('excelDateTo').value   = '';
+  const si = document.getElementById('excelSearchInput');
+  if (si) si.value = '';
+  excelActiveShortcut = null;
+  document.querySelectorAll('.excel-shortcut-btn').forEach(b => b.classList.remove('active'));
+  excelCurrentPage = 1;
+  queryCategoryData();
+}
+function excelGoPage(p) { excelCurrentPage = p; queryCategoryData(); }
+
+function excelShortcut(key) {
+  const now   = new Date();
+  const pad   = n => String(n).padStart(2, '0');
+  const ymd   = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+  let from = '', to = '';
+  if (key === 'thisMonth') {
+    from = `${now.getFullYear()}-${pad(now.getMonth()+1)}-01`;
+    to   = ymd(new Date(now.getFullYear(), now.getMonth()+1, 0));
+  } else if (key === 'lastMonth') {
+    const first = new Date(now.getFullYear(), now.getMonth()-1, 1);
+    const last  = new Date(now.getFullYear(), now.getMonth(), 0);
+    from = ymd(first); to = ymd(last);
+  } else if (key === 'thisYear') {
+    from = `${now.getFullYear()}-01-01`;
+    to   = `${now.getFullYear()}-12-31`;
+  }
+  document.getElementById('excelDateFrom').value = from;
+  document.getElementById('excelDateTo').value   = to;
+  excelActiveShortcut = key;
+  document.querySelectorAll('.excel-shortcut-btn').forEach(b => b.classList.remove('active'));
+  const btn = document.getElementById(`shortcut${key.charAt(0).toUpperCase()+key.slice(1)}`);
+  if (btn) btn.classList.add('active');
+  excelCurrentPage = 1;
+  queryCategoryData();
+}
+
+function scheduleExcelSearch() {
+  clearTimeout(excelSearchTimer);
+  excelSearchTimer = setTimeout(() => { excelCurrentPage = 1; queryCategoryData(); }, 400);
+}
+
+async function exportExcelData() {
+  if (!excelActiveCategory) return;
+  const body = {
+    category: excelActiveCategory,
+    dateFrom: document.getElementById('excelDateFrom').value || null,
+    dateTo:   document.getElementById('excelDateTo').value   || null,
+    search:   (document.getElementById('excelSearchInput')?.value || '').trim() || null,
+  };
+  try {
+    const r = await fetch(`${API}/api/excel/category-export`, {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify(body)
+    });
+    if (!r.ok) { alert('Export failed'); return; }
+    const blob = await r.blob();
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = `${excelActiveCategory}-export.xlsx`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  } catch (e) { alert('Export failed: ' + e.message); }
+}
+
+function renderFileList(files) {
+  if (!files || files.length === 0) return;
+  const el = document.getElementById('excelFileList');
+  const isAdmin = currentUser && currentUser.role === 'admin';
+  el.innerHTML = `<div class="excel-file-pills-label">Files in this category</div>
+    <div class="excel-file-pills">${files.map(f => {
+      const safe = f.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+      return `<div class="excel-file-pill">
+        <span class="excel-file-pill-name" title="${f.name}">${f.name}</span>
+        <span class="excel-file-pill-count">${f.filtered.toLocaleString()} / ${f.total.toLocaleString()} rows</span>
+        ${isAdmin ? `<button class="excel-file-pill-upd" onclick="triggerExcelUpdate('${safe}')" title="Replace with newer version">🔄</button>` : ''}
+        ${isAdmin ? `<button class="excel-file-pill-upd" onclick="deleteExcelFile('${safe}')" title="Delete" style="color:var(--blood)">✕</button>` : ''}
+      </div>`;
+    }).join('')}</div>`;
+  el.style.display = '';
+}
+
+
+// ── Chart helpers ──────────────────────────────────────
+const CHART_PALETTE = ['#C0392B','#1A5276','#1A7F4B','#E8B84B','#8E44AD','#2E86C1','#E67E22','#1ABC9C','#D4730A','#2C3E50','#F39C12','#16A085'];
+const GROUP_COLOR_MAP = {'O+':'#2ecc71','O-':'#27ae60','A+':'#e74c3c','A-':'#c0392b','B+':'#3498db','B-':'#2980b9','AB+':'#9b59b6','AB-':'#8e44ad'};
+
+function destroyCharts() {
+  excelChartInstances.forEach(c => { try { c.destroy(); } catch(_){} });
+  excelChartInstances = [];
+}
+
+function makeBar(id, labels, values, color) {
+  const ctx = document.getElementById(id);
+  if (!ctx) return;
+  const c = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{ data: values, backgroundColor: color || 'rgba(192,57,43,0.75)', borderRadius: 4, borderSkipped: false }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { size: 10 }, maxRotation: 45 } },
+        y: { beginAtZero: true, ticks: { font: { size: 10 } } }
+      }
+    }
+  });
+  excelChartInstances.push(c);
+}
+
+function makeDoughnut(id, items, useGroupColors) {
+  const ctx = document.getElementById(id);
+  if (!ctx) return;
+  const labels = items.map(x => x.label);
+  const values = items.map(x => x.count);
+  const colors = useGroupColors
+    ? labels.map(l => GROUP_COLOR_MAP[l] || '#95a5a6')
+    : CHART_PALETTE.slice(0, labels.length);
+  const c = new Chart(ctx, {
+    type: 'doughnut',
+    data: { labels, datasets: [{ data: values, backgroundColor: colors, borderWidth: 2 }] },
+    options: {
+      responsive: true, maintainAspectRatio: true,
+      plugins: { legend: { position: 'right', labels: { font: { size: 10 }, boxWidth: 12, padding: 8 } } }
+    }
+  });
+  excelChartInstances.push(c);
+}
+
+function makeHBar(id, items) {
+  const ctx = document.getElementById(id);
+  if (!ctx) return;
+  const c = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: items.map(x => x.label),
+      datasets: [{ data: items.map(x => x.count), backgroundColor: CHART_PALETTE, borderRadius: 4 }]
+    },
+    options: {
+      indexAxis: 'y', responsive: true, maintainAspectRatio: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { beginAtZero: true, ticks: { font: { size: 10 } } },
+        y: { ticks: { font: { size: 10 } } }
+      }
+    }
+  });
+  excelChartInstances.push(c);
+}
+
+function makePareto(id, items) {
+  const ctx = document.getElementById(id);
+  if (!ctx || !items?.length) return;
+  ctx.parentElement.style.position = 'relative';
+  ctx.parentElement.style.height   = '240px';
+  const c = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: items.map(d => d.label.length > 18 ? d.label.substring(0,18)+'…' : d.label),
+      datasets: [
+        { label: 'Count', data: items.map(d => d.count), backgroundColor: '#4a9eff', borderRadius: 3, yAxisID: 'y' },
+        { label: 'Cumulative %', data: items.map(d => d.cumPct), type: 'line', borderColor: '#e53e3e',
+          backgroundColor: 'transparent', borderWidth: 2, pointRadius: 3, yAxisID: 'y2', tension: 0.3 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'top', labels: { font: { size: 10 } } } },
+      scales: {
+        x: { ticks: { font: { size: 8 }, maxRotation: 40 } },
+        y:  { beginAtZero: true, position: 'left',  ticks: { precision: 0, font: { size: 9 } }, title: { display: true, text: 'Count', font: { size: 9 } } },
+        y2: { beginAtZero: true, position: 'right', max: 100, ticks: { font: { size: 9 }, callback: v => v + '%' }, grid: { drawOnChartArea: false }, title: { display: true, text: 'Cumulative %', font: { size: 9 } } }
+      }
+    }
+  });
+  excelChartInstances.push(c);
+}
+
+function makeGeoBar(id, items) {
+  const ctx = document.getElementById(id);
+  if (!ctx || !items?.length) return;
+  const h = Math.min(360, Math.max(150, items.length * 22));
+  ctx.parentElement.style.position = 'relative';
+  ctx.parentElement.style.height   = h + 'px';
+  const maxVal = Math.max(...items.map(d => d.count));
+  const colors = items.map(d => {
+    const ratio = d.count / maxVal;
+    if (ratio < 0.2) return '#fc8181';
+    if (ratio < 0.5) return '#f6ad55';
+    return '#68d391';
+  });
+  const c = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: items.map(d => d.label),
+      datasets: [{ label: 'Donors', data: items.map(d => d.count), backgroundColor: colors, borderRadius: 3 }]
+    },
+    options: {
+      indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { beginAtZero: true, ticks: { precision: 0, font: { size: 10 } } },
+        y: { ticks: { font: { size: 10 }, padding: 4 } }
+      }
+    }
+  });
+  excelChartInstances.push(c);
+}
+
+function makeIATDoughnut(id, items) {
+  const ctx = document.getElementById(id);
+  if (!ctx) return;
+  const colors = items.map(d => /pos|\+/i.test(d.label) ? '#e53e3e' : '#38a169');
+  const c = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: items.map(d => d.label),
+      datasets: [{ data: items.map(d => d.count), backgroundColor: colors, borderWidth: 2 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: true,
+      plugins: {
+        legend: { position: 'bottom', labels: { font: { size: 11 } } },
+        tooltip: { callbacks: { label: c => ` ${c.label}: ${c.parsed.toLocaleString()} (${((c.parsed/c.dataset.data.reduce((a,b)=>a+b,0))*100).toFixed(1)}%)` } }
+      }
+    }
+  });
+  excelChartInstances.push(c);
+}
+
+function makePeakBar(id, hourData) {
+  const ctx = document.getElementById(id);
+  if (!ctx) return;
+  const maxVal = Math.max(...hourData.map(d => d.count));
+  // Colour by shift: night=indigo, morning=amber, afternoon=blue, evening=purple
+  const shiftColor = h => {
+    if (h >= 0  && h < 6)  return '#6366f1'; // night
+    if (h >= 6  && h < 12) return '#f59e0b'; // morning
+    if (h >= 12 && h < 18) return '#3b82f6'; // afternoon
+    return '#8b5cf6';                          // evening
+  };
+  const labels = hourData.map(d => d.label);
+  const values = hourData.map(d => d.count);
+  const colors = hourData.map(d => {
+    const h = parseInt(d.label);
+    return d.count === maxVal ? '#e53e3e' : shiftColor(h);
+  });
+  const c = new Chart(ctx, {
+    type: 'bar',
+    data: { labels, datasets: [{ data: values, backgroundColor: colors, borderRadius: 3 }] },
+    options: {
+      responsive: true, maintainAspectRatio: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: c => ` ${c.parsed.y.toLocaleString()} units` } }
+      },
+      scales: {
+        x: { ticks: { font: { size: 9 }, maxRotation: 45 } },
+        y: { beginAtZero: true, ticks: { precision: 0, font: { size: 10 } } }
+      }
+    }
+  });
+  excelChartInstances.push(c);
+}
+
+function chartPanel(id, title, span2) {
+  return `<div class="excel-chart-panel${span2?' span-2':''}">
+    <div class="excel-chart-title">${title}</div>
+    <canvas id="${id}"></canvas>
+  </div>`;
+}
+
+// ── Type-specific card rendering ───────────────────────
+const TYPE_LABELS = {
+  transfusion:    'Units Issued for Transfusion',
+  requests:       'Registered Patient Requests',
+  donors:         'Registered Donors',
+  wasted:         'Wasted / Withdrawn Units',
+  sent_to_centres:'Units Sent to Other Centres',
+  external_units: 'External Units from Other Centres',
+  generic:        'Excel Data'
+};
+
+function card(label, value, accent, sub) {
+  return `<div class="excel-card${accent?' '+accent:''}">
+    <div class="excel-card-label">${label}</div>
+    <div class="excel-card-num">${value}</div>
+    ${sub ? `<div style="font-size:0.68rem;color:#a0aec0;margin-top:2px;">${sub}</div>` : ''}
+  </div>`;
+}
+
+function topLabel(arr) { return arr && arr[0] ? arr[0].label : '—'; }
+
+function renderTypeCards(type, s, total, filtered, dateCol, colCount) {
+  destroyCharts();
+  const container = document.getElementById('excelSummaryCards');
+  const cfg = CAT_CONFIG[type] || CAT_CONFIG.generic;
+  document.getElementById('excelTableTitle').textContent = cfg.label;
+
+  let html = '';
+  switch (type) {
+    case 'transfusion':
+      html = card('Total Issued', total.toLocaleString(), 'accent-red')
+           + card('Returned', (s.returnedCount||0).toLocaleString())
+           + card('Still In Use', (s.notReturnedCount||0).toLocaleString())
+           + card('Unique Patients', (s.uniquePatients||0).toLocaleString());
+      break;
+    case 'requests': {
+      const iatPct = s.iatTotal > 0 ? ((s.iatPositive / s.iatTotal) * 100).toFixed(1) + '%' : '—';
+      html = card('Total Requests', total.toLocaleString(), 'accent-red')
+           + card('IAT Positive', (s.iatPositive||0).toLocaleString(), s.iatPositive > 0 ? 'accent-red' : '')
+           + card('IAT Positive %', iatPct)
+           + card('Top Department', topLabel(s.byDepartment));
+      break;
+    }
+    case 'donors':
+      html = card('Total Donations', total.toLocaleString(), 'accent-red')
+           + card('New Donors',       (s.newDonors||0).toLocaleString())
+           + card('Returning Donors', (s.returningDonors||0).toLocaleString())
+           + card('Top Blood Group',  topLabel(s.byGroup));
+      break;
+    case 'wasted': {
+      const expPct = total > 0 ? ((s.expiryWaste||0)/total*100).toFixed(1)+'%' : '—';
+      html = card('Total Wasted', total.toLocaleString(), 'accent-red')
+           + card('Expiry-Related', (s.expiryWaste||0).toLocaleString(), s.expiryWaste > 0 ? 'accent-red' : '')
+           + card('Expiry %', expPct)
+           + card('Top Reason', topLabel(s.byReason));
+      break;
+    }
+    case 'sent_to_centres':
+      html = card('Total Sent', total.toLocaleString(), 'accent-red')
+           + card('Returned', (s.returnedCount||0).toLocaleString())
+           + card('Near-Expiry Sent', (s.nearExpiryCount||0).toLocaleString(), s.nearExpiryCount > 0 ? 'accent-red' : '', 'within 14 days of expiry')
+           + card('Top Hospital', topLabel(s.byHospital));
+      break;
+    case 'external_units':
+      html = card('Total Received', total.toLocaleString(), 'accent-red')
+           + card('Filtered', filtered.toLocaleString())
+           + card('Top Donation Type', topLabel(s.byDonationType))
+           + card('Top Bag Type', topLabel(s.byBag));
+      break;
+    default:
+      html = card('Total Rows', total.toLocaleString(), 'accent-red')
+           + card('Filtered', filtered.toLocaleString())
+           + card('Date Column', dateCol || 'N/A')
+           + card('Columns', colCount);
+  }
+  container.innerHTML = html;
+  container.style.display = '';
+}
+
+// ── Type-specific chart rendering ──────────────────────
+function renderTypeCharts(type, s, monthly) {
+  const grid = document.getElementById('excelChartGrid');
+  destroyCharts();
+  grid.className = 'excel-chart-grid';
+  grid.innerHTML = '';
+
+  const hasMon = monthly && monthly.length > 0;
+
+  switch (type) {
+    case 'transfusion':
+      if (hasMon)                  grid.innerHTML += chartPanel('xc0', 'Monthly Units Issued');
+      if (s.byGroup?.length)       grid.innerHTML += chartPanel('xc1', 'By Blood Group');
+      if (s.byDestination?.length) grid.innerHTML += chartPanel('xc2', 'Top Destinations');
+      if (s.byHour?.length)        grid.innerHTML += chartPanel('xc3', 'Peak Issue Hours');
+      if (s.byComponent?.length)   grid.innerHTML += chartPanel('xc4', 'By Component');
+      grid.className = 'excel-chart-grid' + (grid.children.length <= 1 ? ' cols-1' : grid.children.length === 3 ? ' cols-3' : '');
+      break;
+    case 'requests':
+      if (hasMon)                  grid.innerHTML += chartPanel('xc0', 'Monthly Requests');
+      if (s.byDepartment?.length)  grid.innerHTML += chartPanel('xc1', 'By Department');
+      if (s.byGroup?.length)       grid.innerHTML += chartPanel('xc2', 'By Blood Group');
+      if (s.byHour?.length)        grid.innerHTML += chartPanel('xc3', 'Peak Request Hours');
+      if (s.byIAT?.length)         grid.innerHTML += chartPanel('xc4', 'IAT Distribution');
+      grid.className = 'excel-chart-grid' + (grid.children.length === 3 ? ' cols-3' : '');
+      break;
+    case 'donors':
+      if (hasMon)                       grid.innerHTML += chartPanel('xc0', 'Monthly Donations');
+      if (s.byGroup?.length)            grid.innerHTML += chartPanel('xc1', 'By Blood Group');
+      if (s.byGender?.length)           grid.innerHTML += chartPanel('xc2', 'By Gender');
+      if (s.byAgeGroup?.length)         grid.innerHTML += chartPanel('xc3', 'By Age Group');
+      if (s.byFrequentDonors?.length)   grid.innerHTML += chartPanel('xc4', 'Top Frequent Donors');
+      if (s.byMohafaza?.length)         grid.innerHTML += chartPanel('xc5', 'By Mohafaza (Region)', true);
+      if (s.byCity?.length)             grid.innerHTML += chartPanel('xc6', 'By City / Town', true);
+      grid.className = 'excel-chart-grid cols-2';
+      break;
+    case 'wasted':
+      if (hasMon)                        grid.innerHTML += chartPanel('xc0', 'Monthly Waste');
+      if (s.byReasonPareto?.length)      grid.innerHTML += chartPanel('xc1', 'Waste Pareto — Top Reasons');
+      if (s.byGroup?.length)             grid.innerHTML += chartPanel('xc2', 'By Blood Group');
+      if (s.byWasteType?.length)         grid.innerHTML += chartPanel('xc3', 'Expiry vs Operational');
+      if (s.expiryDaysHist?.length)      grid.innerHTML += chartPanel('xc4', 'Days Before Expiry When Wasted');
+      grid.className = 'excel-chart-grid cols-2';
+      break;
+    case 'sent_to_centres':
+      if (hasMon)                   grid.innerHTML += chartPanel('xc0', 'Monthly Units Sent');
+      if (s.byComponent?.length)    grid.innerHTML += chartPanel('xc1', 'By Component');
+      if (s.byHospital?.length)     grid.innerHTML += chartPanel('xc2', 'By Hospital', false);
+      if (grid.children.length===3) grid.className = 'excel-chart-grid cols-3';
+      break;
+    case 'external_units':
+      if (hasMon)                   grid.innerHTML += chartPanel('xc0', 'Monthly Units Received');
+      if (s.byDonationType?.length) grid.innerHTML += chartPanel('xc1', 'By Donation Type');
+      if (s.byBag?.length)          grid.innerHTML += chartPanel('xc2', 'By Bag Type');
+      if (grid.children.length===3) grid.className = 'excel-chart-grid cols-3';
+      break;
+    default:
+      if (hasMon) grid.innerHTML += chartPanel('xc0', 'Records per Month');
+      if (s.byGroup?.length) grid.innerHTML += chartPanel('xc1', 'By Blood Group');
+  }
+
+  if (!grid.children.length) { grid.style.display = 'none'; return; }
+  grid.style.display = '';
+
+  // Render charts after DOM update
+  requestAnimationFrame(() => {
+    if (hasMon && document.getElementById('xc0'))
+      makeBar('xc0', monthly.map(d=>d.label), monthly.map(d=>d.count));
+
+    switch (type) {
+      case 'transfusion':
+        if (s.byGroup?.length)       makeBar('xc1', s.byGroup.map(d=>d.label), s.byGroup.map(d=>d.count));
+        if (s.byDestination?.length) makeHBar('xc2', s.byDestination.slice(0,8));
+        if (s.byHour?.length)        makePeakBar('xc3', s.byHour);
+        if (s.byComponent?.length)   makeDoughnut('xc4', s.byComponent, false);
+        break;
+      case 'requests':
+        if (s.byDepartment?.length) makeHBar('xc1', s.byDepartment.slice(0,8));
+        if (s.byGroup?.length)      makeBar('xc2', s.byGroup.map(d=>d.label), s.byGroup.map(d=>d.count));
+        if (s.byHour?.length)       makePeakBar('xc3', s.byHour);
+        if (s.byIAT?.length)        makeIATDoughnut('xc4', s.byIAT);
+        break;
+      case 'donors':
+        if (s.byGroup?.length)          makeBar('xc1', s.byGroup.map(d=>d.label), s.byGroup.map(d=>d.count));
+        if (s.byGender?.length)         makeDoughnut('xc2', s.byGender, false);
+        if (s.byAgeGroup?.length)       makeBar('xc3', s.byAgeGroup.map(d=>d.label), s.byAgeGroup.map(d=>d.count));
+        if (s.byFrequentDonors?.length) makeHBar('xc4', s.byFrequentDonors);
+        if (s.byMohafaza?.length)       makeGeoBar('xc5', s.byMohafaza);
+        if (s.byCity?.length)           makeGeoBar('xc6', s.byCity);
+        break;
+      case 'wasted':
+        if (s.byReasonPareto?.length)  makePareto('xc1', s.byReasonPareto);
+        if (s.byGroup?.length)         makeBar('xc2', s.byGroup.map(d=>d.label), s.byGroup.map(d=>d.count));
+        if (s.byWasteType?.length)     makeDoughnut('xc3', s.byWasteType, false);
+        if (s.expiryDaysHist?.length)  makeBar('xc4', s.expiryDaysHist.map(d=>d.label), s.expiryDaysHist.map(d=>d.count), ['#fc8181','#f6ad55','#68d391','#4a9eff','#805ad5']);
+        break;
+      case 'sent_to_centres':
+        if (s.byComponent?.length) makeDoughnut('xc1', s.byComponent, false);
+        if (s.byHospital?.length)  makeHBar('xc2', s.byHospital.slice(0,8));
+        break;
+      case 'external_units':
+        if (s.byDonationType?.length) makeDoughnut('xc1', s.byDonationType, false);
+        if (s.byBag?.length)          makeDoughnut('xc2', s.byBag, false);
+        break;
+      default:
+        if (s.byGroup?.length) makeDoughnut('xc1', s.byGroup, true);
+    }
+  });
+}
+
+function renderExcelTable(columns, rows, filteredTotal, page, pageSize, totalPages) {
+  const thead = document.getElementById('excelTableHead');
+  thead.innerHTML = `<tr>${columns.map(c => `<th>${c}</th>`).join('')}</tr>`;
+  const tbody = document.getElementById('excelTableBody');
+  if (rows.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="${columns.length}" style="text-align:center;padding:24px;color:var(--text-soft)">No data for the selected range.</td></tr>`;
+  } else {
+    tbody.innerHTML = rows.map(row =>
+      `<tr>${columns.map(c => `<td>${row[c] ?? ''}</td>`).join('')}</tr>`
+    ).join('');
+  }
+  const startRow = (page - 1) * pageSize + 1;
+  const endRow   = Math.min(page * pageSize, filteredTotal);
+  document.getElementById('excelTableInfo').textContent  = filteredTotal > 0
+    ? `Rows ${startRow}–${endRow} of ${filteredTotal.toLocaleString()}`
+    : '0 rows';
+  const pag = document.getElementById('excelPagination');
+  if (totalPages <= 1) { pag.innerHTML = ''; return; }
+  pag.innerHTML = `
+    <button class="excel-page-btn" onclick="excelGoPage(1)" ${page===1?'disabled':''}>«</button>
+    <button class="excel-page-btn" onclick="excelGoPage(${page-1})" ${page<=1?'disabled':''}>‹</button>
+    <span class="excel-page-info">Page ${page} of ${totalPages}</span>
+    <button class="excel-page-btn" onclick="excelGoPage(${page+1})" ${page>=totalPages?'disabled':''}>›</button>
+    <button class="excel-page-btn" onclick="excelGoPage(${totalPages})" ${page>=totalPages?'disabled':''}>»</button>
+  `;
+}
+
+function triggerExcelUpdate(filename) {
+  excelUpdateTarget = filename;
+  const input = document.getElementById('excelUpdateInput');
+  input.value = '';
+  input.click();
+}
+
+async function uploadExcelFile(input, targetName) {
+  const file = input.files[0];
+  if (!file) return;
+  const fd = new FormData();
+  fd.append('file', file);
+  if (targetName) fd.append('targetName', targetName);
+  try {
+    const r = await fetch(`${API}/api/excel/upload`, {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + getToken() },
+      body: fd
+    });
+    const data = await r.json();
+    if (data.error) { alert('Upload failed: ' + data.error); return; }
+    if (excelActiveCategory) await queryCategoryData();
+    else await loadExcelCategories();
+  } catch (e) {
+    alert('Upload failed: ' + e.message);
+  }
+  input.value = '';
+  excelUpdateTarget = null;
+}
+
+async function deleteExcelFile(filename) {
+  if (!confirm(`Delete "${filename}"?`)) return;
+  try {
+    const r = await apiFetch(`${API}/api/excel/files/${encodeURIComponent(filename)}`, { method: 'DELETE' });
+    if (!r) return;
+    if (excelActiveCategory) await queryCategoryData();
+    else await loadExcelCategories();
+  } catch (e) { alert('Delete failed: ' + e.message); }
+}
 </script>
 
 <!-- ── BLOOD COMPATIBILITY WARNING MODAL ── -->
