@@ -175,7 +175,7 @@
 
     /* ── LAYOUT ── */
     .main{padding:24px 28px 48px;}
-    .forms-row{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+    .forms-row{display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start;}
     @media(max-width:960px){.forms-row{grid-template-columns:1fr;}}
 
     /* ── FORM CARD ── */
@@ -512,6 +512,258 @@
     .dash-date-clear{padding:4px 10px;border:1.5px solid var(--border);border-radius:6px;font-size:11px;background:#fff;color:var(--text-soft);cursor:pointer;font-weight:600;}
     .dash-date-clear:hover{border-color:var(--blood);color:var(--blood);}
 
+    /* ── HANDOVER REPORT ── */
+    .handover-section{display:none;padding:24px;}
+    .handover-section.show{display:block;}
+    .handover-controls{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:20px;padding:14px 16px;background:var(--white);border:1.5px solid var(--border);border-radius:10px;}
+    .handover-controls label{font-size:12px;font-weight:600;color:var(--text-soft);display:flex;align-items:center;gap:6px;}
+    .handover-controls input[type=date]{padding:6px 10px;border:1.5px solid var(--border);border-radius:6px;font-family:'Instrument Sans',sans-serif;font-size:13px;color:var(--text);outline:none;}
+    .handover-controls input[type=date]:focus{border-color:var(--blood);}
+    .shift-btns{display:flex;gap:6px;}
+    .shift-btn{padding:7px 16px;border:1.5px solid var(--border);border-radius:50px;background:var(--white);font-family:'Instrument Sans',sans-serif;font-size:12px;font-weight:600;color:var(--text-soft);cursor:pointer;transition:all .18s;}
+    .shift-btn:hover{border-color:var(--navy);color:var(--navy);}
+    .shift-btn.active{background:var(--navy);border-color:var(--navy);color:white;}
+    .handover-load-btn{padding:8px 20px;background:var(--blood);border:none;border-radius:6px;font-family:'Instrument Sans',sans-serif;font-size:12px;font-weight:600;color:white;cursor:pointer;transition:background .18s;margin-left:auto;}
+    .handover-load-btn:hover{background:var(--blood-dim);}
+    .handover-pdf-btn{padding:8px 20px;background:#1A5276;border:none;border-radius:6px;font-family:'Instrument Sans',sans-serif;font-size:12px;font-weight:600;color:white;cursor:pointer;transition:background .18s;}
+    .handover-pdf-btn:hover{background:#154360;}
+    .handover-summary{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:18px;}
+    .ho-card{background:var(--white);border:1.5px solid var(--border);border-radius:10px;padding:14px 16px;text-align:center;}
+    .ho-card-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-soft);margin-bottom:6px;}
+    .ho-card-num{font-size:26px;font-weight:800;color:var(--navy);}
+    .ho-card.red .ho-card-num{color:var(--blood);}
+    .ho-card.blue .ho-card-num{color:#1A5276;}
+    .ho-card.orange .ho-card-num{color:#D4730A;}
+    .ho-card.green .ho-card-num{color:var(--green);}
+    .ho-units-bar{background:#EEF4FF;border:1px solid #C5D8F6;border-radius:8px;padding:10px 14px;margin-bottom:16px;font-size:12px;font-weight:600;color:var(--navy);}
+    .ho-units-bar span{color:var(--text-soft);font-weight:400;margin:0 8px;}
+    .ho-table-wrap{background:var(--white);border:1.5px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:16px;}
+    .ho-table-head{background:var(--navy);padding:10px 16px;font-size:12px;font-weight:700;color:white;}
+    .ho-table{width:100%;border-collapse:collapse;font-size:12px;}
+    .ho-table th{text-align:left;padding:7px 10px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--text-soft);border-bottom:1.5px solid var(--border);background:var(--mist);}
+    .ho-table td{padding:8px 10px;border-bottom:1px solid var(--mist);color:var(--text);vertical-align:top;}
+    .ho-table tr:last-child td{border-bottom:none;}
+    .ho-table tr:hover td{background:var(--mist);}
+    .ho-ls-badge{display:inline-block;background:#fdf0ef;color:var(--blood);border:1px solid #f5b7b1;border-radius:4px;font-size:9px;font-weight:700;padding:1px 6px;margin-left:4px;}
+    .ho-empty{text-align:center;padding:24px;color:var(--text-soft);font-size:13px;}
+    .ho-comp-pill{display:inline-block;background:#EEF4FF;color:#1A5276;border-radius:4px;padding:1px 6px;font-size:10px;font-weight:600;margin:1px;}
+
+    /* ── CONSUMPTION REPORT ── */
+    .consump-section{display:none;padding:24px;}
+    .consump-section.show{display:block;}
+    .consump-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:20px;}
+    .consump-card{background:var(--white);border:1.5px solid var(--border);border-radius:12px;padding:16px 18px;text-align:center;}
+    .consump-card-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text-soft);margin-bottom:8px;}
+    .consump-card-num{font-size:32px;font-weight:800;color:var(--navy);}
+    .consump-card-sub{font-size:11px;color:var(--text-soft);margin-top:4px;}
+    .consump-card.prc .consump-card-num{color:var(--blood);}
+    .consump-card.ffp .consump-card-num{color:#1A5276;}
+    .consump-card.plt .consump-card-num{color:#b7860b;}
+    .consump-card.total .consump-card-num{color:var(--green);}
+    .consump-two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;}
+    @media(max-width:700px){.consump-two-col{grid-template-columns:1fr;}}
+    .consump-panel{background:var(--white);border:1.5px solid var(--border);border-radius:12px;padding:20px;}
+    .consump-panel-title{font-size:13px;font-weight:700;color:var(--navy);margin-bottom:16px;}
+    .consump-table{width:100%;border-collapse:collapse;font-size:12.5px;}
+    .consump-table th{text-align:left;padding:7px 10px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--text-soft);border-bottom:1.5px solid var(--border);}
+    .consump-table td{padding:8px 10px;border-bottom:1px solid var(--mist);color:var(--text);}
+    .consump-table tr:last-child td{border-bottom:none;}
+    .consump-table tr:hover td{background:var(--mist);}
+    .consump-bar-wrap{display:flex;align-items:center;gap:8px;}
+    .consump-bar-bg{flex:1;height:8px;background:var(--mist);border-radius:4px;overflow:hidden;}
+    .consump-bar-fill{height:100%;border-radius:4px;background:var(--blood);transition:width .4s;}
+
+    /* ── PATIENT HISTORY MODAL ── */
+    .ph-mini-btn{display:inline-flex;align-items:center;gap:4px;margin-left:10px;padding:3px 10px;border-radius:20px;border:1.5px solid var(--navy);background:transparent;color:var(--navy);font-size:11px;font-weight:700;cursor:pointer;vertical-align:middle;transition:background .15s,color .15s;}
+    .ph-mini-btn:hover{background:var(--navy);color:#fff;}
+    .ph-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:8000;align-items:center;justify-content:center;padding:16px;}
+    .ph-overlay.open{display:flex;}
+    .ph-modal{background:#fff;border-radius:16px;width:100%;max-width:820px;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 24px 72px rgba(0,0,0,.28);animation:modalIn .2s ease;overflow:hidden;}
+    .ph-head{background:var(--navy);color:#fff;padding:20px 24px;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-shrink:0;}
+    .ph-head-info{display:flex;flex-direction:column;gap:4px;}
+    .ph-head-name{font-size:18px;font-weight:800;letter-spacing:.3px;}
+    .ph-head-sub{font-size:12px;opacity:.75;display:flex;align-items:center;gap:10px;}
+    .ph-head-bg{display:inline-flex;align-items:center;gap:5px;background:rgba(255,255,255,.15);border-radius:20px;padding:3px 10px;font-size:13px;font-weight:700;}
+    .ph-close-btn{background:rgba(255,255,255,.15);border:none;color:#fff;width:32px;height:32px;border-radius:50%;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .15s;}
+    .ph-close-btn:hover{background:rgba(255,255,255,.3);}
+    .ph-search-bar{padding:14px 24px;border-bottom:1px solid var(--border);display:flex;gap:8px;flex-shrink:0;background:#fafbfc;}
+    .ph-search-input{flex:1;padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;color:var(--navy);}
+    .ph-search-btn{padding:8px 16px;border-radius:8px;border:none;background:var(--navy);color:#fff;font-size:13px;font-weight:700;cursor:pointer;}
+    .ph-body{flex:1;overflow-y:auto;padding:20px 24px;display:flex;flex-direction:column;gap:16px;}
+    .ph-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
+    .ph-stat{background:#f4f6fa;border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;gap:3px;}
+    .ph-stat-val{font-size:22px;font-weight:800;color:var(--navy);}
+    .ph-stat-lbl{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:var(--text-soft);}
+    .ph-stat.red .ph-stat-val{color:#C0392B;}
+    .ph-stat.blue .ph-stat-val{color:#1A5276;}
+    .ph-stat.green .ph-stat-val{color:#1E8449;}
+    .ph-stat.orange .ph-stat-val{color:#D35400;}
+    .ph-reaction-alert{background:#FFF3CD;border:1.5px solid #F0AD4E;border-radius:10px;padding:12px 16px;display:flex;gap:10px;align-items:flex-start;}
+    .ph-reaction-alert .ph-alert-icon{font-size:18px;flex-shrink:0;}
+    .ph-reaction-alert .ph-alert-text{font-size:12px;color:#7D5A00;line-height:1.5;}
+    .ph-reaction-alert strong{display:block;font-size:13px;margin-bottom:2px;color:#5D4000;}
+    .ph-section-title{font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:var(--text-soft);margin-bottom:6px;padding-bottom:6px;border-bottom:1px solid var(--border);}
+    .ph-timeline{display:flex;flex-direction:column;gap:8px;}
+    .ph-item{background:#fafbfc;border:1.5px solid var(--border);border-radius:10px;padding:12px 14px;display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:start;}
+    .ph-item.life-saving{border-left:3px solid var(--blood);background:#fff8f8;}
+    .ph-item-badge{display:inline-flex;align-items:center;padding:3px 9px;border-radius:20px;font-size:10px;font-weight:700;white-space:nowrap;}
+    .ph-item-badge.transfusion{background:#fce4e4;color:#922B21;}
+    .ph-item-badge.delivery{background:#d6eaf8;color:#154360;}
+    .ph-item-type{display:flex;flex-direction:column;align-items:flex-start;gap:4px;}
+    .ph-item-date{font-size:12px;color:var(--text-soft);margin-top:2px;}
+    .ph-item-info{display:flex;flex-direction:column;gap:3px;}
+    .ph-item-comps{display:flex;gap:5px;flex-wrap:wrap;}
+    .ph-comp-tag{background:#e8edf4;color:var(--navy);font-size:11px;font-weight:700;padding:2px 8px;border-radius:12px;}
+    .ph-comp-tag.prc{background:#fce4e4;color:#7B241C;}
+    .ph-comp-tag.ffp{background:#d4efdf;color:#1E8449;}
+    .ph-comp-tag.plt{background:#fef9e7;color:#D35400;}
+    .ph-item-meta{font-size:11px;color:var(--text-soft);}
+    .ph-item-time{font-size:11px;color:var(--text-soft);text-align:right;white-space:nowrap;}
+    .ph-ls-tag{display:inline-block;background:#C0392B;color:#fff;font-size:9px;font-weight:800;padding:1px 6px;border-radius:10px;margin-left:5px;vertical-align:middle;}
+    .ph-empty{text-align:center;padding:40px;color:var(--text-soft);}
+
+    /* ── MONTHLY REPORT ── */
+    .monthly-section{display:none;padding:24px;}
+    .monthly-section.show{display:block;}
+    .monthly-controls{display:flex;align-items:center;gap:12px;margin-bottom:24px;flex-wrap:wrap;}
+    .monthly-title{font-size:20px;font-weight:800;color:var(--navy);flex:1;}
+    .monthly-month-input{padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;color:var(--navy);background:#fff;}
+    .monthly-load-btn{padding:9px 20px;border-radius:8px;border:none;background:var(--navy);color:#fff;font-size:14px;font-weight:700;cursor:pointer;transition:opacity .15s;}
+    .monthly-load-btn:hover{opacity:.85;}
+    .monthly-pdf-btn{padding:9px 20px;border-radius:8px;border:2px solid var(--blood);background:#fff;color:var(--blood);font-size:14px;font-weight:700;cursor:pointer;display:none;transition:background .15s,color .15s;}
+    .monthly-pdf-btn:hover{background:var(--blood);color:#fff;}
+    .monthly-preview{display:flex;flex-direction:column;gap:20px;}
+    .monthly-kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+    .monthly-kpi{background:#fff;border:1.5px solid var(--border);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:4px;border-left:4px solid var(--border);}
+    .monthly-kpi.red{border-left-color:#C0392B;}
+    .monthly-kpi.blue{border-left-color:#1A5276;}
+    .monthly-kpi.orange{border-left-color:#D35400;}
+    .monthly-kpi.green{border-left-color:#1A7F4B;}
+    .monthly-kpi-val{font-size:28px;font-weight:800;}
+    .monthly-kpi.red .monthly-kpi-val{color:#C0392B;}
+    .monthly-kpi.blue .monthly-kpi-val{color:#1A5276;}
+    .monthly-kpi.orange .monthly-kpi-val{color:#D35400;}
+    .monthly-kpi.green .monthly-kpi-val{color:#1A7F4B;}
+    .monthly-kpi-lbl{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:var(--text-soft);}
+    .monthly-units-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:0;border-radius:12px;overflow:hidden;border:1.5px solid var(--border);background:#fff;margin-top:-4px;}
+    .monthly-unit-cell{padding:14px 16px;display:flex;flex-direction:column;gap:3px;}
+    .monthly-unit-cell+.monthly-unit-cell{border-left:1px solid var(--border);}
+    .monthly-unit-val{font-size:22px;font-weight:800;}
+    .monthly-unit-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text-soft);}
+    .monthly-unit-cell.prc .monthly-unit-val{color:#C0392B;}
+    .monthly-unit-cell.ffp .monthly-unit-val{color:#1A5276;}
+    .monthly-unit-cell.plt .monthly-unit-val{color:#D35400;}
+    .monthly-unit-cell.total{background:#f0f6f0;}.monthly-unit-cell.total .monthly-unit-val{color:#1A7F4B;}
+    .monthly-two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+    .monthly-panel{background:#fff;border:1.5px solid var(--border);border-radius:12px;overflow:hidden;}
+    .monthly-panel-head{background:var(--navy);color:#fff;padding:10px 14px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;}
+    .monthly-panel-body{padding:0;}
+    .monthly-table{width:100%;border-collapse:collapse;font-size:13px;}
+    .monthly-table th{padding:8px 12px;background:#f4f6fa;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-soft);text-align:left;border-bottom:1px solid var(--border);}
+    .monthly-table td{padding:9px 12px;border-bottom:1px solid #f0f0f0;color:var(--navy);}
+    .monthly-table tr:last-child td{border-bottom:none;}
+    .monthly-table tr:nth-child(even) td{background:#fafbfc;}
+    .monthly-rt-grid{display:grid;grid-template-columns:1fr 1fr;gap:0;}
+    .monthly-rt-cell{padding:16px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);}
+    .monthly-rt-cell:nth-child(2n){border-right:none;}
+    .monthly-rt-cell:nth-last-child(-n+2){border-bottom:none;}
+    .monthly-rt-val{font-size:22px;font-weight:800;color:var(--navy);}
+    .monthly-rt-lbl{font-size:11px;color:var(--text-soft);margin-top:3px;}
+    .monthly-bar-wrap{display:flex;align-items:center;gap:8px;}
+    .monthly-bar-bg{flex:1;height:6px;background:#eee;border-radius:3px;overflow:hidden;}
+    .monthly-bar-fill{height:100%;border-radius:3px;background:var(--navy);}
+    .monthly-empty{text-align:center;padding:60px;color:var(--text-soft);font-size:15px;}
+
+    /* ── CHAT ── */
+    .chat-unread-badge{position:absolute;top:6px;right:8px;background:#C0392B;color:#fff;font-size:10px;font-weight:800;min-width:18px;height:18px;border-radius:9px;display:flex;align-items:center;justify-content:center;padding:0 4px;}
+    .chat-section{display:none;height:calc(100vh - 56px);overflow:hidden;}
+    .chat-section.show{display:flex;}
+    .chat-layout{display:flex;width:100%;height:100%;}
+    .chat-sidebar{width:220px;flex-shrink:0;border-right:1px solid var(--border);background:#f7f9fc;display:flex;flex-direction:column;overflow:hidden;}
+    .chat-sidebar-head{padding:14px 16px;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.7px;color:var(--text-soft);border-bottom:1px solid var(--border);background:#fff;}
+    .chat-dept-list{flex:1;overflow-y:auto;}
+    .chat-dept-item{padding:11px 14px;cursor:pointer;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:6px;font-size:13px;color:var(--navy);transition:background .12s;}
+    .chat-dept-item:hover{background:#eef2f8;}
+    .chat-dept-item.active{background:var(--navy);color:#fff;}
+    .chat-dept-name{font-weight:600;font-size:12px;line-height:1.3;}
+    .chat-dept-badge{background:#C0392B;color:#fff;font-size:9px;font-weight:800;min-width:16px;height:16px;border-radius:8px;display:flex;align-items:center;justify-content:center;padding:0 3px;flex-shrink:0;}
+    .chat-main{flex:1;display:flex;flex-direction:column;min-width:0;}
+    .chat-main-head{padding:14px 20px;border-bottom:1px solid var(--border);background:#fff;display:flex;align-items:center;gap:10px;flex-shrink:0;}
+    .chat-main-title{font-size:15px;font-weight:800;color:var(--navy);}
+    .chat-main-sub{font-size:11px;color:var(--text-soft);}
+    .chat-my-dept{font-size:11px;font-weight:700;padding:3px 10px;border-radius:12px;background:#e8edf8;color:var(--navy);}
+    .chat-messages{flex:1;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:10px;background:#f4f6fa;}
+    .chat-placeholder{flex:1;display:flex;align-items:center;justify-content:center;color:var(--text-soft);font-size:14px;text-align:center;padding:40px;}
+    .chat-msg{display:flex;flex-direction:column;max-width:72%;gap:2px;}
+    .chat-msg.mine{align-self:flex-end;align-items:flex-end;}
+    .chat-msg.theirs{align-self:flex-start;align-items:flex-start;}
+    .chat-bubble{padding:9px 13px;border-radius:16px;font-size:13px;line-height:1.45;word-break:break-word;white-space:pre-wrap;}
+    .chat-msg.mine .chat-bubble{background:var(--navy);color:#fff;border-bottom-right-radius:4px;}
+    .chat-msg.theirs .chat-bubble{background:#fff;color:var(--navy);border:1px solid var(--border);border-bottom-left-radius:4px;}
+    .chat-meta{font-size:10px;color:var(--text-soft);margin:0 4px;}
+    .chat-input-bar{padding:12px 16px;border-top:1px solid var(--border);background:#fff;display:flex;gap:8px;flex-shrink:0;}
+    .chat-input{flex:1;padding:10px 14px;border:1.5px solid var(--border);border-radius:24px;font-size:13px;color:var(--navy);resize:none;height:42px;max-height:120px;overflow-y:auto;outline:none;transition:border-color .15s;}
+    .chat-input:focus{border-color:var(--navy);}
+    .chat-send-btn{padding:0 18px;border-radius:24px;border:none;background:var(--navy);color:#fff;font-size:13px;font-weight:700;cursor:pointer;height:42px;flex-shrink:0;transition:opacity .15s;}
+    .chat-send-btn:hover{opacity:.85;}
+    .chat-no-dept{flex:1;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;color:var(--text-soft);text-align:center;padding:40px;}
+    /* online dot */
+    .chat-online-dot{width:8px;height:8px;border-radius:50%;background:#27ae60;flex-shrink:0;box-shadow:0 0 0 2px rgba(39,174,96,.25);}
+    .chat-offline-dot{width:8px;height:8px;border-radius:50%;background:#bdc3c7;flex-shrink:0;}
+    /* typing */
+    .chat-typing-bar{min-height:20px;padding:0 20px 6px;font-size:11px;color:var(--text-soft);font-style:italic;}
+    /* urgent */
+    .chat-msg.urgent.mine .chat-bubble{background:#c0392b;}
+    .chat-msg.urgent.theirs .chat-bubble{background:#fdecea;color:#c0392b;border-color:#e74c3c;}
+    .chat-urgent-tag{font-size:9px;font-weight:800;color:#e74c3c;letter-spacing:.5px;margin-bottom:2px;}
+    .chat-msg.urgent.mine .chat-urgent-tag{color:#f1948a;}
+    /* read receipt */
+    .chat-receipt{font-size:10px;margin-left:4px;}
+    .chat-receipt.read{color:#27ae60;}
+    .chat-receipt.sent{color:#aaa;}
+    /* urgent toggle */
+    .chat-urgent-btn{width:42px;height:42px;border-radius:50%;border:2px solid #e74c3c;background:#fff;color:#e74c3c;font-size:17px;cursor:pointer;flex-shrink:0;transition:all .15s;display:flex;align-items:center;justify-content:center;}
+    .chat-urgent-btn.active{background:#e74c3c;color:#fff;}
+    /* attach btn */
+    .chat-attach-btn{width:42px;height:42px;border-radius:50%;border:1.5px solid var(--border);background:#fff;color:var(--text-soft);font-size:17px;cursor:pointer;flex-shrink:0;transition:all .15s;display:flex;align-items:center;justify-content:center;}
+    .chat-attach-btn:hover{border-color:var(--navy);color:var(--navy);}
+    /* file preview strip */
+    .chat-file-strip{display:none;align-items:center;gap:8px;padding:8px 16px;background:#eef2f8;border-top:1px solid var(--border);}
+    .chat-file-strip.show{display:flex;}
+    .chat-file-strip-name{font-size:12px;font-weight:600;color:var(--navy);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    .chat-file-strip-remove{color:#e74c3c;cursor:pointer;font-size:16px;font-weight:900;line-height:1;}
+    /* attachment in bubble */
+    .chat-attachment{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;margin-top:6px;text-decoration:none;background:rgba(255,255,255,.15);color:inherit;}
+    .chat-msg.theirs .chat-attachment{background:#f0f4f8;color:var(--navy);}
+    .chat-attach-icon{font-size:18px;flex-shrink:0;}
+    .chat-attach-label{font-size:11px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:180px;}
+    /* quick replies */
+    .chat-quick-wrap{padding:8px 14px;border-top:1px solid var(--border);background:#f7f9fc;display:flex;flex-wrap:wrap;gap:6px;}
+    .chat-quick-btn{padding:5px 13px;border-radius:16px;border:1.5px solid var(--navy);background:#fff;color:var(--navy);font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;transition:all .12s;}
+    .chat-quick-btn:hover{background:var(--navy);color:#fff;}
+    /* voice note */
+    .chat-mic-btn{width:42px;height:42px;border-radius:50%;border:1.5px solid var(--border);background:#fff;color:var(--text-soft);font-size:18px;cursor:pointer;flex-shrink:0;transition:all .2s;display:flex;align-items:center;justify-content:center;}
+    .chat-mic-btn:hover{border-color:#e74c3c;color:#e74c3c;}
+    .chat-mic-btn.recording{background:#e74c3c;color:#fff;border-color:#e74c3c;animation:micPulse 1s ease-in-out infinite;}
+    @keyframes micPulse{0%,100%{box-shadow:0 0 0 0 rgba(231,76,60,.5)}50%{box-shadow:0 0 0 8px rgba(231,76,60,0)}}
+    .chat-rec-timer{font-size:11px;font-weight:700;color:#e74c3c;align-self:center;flex-shrink:0;display:none;min-width:36px;}
+    .chat-rec-timer.show{display:block;}
+    /* voice bubble */
+    .chat-voice-bubble{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:12px;min-width:200px;max-width:260px;}
+    .chat-msg.mine .chat-voice-bubble{background:rgba(255,255,255,.15);}
+    .chat-msg.theirs .chat-voice-bubble{background:#f0f4f8;}
+    .chat-voice-bubble audio{flex:1;height:32px;min-width:0;}
+    audio{accent-color:var(--navy);}
+    .chat-voice-icon{font-size:20px;flex-shrink:0;}
+    @keyframes chatNotifIn{from{opacity:0;transform:translateX(-50%) translateY(-12px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+    .chat-toast-container{position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column;gap:10px;pointer-events:none;}
+    .chat-toast{background:var(--navy);color:#fff;padding:14px 18px;border-radius:12px;max-width:300px;cursor:pointer;box-shadow:0 6px 24px rgba(0,0,0,.35);border-left:4px solid #e74c3c;transform:translateX(120%);transition:transform .35s cubic-bezier(.34,1.26,.64,1);pointer-events:all;}
+    .chat-toast.show{transform:translateX(0);}
+    .chat-toast-from{font-size:11px;font-weight:800;letter-spacing:.5px;opacity:.7;margin-bottom:5px;}
+    .chat-toast-msg{font-size:13px;line-height:1.4;font-weight:500;}
+    .chat-toast-hint{font-size:10px;opacity:.5;margin-top:4px;}
+    .chat-dept-you{font-size:9px;font-weight:700;background:#e8edf8;color:var(--navy);padding:1px 6px;border-radius:8px;margin-left:4px;vertical-align:middle;}
+
     /* ── EXT DELIVERY CARDS ── */
     .ext-card{background:var(--white);border:1.5px solid var(--border);border-radius:12px;padding:0;box-shadow:var(--shadow-sm);transition:box-shadow .18s,border-color .18s;overflow:hidden;}
     .ext-card:hover{box-shadow:var(--shadow-md);border-color:#aed6f1;}
@@ -799,6 +1051,7 @@
   </style>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="/socket.io/socket.io.js"></script>
 </head>
 <body>
 
@@ -840,7 +1093,43 @@
     </div>
     <div class="modal-field" id="mPasswordWrap">
       <label id="mPasswordLabel">Password</label>
-      <input type="password" id="mPassword" placeholder="Min 4 characters"/>
+      <input type="password" id="mPassword" placeholder="Min 8 characters"/>
+    </div>
+    <div class="modal-field">
+      <label>Department</label>
+      <select id="mDepartment">
+        <option value="">— Select department —</option>
+        <option>BLOOD BANK</option>
+        <option>CARDIOLOGY</option>
+        <option>CCU + ICU</option>
+        <option>CORONA 3300-3500</option>
+        <option>CORONA 3400</option>
+        <option>CSU</option>
+        <option>DELIVERY</option>
+        <option>DIALYSIS</option>
+        <option>ENDOSCOPY</option>
+        <option>ER</option>
+        <option>ER CORONA</option>
+        <option>HAEMATOLOGY</option>
+        <option>ICU 2 CORONA</option>
+        <option>ICU 3</option>
+        <option>ICU CORONA</option>
+        <option>INTERNAL MEDICINE 1</option>
+        <option>MHU</option>
+        <option>NICU CORONA</option>
+        <option>NICU-PICU</option>
+        <option>NURSERY</option>
+        <option>OBS</option>
+        <option>ODC</option>
+        <option>ONCO ADULT</option>
+        <option>ONCO PEDIATRIC</option>
+        <option>OPERATING THEATRE</option>
+        <option>OR</option>
+        <option>PEDIATRIC</option>
+        <option>RECOVERY</option>
+        <option>SURGERY 1</option>
+        <option>WTTC</option>
+      </select>
     </div>
     <div class="modal-field">
       <label>Role</label>
@@ -960,14 +1249,30 @@
     <button class="sidebar-nav-btn" id="tabDashboard" onclick="showPage('dashboard')">
       <span class="sidebar-nav-icon">📊</span> Dashboard
     </button>
-    <button class="sidebar-nav-btn" id="tabAdmin" onclick="showPage('admin')" style="display:none">
-      <span class="sidebar-nav-icon">👥</span> Users
-    </button>
     <button class="sidebar-nav-btn" id="tabExtDel" onclick="showPage('extdel')" style="display:none">
       <span class="sidebar-nav-icon">🚚</span> Ext. Delivery
     </button>
     <button class="sidebar-nav-btn" id="tabExcel" onclick="showPage('excel')">
       <span class="sidebar-nav-icon">📁</span> Excel Files
+    </button>
+    <button class="sidebar-nav-btn" id="tabHandover" onclick="showPage('handover')">
+      <span class="sidebar-nav-icon">📋</span> Handover
+    </button>
+    <button class="sidebar-nav-btn" id="tabConsumption" onclick="showPage('consumption')">
+      <span class="sidebar-nav-icon">📈</span> Consumption
+    </button>
+    <button class="sidebar-nav-btn" onclick="openPatientHistory('')">
+      <span class="sidebar-nav-icon">🧑‍⚕️</span> Patient History
+    </button>
+    <button class="sidebar-nav-btn" id="tabMonthly" onclick="showPage('monthly')">
+      <span class="sidebar-nav-icon">📊</span> Monthly Report
+    </button>
+    <button class="sidebar-nav-btn" id="tabChat" onclick="showPage('chat')" style="position:relative">
+      <span class="sidebar-nav-icon">💬</span> Chat
+      <span class="chat-unread-badge" id="chatUnreadBadge" style="display:none"></span>
+    </button>
+    <button class="sidebar-nav-btn" id="tabAdmin" onclick="showPage('admin')" style="display:none">
+      <span class="sidebar-nav-icon">👥</span> Users
     </button>
   </nav>
 </aside>
@@ -1478,13 +1783,14 @@
             <th>Username</th>
             <th>Full Name</th>
             <th>Role</th>
+            <th>Department</th>
             <th>Status</th>
             <th>Created</th>
             <th>Actions</th>
           </tr>
         </thead>
         <tbody id="usersTableBody">
-          <tr><td colspan="6" style="text-align:center;padding:20px;color:#888">Loading…</td></tr>
+          <tr><td colspan="7" style="text-align:center;padding:20px;color:#888">Loading…</td></tr>
         </tbody>
       </table>
     </div>
@@ -1593,7 +1899,6 @@
         <div class="excel-dash-title" id="excelViewTitle">📁 Excel Files Dashboard</div>
       </div>
       <div style="display:flex;gap:8px;align-items:center;">
-        <button id="excelReportBtn" onclick="generateMonthlyReport()" style="display:none;padding:7px 14px;border:1.5px solid #4a9eff;border-radius:8px;font-size:13px;font-weight:600;background:#fff;color:#4a9eff;cursor:pointer;transition:background .15s,color .15s;" onmouseover="this.style.background='#4a9eff';this.style.color='#fff'" onmouseout="this.style.background='#fff';this.style.color='#4a9eff'">📄 Monthly Report</button>
         <label class="excel-upload-btn" style="cursor:pointer">
           ⬆ Upload Excel
           <input type="file" id="excelUploadInput" accept=".xlsx,.xls" style="display:none" onchange="uploadExcelFile(this,null)">
@@ -1673,11 +1978,152 @@
 
   </div>
 
+  <!-- ═══════════════ SHIFT HANDOVER REPORT ═══════════════ -->
+  <div class="handover-section" id="handoverSection">
+    <div class="dash-title">📋 Shift Handover Report</div>
+
+    <div class="handover-controls">
+      <label>Date <input type="date" id="hoDate"></label>
+      <div class="shift-btns">
+        <button class="shift-btn active" id="shiftMorning"   onclick="setShift('morning')">🌅 Morning (07–15)</button>
+        <button class="shift-btn"        id="shiftAfternoon" onclick="setShift('afternoon')">☀️ Afternoon (15–23)</button>
+        <button class="shift-btn"        id="shiftNight"     onclick="setShift('night')">🌙 Night (23–07)</button>
+      </div>
+      <button class="handover-load-btn" onclick="loadHandover()">Load Shift</button>
+      <button class="handover-pdf-btn"  id="hoPdfBtn" onclick="downloadHandoverPdf()" style="display:none">📄 Download PDF</button>
+    </div>
+
+    <div id="hoPreview" style="display:none">
+      <div class="handover-summary">
+        <div class="ho-card red">  <div class="ho-card-label">Transfusions</div><div class="ho-card-num" id="hoTrans">—</div></div>
+        <div class="ho-card blue"> <div class="ho-card-label">Deliveries</div>  <div class="ho-card-num" id="hoDel">—</div></div>
+        <div class="ho-card orange"><div class="ho-card-label">Life-Saving</div> <div class="ho-card-num" id="hoLS">—</div></div>
+        <div class="ho-card green"><div class="ho-card-label">Total Units</div>  <div class="ho-card-num" id="hoUnits">—</div></div>
+      </div>
+
+      <div class="ho-units-bar">
+        Units Requested:
+        <span>Packed Cells (PRC): <strong id="hoPrc">—</strong></span>
+        <span>FFP: <strong id="hoFfp">—</strong></span>
+        <span>Platelets: <strong id="hoPlt">—</strong></span>
+      </div>
+
+      <div class="ho-table-wrap">
+        <div class="ho-table-head" id="hoTransHead">🩸 Transfusion Requests</div>
+        <div id="hoTransTable"></div>
+      </div>
+
+      <div class="ho-table-wrap">
+        <div class="ho-table-head" id="hoDelHead">🚚 Blood Deliveries</div>
+        <div id="hoDelTable"></div>
+      </div>
+    </div>
+
+    <div id="hoEmpty" style="text-align:center;padding:48px;color:var(--text-soft);font-size:13px;display:none">
+      No records found for this shift period.
+    </div>
+  </div>
+
+  <!-- ═══════════════ CONSUMPTION REPORT ═══════════════ -->
+  <div class="consump-section" id="consumptionSection">
+    <div class="dash-title">📈 Consumption Report
+      <button class="dash-refresh" onclick="loadConsumption()">🔄 Refresh</button>
+    </div>
+
+    <div class="dash-date-filter" style="margin-bottom:16px;">
+      <label>From <input type="date" id="cFrom" oninput="loadConsumption()"></label>
+      <label>To <input type="date" id="cTo" oninput="loadConsumption()"></label>
+      <button class="dash-date-clear" onclick="clearConsumpFilter()">✕ Clear (Last 30 days)</button>
+    </div>
+
+    <div class="consump-cards">
+      <div class="consump-card prc">
+        <div class="consump-card-label">Packed Cells (PRC)</div>
+        <div class="consump-card-num" id="cTotalPrc">—</div>
+        <div class="consump-card-sub">units consumed</div>
+      </div>
+      <div class="consump-card ffp">
+        <div class="consump-card-label">Fresh Frozen Plasma</div>
+        <div class="consump-card-num" id="cTotalFfp">—</div>
+        <div class="consump-card-sub">units consumed</div>
+      </div>
+      <div class="consump-card plt">
+        <div class="consump-card-label">Platelets</div>
+        <div class="consump-card-num" id="cTotalPlt">—</div>
+        <div class="consump-card-sub">units consumed</div>
+      </div>
+      <div class="consump-card total">
+        <div class="consump-card-label">Grand Total</div>
+        <div class="consump-card-num" id="cTotalUnits">—</div>
+        <div class="consump-card-sub">units from Excel files</div>
+      </div>
+    </div>
+
+    <div class="consump-two-col">
+      <div class="consump-panel">
+        <div class="consump-panel-title" id="cTrendTitle">Consumption Trend</div>
+        <div style="position:relative;height:200px;"><canvas id="cTrendChart"></canvas></div>
+      </div>
+      <div class="consump-panel">
+        <div class="consump-panel-title">Units by Blood Type</div>
+        <div style="position:relative;height:200px;"><canvas id="cGroupChart"></canvas></div>
+      </div>
+    </div>
+
+    <div class="consump-panel">
+      <div class="consump-panel-title">Top Consuming Wards / Rooms</div>
+      <div id="cWardTable"><div class="rt-empty">Loading…</div></div>
+    </div>
+
+    <div class="consump-panel" style="margin-top:16px;">
+      <div class="consump-panel-title">Consumption by Blood Type — Detail</div>
+      <div id="cGroupTable"><div class="rt-empty">Loading…</div></div>
+    </div>
+  </div>
+
+  <!-- ── MONTHLY REPORT ── -->
+  <div class="monthly-section" id="monthlySection">
+    <div class="monthly-controls">
+      <div class="monthly-title">📊 Monthly Management Report</div>
+      <input type="month" class="monthly-month-input" id="monthlyMonthInput"/>
+      <button class="monthly-load-btn" onclick="loadMonthlyReport()">Load Report</button>
+      <button class="monthly-pdf-btn" id="monthlyPdfBtn" onclick="downloadMonthlyPdf()">⬇ Download PDF</button>
+    </div>
+    <div id="monthlyPreview">
+      <div class="monthly-empty">Select a month and click Load Report</div>
+    </div>
+  </div>
+
+  <!-- CHAT SECTION -->
+  <div class="chat-section" id="chatSection">
+    <div class="chat-layout">
+      <!-- Sidebar: department list -->
+      <div class="chat-sidebar">
+        <div class="chat-sidebar-head">Departments</div>
+        <div class="chat-dept-list" id="chatDeptList"></div>
+      </div>
+      <!-- Main: thread view -->
+      <div class="chat-main" id="chatMain">
+        <div class="chat-placeholder">Select a department to start chatting</div>
+      </div>
+    </div>
+  </div>
+
 </main>
 </div><!-- .content-area -->
 </div><!-- .app-layout -->
 
 <script>
+// ── HTML escape — always use e() before inserting user data into innerHTML ──
+function e(str) {
+  return String(str == null ? '' : str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 // ═══════════════════════════════════════════════════════
 // AUTH
 // ═══════════════════════════════════════════════════════
@@ -1723,6 +2169,12 @@ async function doLogin() {
 function doLogout() {
   localStorage.removeItem('bb_token');
   currentUser = null;
+  // Reset chat state so next login picks up the correct department
+  if (_chatSocket) { _chatSocket.disconnect(); _chatSocket = null; }
+  _chatSidebarBuilt = false;
+  _chatMyDept       = null;
+  _chatActiveDept   = null;
+  _chatUnread       = {};
   document.getElementById('loginScreen').classList.remove('hidden');
   document.getElementById('loginPassword').value = '';
   document.getElementById('loginErr').textContent = '';
@@ -1740,14 +2192,23 @@ function onLoginSuccess() {
   roleEl.textContent = currentUser.role;
   roleEl.className   = 'user-bar-role ' + currentUser.role;
   // Show Admin + Ext Delivery tabs only for admins
-  document.getElementById('tabAdmin').style.display  = currentUser.role === 'admin' ? '' : 'none';
-  document.getElementById('tabExtDel').style.display = currentUser.role === 'admin' ? '' : 'none';
+  const isAdmin = currentUser.role === 'admin';
+  ['tabAdmin','tabExtDel','tabDashboard','tabExcel','tabHandover','tabConsumption','tabMonthly']
+    .forEach(id => { const el = document.getElementById(id); if (el) el.style.display = isAdmin ? '' : 'none'; });
+  // Default landing page per role
+  showPage(isAdmin ? 'forms' : 'forms');
   // Delete buttons visibility
   document.querySelectorAll('.delete-btn').forEach(b => {
     b.style.display = currentUser.role === 'admin' ? '' : 'none';
   });
   loadHistory();
   checkMode();
+  // Connect chat socket immediately so notifications work from any page
+  _connectChatSocket();
+  // Ask for browser notification permission
+  if ('Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission();
+  }
 }
 
 // Check session on page load
@@ -1775,29 +2236,30 @@ let editingUserId = null;
 
 async function loadUsers() {
   const tbody = document.getElementById('usersTableBody');
-  tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:#888">Loading…</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;color:#888">Loading…</td></tr>';
   try {
     const res   = await apiFetch(API + '/users');
     if (!res) return;
     const users = await res.json();
     if (!users.length) {
-      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:#888">No users found.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:20px;color:#888">No users found.</td></tr>';
       return;
     }
     tbody.innerHTML = users.map(u => `
       <tr>
-        <td><strong>${u.username}</strong></td>
-        <td>${u.full_name}</td>
-        <td><span class="badge-role ${u.role}">${u.role}</span></td>
+        <td><strong>${e(u.username)}</strong></td>
+        <td>${e(u.full_name)}</td>
+        <td><span class="badge-role ${e(u.role)}">${e(u.role)}</span></td>
+        <td style="font-size:11px;color:#555">${e(u.department || 'BLOOD BANK')}</td>
         <td><span class="${u.active ? 'badge-active' : 'badge-inactive'}">${u.active ? '● Active' : '○ Inactive'}</span></td>
         <td style="font-size:12px;color:#888">${(u.created_at || '').slice(0,10)}</td>
         <td>
-          <button class="tbl-btn" onclick="openEditUser(${u.user_id},'${u.username}','${u.full_name}','${u.role}',${u.active})">Edit</button>
-          <button class="tbl-btn" onclick="openResetPw(${u.user_id},'${u.username}')">Reset PW</button>
+          <button class="tbl-btn" onclick="openEditUser(${u.user_id},'${e(u.username)}','${e(u.full_name)}','${e(u.role)}',${u.active},'${e(u.department||'BLOOD BANK')}')">Edit</button>
+          <button class="tbl-btn" onclick="openResetPw(${u.user_id},'${e(u.username)}')">Reset PW</button>
         </td>
       </tr>`).join('');
   } catch {
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#dc2626">Failed to load users.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#dc2626">Failed to load users.</td></tr>';
   }
 }
 
@@ -1810,13 +2272,14 @@ function openAddUser() {
   document.getElementById('mPassword').value           = '';
   document.getElementById('mPasswordLabel').textContent = 'Password';
   document.getElementById('mRole').value               = 'staff';
+  document.getElementById('mDepartment').value         = 'BLOOD BANK';
   document.getElementById('mActiveWrap').style.display = 'none';
   document.getElementById('mPasswordWrap').style.display = '';
   document.getElementById('modalErr').textContent      = '';
   document.getElementById('modalBg').classList.add('open');
 }
 
-function openEditUser(id, username, fullName, role, active) {
+function openEditUser(id, username, fullName, role, active, department) {
   editingUserId = id;
   document.getElementById('modalTitle').textContent    = 'Edit User';
   document.getElementById('mUsername').value           = username;
@@ -1824,6 +2287,7 @@ function openEditUser(id, username, fullName, role, active) {
   document.getElementById('mFullName').value           = fullName;
   document.getElementById('mPasswordWrap').style.display = 'none';
   document.getElementById('mRole').value               = role;
+  document.getElementById('mDepartment').value         = department || 'BLOOD BANK';
   document.getElementById('mActive').value             = active ? '1' : '0';
   document.getElementById('mActiveWrap').style.display = '';
   document.getElementById('modalErr').textContent      = '';
@@ -1861,7 +2325,7 @@ async function submitUserModal() {
 
   // Password reset mode
   if (resetPwUserId) {
-    if (!password || password.length < 4) { errEl.textContent = 'Password must be at least 4 characters.'; return; }
+    if (!password || password.length < 8) { errEl.textContent = 'Password must be at least 8 characters.'; return; }
     const res = await apiFetch(`${API}/users/${resetPwUserId}/password`, { method: 'PUT', body: { password } });
     if (!res) return;
     const data = await res.json();
@@ -1870,11 +2334,13 @@ async function submitUserModal() {
     return;
   }
 
+  const department = document.getElementById('mDepartment').value;
+
   // Edit mode
   if (editingUserId) {
     if (!fullName) { errEl.textContent = 'Full name is required.'; return; }
     const active = document.getElementById('mActive').value === '1';
-    const res = await apiFetch(`${API}/users/${editingUserId}`, { method: 'PUT', body: { full_name: fullName, role, active } });
+    const res = await apiFetch(`${API}/users/${editingUserId}`, { method: 'PUT', body: { full_name: fullName, role, active, department } });
     if (!res) return;
     const data = await res.json();
     if (!res.ok) { errEl.textContent = data.error; return; }
@@ -1885,8 +2351,8 @@ async function submitUserModal() {
   // Add mode
   const username = document.getElementById('mUsername').value.trim();
   if (!username || !fullName || !password) { errEl.textContent = 'All fields are required.'; return; }
-  if (password.length < 4) { errEl.textContent = 'Password must be at least 4 characters.'; return; }
-  const res = await apiFetch(`${API}/users`, { method: 'POST', body: { username, full_name: fullName, password, role } });
+  if (password.length < 8) { errEl.textContent = 'Password must be at least 8 characters.'; return; }
+  const res = await apiFetch(`${API}/users`, { method: 'POST', body: { username, full_name: fullName, password, role, department } });
   if (!res) return;
   const data = await res.json();
   if (!res.ok) { errEl.textContent = data.error; return; }
@@ -2441,16 +2907,26 @@ function fillExtFields(fields) {
 // PAGE NAV — FORMS / DASHBOARD
 // ═══════════════════════════════════════════════════════
 function showPage(page) {
-  const isForm   = page === 'forms';
-  const isDash   = page === 'dashboard';
-  const isAdmin  = page === 'admin';
-  const isExtDel = page === 'extdel';
-  const isExcel  = page === 'excel';
+  const adminOnly = ['dashboard','admin','extdel','excel','handover','consumption','monthly'];
+  if (adminOnly.includes(page) && currentUser?.role !== 'admin') page = 'forms';
+  const isForm        = page === 'forms';
+  const isDash        = page === 'dashboard';
+  const isAdmin       = page === 'admin';
+  const isExtDel      = page === 'extdel';
+  const isExcel       = page === 'excel';
+  const isConsumption = page === 'consumption';
+  const isHandover    = page === 'handover';
+  const isMonthly     = page === 'monthly';
+  const isChat        = page === 'chat';
   document.getElementById('tabForms').classList.toggle('active', isForm);
   document.getElementById('tabDashboard').classList.toggle('active', isDash);
   document.getElementById('tabAdmin').classList.toggle('active', isAdmin);
   document.getElementById('tabExtDel').classList.toggle('active', isExtDel);
   document.getElementById('tabExcel').classList.toggle('active', isExcel);
+  document.getElementById('tabConsumption').classList.toggle('active', isConsumption);
+  document.getElementById('tabHandover').classList.toggle('active', isHandover);
+  document.getElementById('tabMonthly').classList.toggle('active', isMonthly);
+  document.getElementById('tabChat').classList.toggle('active', isChat);
   document.querySelector('.forms-row').style.display    = isForm  ? '' : 'none';
   document.querySelector('.history-wrap').style.display = isForm  ? '' : 'none';
   document.querySelector('.voice-bar').style.display    = (isForm || isExtDel) ? '' : 'none';
@@ -2458,6 +2934,13 @@ function showPage(page) {
   document.getElementById('adminSection').style.display = isAdmin ? '' : 'none';
   document.getElementById('extDelSection').classList.toggle('show', isExtDel);
   document.getElementById('excelSection').classList.toggle('show', isExcel);
+  document.getElementById('consumptionSection').classList.toggle('show', isConsumption);
+  document.getElementById('handoverSection').classList.toggle('show', isHandover);
+  document.getElementById('monthlySection').classList.toggle('show', isMonthly);
+  document.getElementById('chatSection').classList.toggle('show', isChat);
+  if (!isChat) _chatActiveDept = null;  // leaving chat → re-enable notifications
+  if (isMonthly) initMonthlyReport();
+  if (isChat)    initChat();
   // Toggle voice bar seg-tabs: normal forms vs ext delivery
   ['tabBoth','tabTransfusion','tabDelivery'].forEach(id => {
     const el = document.getElementById(id);
@@ -2475,10 +2958,12 @@ function showPage(page) {
     }
     setForm('ext_delivery');
   } else if (!isForm && activeForm === 'ext_delivery') setForm('both');
-  if (isDash)   loadDashboard();
-  if (isAdmin)  loadUsers();
-  if (isExtDel) { renderExtCompTable(); loadExtHistory(); }
-  if (isExcel)  loadExcelFiles();
+  if (isDash)        loadDashboard();
+  if (isAdmin)       loadUsers();
+  if (isExtDel)      { renderExtCompTable(); loadExtHistory(); }
+  if (isExcel)       loadExcelFiles();
+  if (isConsumption) loadConsumption();
+  if (isHandover)    initHandover();
 }
 
 async function loadDashboard() {
@@ -2849,7 +3334,7 @@ async function lookupFileNumber(formType) {
 
     // File number already belongs to a DIFFERENT patient — block
     if (currentName && currentName.toLowerCase() !== existingName.toLowerCase()) {
-      hintEl.innerHTML = `⛔ File number already assigned to <strong>${existingName}</strong>. Check the file number.`;
+      hintEl.innerHTML = `⛔ File number already assigned to <strong>${e(existingName)}</strong>. Check the file number.`;
       hintEl.className = 'fn-hint error show';
       fnEl.classList.add('field-error');
       return;
@@ -3097,9 +3582,10 @@ async function lookupFileNumber(formType) {
       filled.push('diagnosis');
     }
 
-    hint.textContent = filled.length
+    const fillMsg = filled.length
       ? `✓ Returning patient — filled: ${filled.join(', ')}`
-      : `✓ Returning patient: ${existingName}`;
+      : `✓ Returning patient: ${e(existingName)}`;
+    hint.innerHTML = `${fillMsg} <button class="ph-mini-btn" onclick="openPatientHistory('${e(fileNum)}')">📋 History</button>`;
     hint.classList.add('show', 'success');
 
   } catch {
@@ -3109,6 +3595,134 @@ async function lookupFileNumber(formType) {
     btn.classList.remove('loading');
   }
 }
+
+// ═══════════════════════════════════════════════════════
+// PATIENT HISTORY MODAL
+// ═══════════════════════════════════════════════════════
+function openPatientHistory(fileNumber) {
+  const overlay = document.getElementById('phOverlay');
+  overlay.classList.add('open');
+  if (fileNumber) {
+    document.getElementById('phSearchInput').value = fileNumber;
+    loadPatientHistory(fileNumber);
+  }
+}
+
+function closePatientHistory() {
+  document.getElementById('phOverlay').classList.remove('open');
+}
+
+function searchPatientHistory() {
+  const fn = document.getElementById('phSearchInput').value.trim();
+  if (fn) loadPatientHistory(fn);
+}
+
+async function loadPatientHistory(fileNumber) {
+  const body = document.getElementById('phBody');
+  body.innerHTML = '<div class="ph-empty">Loading…</div>';
+
+  try {
+    const res  = await apiFetch(`${API}/patient/history?file_number=${encodeURIComponent(fileNumber)}`);
+    if (!res) return;
+    const data = await res.json();
+
+    if (!data.found) {
+      body.innerHTML = '<div class="ph-empty">No records found for this file number</div>';
+      document.getElementById('phPatientName').textContent = 'Patient History';
+      document.getElementById('phFileNo').textContent = fileNumber;
+      document.getElementById('phBG').textContent = '—';
+      return;
+    }
+
+    const { patient, summary, transfusions, deliveries } = data;
+    document.getElementById('phPatientName').textContent = patient.name || 'Unknown Patient';
+    document.getElementById('phFileNo').textContent = patient.file_number;
+    document.getElementById('phBG').textContent =
+      `${patient.blood_group || '?'} ${patient.rh_factor === 'Positive' ? '+' : patient.rh_factor === 'Negative' ? '−' : (patient.rh_factor || '')}`;
+
+    const reactionHtml = summary.has_reactions ? `
+      <div class="ph-reaction-alert">
+        <div class="ph-alert-icon">⚠️</div>
+        <div class="ph-alert-text">
+          <strong>Previous Transfusion Reactions Recorded</strong>
+          ${summary.reactions.map(r => `${r.date}: ${r.note}`).join('<br>')}
+        </div>
+      </div>` : '';
+
+    // Build timeline: merge transfusions and deliveries sorted by date desc
+    const timelineItems = [
+      ...transfusions.map(r => ({ ...r, _type: 'transfusion' })),
+      ...deliveries.map(r => ({ ...r, _type: 'delivery' })),
+    ].sort((a, b) => (b.date + b.time) > (a.date + a.time) ? 1 : -1);
+
+    const timelineHtml = timelineItems.map(r => {
+      if (r._type === 'transfusion') {
+        const comps = [];
+        if (r.fpc_units) comps.push(`<span class="ph-comp-tag prc">PRC ×${r.fpc_units}</span>`);
+        if (r.ffp_units) comps.push(`<span class="ph-comp-tag ffp">FFP ×${r.ffp_units}</span>`);
+        if (r.plt_units) comps.push(`<span class="ph-comp-tag plt">PLT ×${r.plt_units}</span>`);
+        const lsTag = r.life_saving ? '<span class="ph-ls-tag">LIFE-SAVING</span>' : '';
+        return `
+          <div class="ph-item${r.life_saving ? ' life-saving' : ''}">
+            <div class="ph-item-type">
+              <span class="ph-item-badge transfusion">Transfusion</span>
+              <div class="ph-item-date">${r.date}</div>
+            </div>
+            <div class="ph-item-info">
+              <div class="ph-item-comps">${comps.join('') || '<span class="ph-item-meta">No components</span>'}${lsTag}</div>
+              <div class="ph-item-meta">Room: ${e(r.room) || '—'} · Dr. ${e(r.physician) || '—'}</div>
+              ${r.prev_transfusion_reaction ? `<div class="ph-item-meta" style="color:#922B21">⚠ ${e(r.prev_transfusion_reaction)}</div>` : ''}
+            </div>
+            <div class="ph-item-time">${r.time || ''}</div>
+          </div>`;
+      } else {
+        const lsTag = r.life_saving ? '<span class="ph-ls-tag">LIFE-SAVING</span>' : '';
+        return `
+          <div class="ph-item${r.life_saving ? ' life-saving' : ''}">
+            <div class="ph-item-type">
+              <span class="ph-item-badge delivery">Delivery</span>
+              <div class="ph-item-date">${r.date}</div>
+            </div>
+            <div class="ph-item-info">
+              <div class="ph-item-comps"><span class="ph-comp-tag">${e(r.type_of_blood || r.type_of_blood_requested) || '—'}</span>${lsTag}</div>
+              <div class="ph-item-meta">Room: ${e(r.room) || '—'} · Tech: ${e(r.technician_name) || '—'}</div>
+              ${r.blood_unit_group ? `<div class="ph-item-meta">Unit group: ${e(r.blood_unit_group)}</div>` : ''}
+            </div>
+            <div class="ph-item-time">${r.time || ''}</div>
+          </div>`;
+      }
+    }).join('');
+
+    body.innerHTML = `
+      <div class="ph-stats">
+        <div class="ph-stat red">
+          <div class="ph-stat-val">${summary.total_transfusions}</div>
+          <div class="ph-stat-lbl">Transfusions</div>
+        </div>
+        <div class="ph-stat blue">
+          <div class="ph-stat-val">${summary.total_deliveries}</div>
+          <div class="ph-stat-lbl">Deliveries</div>
+        </div>
+        <div class="ph-stat orange">
+          <div class="ph-stat-val">${summary.total_units}</div>
+          <div class="ph-stat-lbl">Total Units</div>
+        </div>
+        <div class="ph-stat green">
+          <div class="ph-stat-val">${summary.total_prc}/${summary.total_ffp}/${summary.total_plt}</div>
+          <div class="ph-stat-lbl">PRC / FFP / PLT</div>
+        </div>
+      </div>
+      ${reactionHtml}
+      <div>
+        <div class="ph-section-title">Full History (${timelineItems.length} records)</div>
+        <div class="ph-timeline">${timelineHtml || '<div class="ph-empty">No records</div>'}</div>
+      </div>`;
+
+  } catch (err) {
+    body.innerHTML = `<div class="ph-empty">Error loading history: ${err.message}</div>`;
+  }
+}
+
 
 // ═══════════════════════════════════════════════════════
 // SAVE
@@ -3334,9 +3948,10 @@ async function doSearch() {
     grid.innerHTML = rows.map((r, idx) => {
       // Highlight matching text
       const hl = (str) => {
-        if (!q || !str) return str || '';
-        const re = new RegExp(`(${q.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
-        return String(str).replace(re, '<mark class="highlight">$1</mark>');
+        const safe = e(str);
+        if (!q || !safe) return safe;
+        const re = new RegExp(`(${e(q).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+        return safe.replace(re, '<mark class="highlight">$1</mark>');
       };
 
       return `
@@ -3830,8 +4445,10 @@ async function exportExtDelivery(type) {
     const a    = document.createElement('a');
     a.href     = url;
     a.download = `ext-delivery-${Date.now()}.${ext}`;
+    document.body.appendChild(a);
     a.click();
-    URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   } catch { showToast('Export error.', 'error'); }
 }
 
@@ -3882,8 +4499,10 @@ async function exportExtFromRecord(id, type) {
     const a    = document.createElement('a');
     a.href     = url;
     a.download = `ext-delivery-${r.patient_name || id}.${ext}`;
+    document.body.appendChild(a);
     a.click();
-    URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   } catch { showToast('Export error.', 'error'); }
 }
 
@@ -3913,351 +4532,6 @@ const CAT_CONFIG = {
 // Called by showPage('excel')
 async function loadExcelFiles() { await loadExcelCategories(); }
 
-// ── PDF Monthly Report ─────────────────────────────────────────────────────
-async function generateMonthlyReport() {
-  if (!_reportSnapshot) { alert('No data loaded yet. Please wait for the dashboard to finish loading.'); return; }
-  if (!window.jspdf) { alert('PDF library not loaded yet. Please try again in a moment.'); return; }
-
-  const btn = document.getElementById('excelReportBtn');
-  const origText = btn.textContent;
-  btn.textContent = '⏳ Generating...';
-  btn.disabled = true;
-
-  try {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-
-    const W = 210;
-    const H = 297;
-    const M = 14; // margin
-    const CW = W - M * 2;
-    let y = 0;
-
-    const COL = {
-      red:    [185, 28,  28],
-      redSoft:[254, 226, 226],
-      blue:   [37,  99,  235],
-      green:  [22,  163, 74],
-      orange: [234, 88,  12],
-      purple: [124, 58,  237],
-      navy:   [30,  58,  138],
-      dark:   [15,  23,  42],
-      soft:   [100, 116, 139],
-      border: [226, 232, 240],
-      bg:     [248, 250, 252],
-      white:  [255, 255, 255]
-    };
-
-    // ── helper: thin horizontal rule
-    const rule = (yy, color = COL.border) => {
-      doc.setDrawColor(...color);
-      doc.setLineWidth(0.3);
-      doc.line(M, yy, W - M, yy);
-    };
-
-    // ── helper: section header
-    const section = (title, yy) => {
-      doc.setFillColor(...COL.bg);
-      doc.roundedRect(M, yy, CW, 7, 1.5, 1.5, 'F');
-      doc.setFontSize(8);
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(...COL.soft);
-      doc.text(title.toUpperCase(), M + 4, yy + 4.8);
-      return yy + 10;
-    };
-
-    // ══════════════════════════════════════════════════
-    //  PAGE 1 — Executive Summary
-    // ══════════════════════════════════════════════════
-
-    // Header banner
-    doc.setFillColor(...COL.red);
-    doc.rect(0, 0, W, 28, 'F');
-
-    doc.setFontSize(15);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(...COL.white);
-    doc.text('Al Rassoul Al-Aazam Hospital', M, 11);
-
-    doc.setFontSize(9);
-    doc.setFont('helvetica', 'normal');
-    doc.text('Blood Bank · Monthly Performance Report', M, 18);
-
-    const now = _reportSnapshot.generatedAt;
-    const monthLabel = now.toLocaleString('default', { month: 'long', year: 'numeric' });
-    doc.setFontSize(9);
-    doc.setFont('helvetica', 'bold');
-    doc.text(monthLabel, W - M, 11, { align: 'right' });
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8);
-    doc.text(`Generated: ${now.toLocaleDateString()} ${now.toLocaleTimeString()}`, W - M, 17, { align: 'right' });
-
-    y = 36;
-
-    // ── KPI Cards
-    y = section('Key Performance Indicators', y);
-
-    const { cats } = _reportSnapshot;
-    const total  = t => (cats[t] || []).reduce((s, f) => s + (f.rowCount  || 0), 0);
-    const thisMo = t => (cats[t] || []).reduce((s, f) => s + (f.thisMonth || 0), 0);
-    const lastMo = t => (cats[t] || []).reduce((s, f) => s + (f.lastMonth || 0), 0);
-
-    const issued   = total('transfusion');
-    const wasted   = total('wasted');
-    const donors   = total('donors');
-    const extUnits = total('external_units');
-    const sentOut  = total('sent_to_centres');
-    const requests = total('requests');
-    const allTotal = issued + wasted + donors + extUnits + sentOut + requests;
-    const wastageRate = issued > 0 ? ((wasted / issued) * 100).toFixed(1) : '—';
-
-    const kpis = [
-      { label: 'Total Records',    value: allTotal.toLocaleString(),   color: COL.blue,   sub: `${Object.keys(cats).filter(k=>cats[k]?.length).length} categories` },
-      { label: 'Units Issued',     value: issued.toLocaleString(),     color: COL.red,    sub: `This mo: ${thisMo('transfusion').toLocaleString()}` },
-      { label: 'Units Wasted',     value: wasted.toLocaleString(),     color: COL.orange, sub: `${wastageRate}% of issued` },
-      { label: 'Donors Registered',value: donors.toLocaleString(),     color: COL.green,  sub: `This mo: ${thisMo('donors').toLocaleString()}` },
-      { label: 'External Units',   value: extUnits.toLocaleString(),   color: COL.purple, sub: `This mo: ${thisMo('external_units').toLocaleString()}` },
-      { label: 'Sent to Centres',  value: sentOut.toLocaleString(),    color: COL.navy,   sub: `This mo: ${thisMo('sent_to_centres').toLocaleString()}` },
-    ].filter(k => k.value !== '0');
-
-    const cardW = (CW - 8) / 3;
-    const cardH = 22;
-    kpis.forEach((k, i) => {
-      const col = i % 3;
-      const row = Math.floor(i / 3);
-      const cx = M + col * (cardW + 4);
-      const cy = y + row * (cardH + 4);
-      doc.setFillColor(...COL.white);
-      doc.setDrawColor(...COL.border);
-      doc.setLineWidth(0.4);
-      doc.roundedRect(cx, cy, cardW, cardH, 2, 2, 'FD');
-      // top accent bar
-      doc.setFillColor(...k.color);
-      doc.roundedRect(cx, cy, cardW, 2.5, 1, 1, 'F');
-      doc.rect(cx, cy + 1.5, cardW, 1.5, 'F');
-      // value
-      doc.setFontSize(14);
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(...k.color);
-      doc.text(k.value, cx + cardW / 2, cy + 10, { align: 'center' });
-      // label
-      doc.setFontSize(7);
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(...COL.soft);
-      doc.text(k.label.toUpperCase(), cx + cardW / 2, cy + 15, { align: 'center' });
-      // sub
-      doc.setFontSize(6.5);
-      doc.setFont('helvetica', 'normal');
-      doc.setTextColor(180, 190, 200);
-      doc.text(k.sub, cx + cardW / 2, cy + 19, { align: 'center' });
-    });
-
-    const kpiRows = Math.ceil(kpis.length / 3);
-    y += kpiRows * (cardH + 4) + 4;
-
-    // ── MoM summary row
-    const deltaStr = (cur, prev, invertColor) => {
-      if (!prev) return '—';
-      const pct = Math.round(((cur - prev) / prev) * 100);
-      const up = pct >= 0;
-      return `${up ? '↑' : '↓'}${Math.abs(pct)}% vs last month`;
-    };
-
-    y = section('Month-over-Month Summary', y);
-    const moItems = [
-      { label: 'Transfusion',   cur: thisMo('transfusion'),    prev: lastMo('transfusion'),    bad: false },
-      { label: 'Wastage',       cur: thisMo('wasted'),         prev: lastMo('wasted'),         bad: true  },
-      { label: 'Donors',        cur: thisMo('donors'),         prev: lastMo('donors'),         bad: false },
-      { label: 'Requests',      cur: thisMo('requests'),       prev: lastMo('requests'),       bad: false },
-      { label: 'External Units',cur: thisMo('external_units'), prev: lastMo('external_units'), bad: false },
-      { label: 'Sent Out',      cur: thisMo('sent_to_centres'),prev: lastMo('sent_to_centres'),bad: false },
-    ].filter(d => d.cur > 0 || d.prev > 0);
-
-    const momColW = CW / Math.min(moItems.length, 4);
-    const drawMoItem = (item, i, baseY) => {
-      const cx = M + i * momColW;
-      const pct = item.prev ? Math.round(((item.cur - item.prev) / item.prev) * 100) : null;
-      const up = pct !== null && pct >= 0;
-      const good = item.bad ? !up : up;
-      const trendColor = pct === null ? COL.soft : (good ? COL.green : COL.red);
-      const trendStr = pct === null ? '' : `${up ? '+' : '-'}${Math.abs(pct)}% vs last mo`;
-      doc.setFontSize(7.5); doc.setFont('helvetica', 'bold'); doc.setTextColor(...COL.dark);
-      doc.text(item.label, cx + momColW / 2, baseY, { align: 'center' });
-      doc.setFontSize(13); doc.setFont('helvetica', 'bold'); doc.setTextColor(...COL.dark);
-      doc.text(item.cur.toLocaleString(), cx + momColW / 2, baseY + 7, { align: 'center' });
-      if (trendStr) {
-        doc.setFontSize(6.5); doc.setFont('helvetica', 'bold'); doc.setTextColor(...trendColor);
-        doc.text(trendStr, cx + momColW / 2, baseY + 12, { align: 'center' });
-      }
-    };
-    moItems.slice(0, 4).forEach((item, i) => drawMoItem(item, i, y));
-    y += 18;
-    if (moItems.length > 4) {
-      moItems.slice(4).forEach((item, i) => drawMoItem(item, i, y));
-      y += 18;
-    }
-
-    // ── Efficiency Score
-    {
-      const supply  = total('donors') + total('external_units');
-      const used    = total('transfusion') + total('sent_to_centres');
-      const wasted_ = total('wasted');
-      if (supply > 0) {
-        y += 2;
-        y = section('Inventory Efficiency Score', y);
-        const eff       = Math.min(100, (used / supply) * 100);
-        const wasteR    = Math.min(100, (wasted_ / supply) * 100);
-        const effColor_ = eff >= 85 ? COL.green : eff >= 65 ? COL.orange : COL.red;
-        const grade_    = eff >= 85 ? 'Excellent' : eff >= 70 ? 'Good' : eff >= 55 ? 'Fair' : 'Needs Improvement';
-
-        // Score circle (simple filled circle with text)
-        doc.setFillColor(...effColor_);
-        doc.circle(M + 8, y + 7, 8, 'F');
-        doc.setFillColor(...COL.white);
-        doc.circle(M + 8, y + 7, 6, 'F');
-        doc.setFontSize(7); doc.setFont('helvetica','bold'); doc.setTextColor(...effColor_);
-        doc.text(`${eff.toFixed(0)}%`, M + 8, y + 8.5, { align:'center' });
-
-        doc.setFontSize(12); doc.setFont('helvetica','bold'); doc.setTextColor(...effColor_);
-        doc.text(grade_, M + 20, y + 5);
-        doc.setFontSize(8); doc.setFont('helvetica','normal'); doc.setTextColor(...COL.soft);
-        doc.text(`${eff.toFixed(1)}% efficiency  |  Supply: ${supply.toLocaleString()}  |  Used: ${used.toLocaleString()}  |  Wasted: ${wasted_.toLocaleString()} (${wasteR.toFixed(1)}%)`, M + 20, y + 11);
-        y += 20;
-      }
-    }
-
-    // ── Smart Alerts
-    const { alerts } = _reportSnapshot;
-    if (alerts.length > 0) {
-      y += 2;
-      y = section('Smart Alerts', y);
-      const iconMap = { trash:'🗑', flask:'🧪', chart:'📈', return:'↩', blood:'🩸', clock:'⏰', calendar:'📅' };
-      alerts.forEach(a => {
-        const isC = a.severity === 'critical';
-        const bColor = isC ? COL.red : COL.orange;
-        const bgColor = isC ? [255, 245, 245] : [255, 250, 240];
-        doc.setFillColor(...bgColor);
-        doc.setDrawColor(...bColor);
-        doc.setLineWidth(0.3);
-        doc.roundedRect(M, y, CW, 11, 1.5, 1.5, 'FD');
-        doc.setFillColor(...bColor);
-        doc.rect(M, y, 2.5, 11, 'F');
-        const safeText = t => t.replace(/[^\x00-\x7E]/g, '');
-        doc.setFontSize(8);
-        doc.setFont('helvetica', 'bold');
-        doc.setTextColor(...bColor);
-        doc.text(`${safeText(a.title)}  [${a.severity.toUpperCase()}]`, M + 5, y + 4.5);
-        doc.setFontSize(7);
-        doc.setFont('helvetica', 'normal');
-        doc.setTextColor(...COL.soft);
-        const wrapped = doc.splitTextToSize(safeText(a.message), CW - 8);
-        doc.text(wrapped[0], M + 5, y + 8.5);
-        y += 13;
-        if (y > H - 20) { doc.addPage(); y = 14; }
-      });
-    } else {
-      y += 2;
-      doc.setFillColor(240, 255, 244);
-      doc.setDrawColor(22, 163, 74);
-      doc.setLineWidth(0.3);
-      doc.roundedRect(M, y, CW, 9, 1.5, 1.5, 'FD');
-      doc.setFontSize(8); doc.setFont('helvetica', 'bold'); doc.setTextColor(22, 101, 52);
-      doc.text('✓  No active alerts — all indicators within normal range.', M + 5, y + 5.5);
-      y += 12;
-    }
-
-    // ── Footer page 1
-    doc.setFontSize(7); doc.setFont('helvetica','normal'); doc.setTextColor(...COL.soft);
-    doc.text('Al Rassoul Al-Aazam Hospital — Blood Bank Management System', W/2, H-6, { align:'center' });
-    doc.text('Page 1', W - M, H - 6, { align: 'right' });
-
-    // ══════════════════════════════════════════════════
-    //  PAGE 2 — Charts
-    // ══════════════════════════════════════════════════
-    doc.addPage();
-    doc.setFillColor(...COL.red);
-    doc.rect(0, 0, W, 14, 'F');
-    doc.setFontSize(10); doc.setFont('helvetica','bold'); doc.setTextColor(...COL.white);
-    doc.text('Blood Bank Report — Charts & Trends', M, 9);
-    doc.setFontSize(8); doc.setFont('helvetica','normal');
-    doc.text(monthLabel, W - M, 9, { align: 'right' });
-
-    y = 22;
-
-    // Monthly comparison chart
-    if (excelMonthlyCompChart && _reportSnapshot.monthlyComp.length > 0) {
-      y = section('Monthly Trend — Requests vs Units Issued', y);
-      try {
-        const imgData = excelMonthlyCompChart.toBase64Image('image/png', 1);
-        const chartH = 65;
-        doc.addImage(imgData, 'PNG', M, y, CW, chartH);
-        y += chartH + 6;
-      } catch (_) {}
-    }
-
-    // Top departments chart
-    if (excelTopDeptsChart && _reportSnapshot.topDepts.length > 0) {
-      y = section('Top Departments / Wards by Blood Usage', y);
-      try {
-        const imgData = excelTopDeptsChart.toBase64Image('image/png', 1);
-        const chartH = Math.min(80, Math.max(30, _reportSnapshot.topDepts.length * 9));
-        doc.addImage(imgData, 'PNG', M, y, CW, chartH);
-        y += chartH + 6;
-      } catch (_) {}
-    }
-
-    // ── Monthly data table (text fallback / supplement)
-    if (_reportSnapshot.monthlyComp.length > 0) {
-      if (y > H - 60) { doc.addPage(); y = 14; }
-      y = section('Monthly Breakdown Table', y);
-      const tColW = [28, 35, 35, 35, 35];
-      const tHeaders = ['Month', 'Requests', 'Issued', 'Difference', 'Fill Rate'];
-      doc.setFontSize(7.5); doc.setFont('helvetica','bold'); doc.setTextColor(...COL.soft);
-      let tx = M;
-      tHeaders.forEach((h, i) => { doc.text(h, tx + (i === 0 ? 0 : tColW[i]/2), y, { align: i === 0 ? 'left' : 'center' }); tx += tColW[i]; });
-      y += 2;
-      rule(y);
-      y += 3;
-
-      const last12 = _reportSnapshot.monthlyComp.slice(-12);
-      last12.forEach((row, ri) => {
-        if (y > H - 16) { doc.addPage(); y = 14; }
-        if (ri % 2 === 0) { doc.setFillColor(...COL.bg); doc.rect(M, y - 2, CW, 6, 'F'); }
-        const req = row.requests    || 0;
-        const iss = row.transfusion || 0;
-        const diff = req - iss;
-        const fill = req > 0 ? ((iss / req) * 100).toFixed(0) + '%' : '—';
-        const diffColor = diff > 0 ? COL.orange : COL.green;
-        doc.setFontSize(7.5); doc.setFont('helvetica','normal'); doc.setTextColor(...COL.dark);
-        tx = M;
-        doc.text(row.label, tx, y + 2); tx += tColW[0];
-        doc.text(req.toLocaleString(), tx + tColW[1]/2, y + 2, { align:'center' }); tx += tColW[1];
-        doc.text(iss.toLocaleString(), tx + tColW[2]/2, y + 2, { align:'center' }); tx += tColW[2];
-        doc.setTextColor(...diffColor);
-        doc.text((diff > 0 ? '+' : '') + diff.toLocaleString(), tx + tColW[3]/2, y + 2, { align:'center' }); tx += tColW[3];
-        doc.setTextColor(...COL.dark);
-        doc.text(fill, tx + tColW[4]/2, y + 2, { align:'center' });
-        y += 6;
-      });
-    }
-
-    // ── Footer page 2
-    doc.setFontSize(7); doc.setFont('helvetica','normal'); doc.setTextColor(...COL.soft);
-    doc.text('Al Rassoul Al-Aazam Hospital — Blood Bank Management System', W/2, H-6, { align:'center' });
-    doc.text('Page 2', W - M, H - 6, { align: 'right' });
-
-    // ── Save
-    const fileName = `BloodBank-Report-${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}.pdf`;
-    doc.save(fileName);
-
-  } finally {
-    btn.textContent = origText;
-    btn.disabled = false;
-  }
-}
-
-let _reportSnapshot = null; // populated on each category load for PDF generation
-
 async function loadExcelCategories() {
   try {
     const [catRes, alertRes] = await Promise.all([
@@ -4272,15 +4546,10 @@ async function loadExcelCategories() {
     renderCategoryGrid(cats);
     renderTopDepts(topDepts);
     renderMonthlyComparison(monthlyComp);
-    let activeAlerts = [];
     if (alertRes) {
       const alertData = await alertRes.json();
-      activeAlerts = alertData.alerts || [];
-      renderSmartAlerts(activeAlerts);
+      renderSmartAlerts(alertData.alerts || []);
     }
-    _reportSnapshot = { cats, topDepts, monthlyComp, alerts: activeAlerts, generatedAt: new Date() };
-    const reportBtn = document.getElementById('excelReportBtn');
-    if (reportBtn && !excelActiveCategory) reportBtn.style.display = '';
   } catch (e) { console.error('loadExcelCategories', e); }
 }
 
@@ -4609,7 +4878,6 @@ async function selectCategory(type) {
   document.getElementById('excelCatView').style.display  = 'none';
   document.getElementById('excelDashView').style.display = '';
   document.getElementById('excelBackBtn').style.display  = '';
-  document.getElementById('excelReportBtn').style.display = 'none';
   const cfg = CAT_CONFIG[type] || CAT_CONFIG.generic;
   document.getElementById('excelViewTitle').textContent  = `${cfg.icon} ${cfg.label}`;
   document.getElementById('excelDateFrom').value = '';
@@ -4631,7 +4899,6 @@ function showExcelCategories() {
   document.getElementById('excelTopDeptsWrap').style.display     = 'none';
   document.getElementById('excelMonthlyCompWrap').style.display  = 'none';
   document.getElementById('excelViewTitle').textContent          = '📁 Excel Files Dashboard';
-  document.getElementById('excelReportBtn').style.display        = '';
   loadExcelCategories();
 }
 
@@ -5215,7 +5482,995 @@ async function deleteExcelFile(filename) {
     else await loadExcelCategories();
   } catch (e) { alert('Delete failed: ' + e.message); }
 }
+
+// ════════════════════════════════════════════════════════════════
+// SHIFT HANDOVER REPORT
+// ════════════════════════════════════════════════════════════════
+let _hoData = null;
+let _hoShift = 'morning';
+
+function initHandover() {
+  const el = document.getElementById('hoDate');
+  if (!el.value) {
+    // Use local date, not UTC, to avoid midnight timezone shifting
+    const now = new Date();
+    const y   = now.getFullYear();
+    const m   = String(now.getMonth() + 1).padStart(2, '0');
+    const d   = String(now.getDate()).padStart(2, '0');
+    el.value  = `${y}-${m}-${d}`;
+  }
+}
+
+function setShift(shift) {
+  _hoShift = shift;
+  ['morning','afternoon','night'].forEach(s => {
+    const el = document.getElementById('shift' + s.charAt(0).toUpperCase() + s.slice(1));
+    if (el) el.classList.toggle('active', s === shift);
+  });
+}
+
+async function loadHandover() {
+  const date = document.getElementById('hoDate').value;
+  if (!date) { alert('Please select a date.'); return; }
+
+  const r = await apiFetch(`${API}/handover?date=${date}&shift=${_hoShift}`);
+  if (!r) return;
+  const data = await r.json();
+  if (data.error) { alert('Error: ' + data.error); return; }
+
+  _hoData = data;
+  const s  = data.summary;
+  const hasData = (s.transfusions + s.deliveries) > 0;
+
+  document.getElementById('hoPreview').style.display = hasData  ? '' : 'none';
+  document.getElementById('hoEmpty').style.display   = !hasData ? '' : 'none';
+  document.getElementById('hoPdfBtn').style.display  = hasData  ? '' : 'none';
+
+  if (!hasData) return;
+
+  document.getElementById('hoTrans').textContent = s.transfusions;
+  document.getElementById('hoDel').textContent   = s.deliveries;
+  document.getElementById('hoLS').textContent    = s.life_saving;
+  document.getElementById('hoUnits').textContent = s.total_units;
+  document.getElementById('hoPrc').textContent   = s.total_prc;
+  document.getElementById('hoFfp').textContent   = s.total_ffp;
+  document.getElementById('hoPlt').textContent   = s.total_plt;
+
+  const SHIFT_TIMES = { morning: '07:00–15:00', afternoon: '15:00–23:00', night: '23:00–07:00' };
+  document.getElementById('hoTransHead').textContent =
+    `🩸 Transfusion Requests (${s.transfusions})  ·  ${SHIFT_TIMES[_hoShift] || ''}`;
+  document.getElementById('hoDelHead').textContent =
+    `🚚 Blood Deliveries (${s.deliveries})  ·  ${SHIFT_TIMES[_hoShift] || ''}`;
+
+  // Transfusion table
+  document.getElementById('hoTransTable').innerHTML = data.transfusions.length ? `
+    <table class="ho-table">
+      <thead><tr><th>#</th><th>Patient</th><th>File No.</th><th>Blood Group</th><th>Room</th><th>Components</th><th>Physician</th><th>Time</th></tr></thead>
+      <tbody>${data.transfusions.map((r, i) => {
+        const comps = [
+          r.fpc_units ? `<span class="ho-comp-pill">${r.fpc_units} PRC</span>` : '',
+          r.ffp_units ? `<span class="ho-comp-pill">${r.ffp_units} FFP</span>` : '',
+          r.plt_units ? `<span class="ho-comp-pill">${r.plt_units} PLT</span>` : '',
+        ].filter(Boolean).join(' ');
+        const ls = r.life_saving ? '<span class="ho-ls-badge">⚠ LIFE-SAVING</span>' : '';
+        const rh = r.rh_factor ? (r.rh_factor.startsWith('Pos') ? '+' : '-') : '';
+        return `<tr style="${r.life_saving ? 'background:#fff5f5' : ''}">
+          <td>${i+1}</td>
+          <td><strong>${e(r.patient_name) || '—'}</strong>${ls}</td>
+          <td>${e(r.file_number) || '—'}</td>
+          <td>${e((r.blood_group||'') + rh) || '—'}</td>
+          <td>${e(r.room) || '—'}</td>
+          <td>${comps || '—'}</td>
+          <td>${e(r.physician) || '—'}</td>
+          <td>${e(r.time_saved) || '—'}</td>
+        </tr>`;
+      }).join('')}</tbody>
+    </table>` : '<div class="ho-empty">No transfusion requests this shift.</div>';
+
+  // Delivery table
+  document.getElementById('hoDelTable').innerHTML = data.deliveries.length ? `
+    <table class="ho-table">
+      <thead><tr><th>#</th><th>Patient</th><th>File No.</th><th>Blood Group</th><th>Room</th><th>Type Delivered</th><th>Technician</th><th>Time</th></tr></thead>
+      <tbody>${data.deliveries.map((r, i) => {
+        const ls = r.life_saving ? '<span class="ho-ls-badge">⚠ LIFE-SAVING</span>' : '';
+        const rh = r.patient_rh ? (r.patient_rh.startsWith('Pos') ? '+' : '-') : '';
+        return `<tr style="${r.life_saving ? 'background:#fff5f5' : ''}">
+          <td>${i+1}</td>
+          <td><strong>${e(r.patient_name) || '—'}</strong>${ls}</td>
+          <td>${e(r.file_number) || '—'}</td>
+          <td>${e((r.patient_blood_group||'') + rh) || '—'}</td>
+          <td>${e(r.room) || '—'}</td>
+          <td>${e(r.type_of_blood || r.type_of_blood_requested) || '—'}</td>
+          <td>${e(r.technician_name) || '—'}</td>
+          <td>${e(r.time_saved) || '—'}</td>
+        </tr>`;
+      }).join('')}</tbody>
+    </table>` : '<div class="ho-empty">No blood deliveries this shift.</div>';
+}
+
+async function downloadHandoverPdf() {
+  if (!_hoData) return;
+  const btn = document.getElementById('hoPdfBtn');
+  btn.textContent = '⏳ Generating…'; btn.disabled = true;
+  try {
+    const r = await apiFetch(`${API}/handover/pdf`, { method: 'POST', body: _hoData });
+    if (!r) return;
+    const blob = await r.blob();
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = `handover-${_hoData.date}-${_hoData.shift}.pdf`;
+    a.click();
+    URL.revokeObjectURL(url);
+  } finally {
+    btn.textContent = '📄 Download PDF'; btn.disabled = false;
+  }
+}
+
+// ════════════════════════════════════════════════════════════════
+// CONSUMPTION REPORT
+// ════════════════════════════════════════════════════════════════
+let _cTrendChart = null, _cGroupChart = null;
+
+function clearConsumpFilter() {
+  document.getElementById('cFrom').value = '';
+  document.getElementById('cTo').value   = '';
+  loadConsumption();
+}
+
+async function loadConsumption() {
+  const from   = document.getElementById('cFrom').value;
+  const to     = document.getElementById('cTo').value;
+  const params = new URLSearchParams();
+  if (from) params.set('from', from);
+  if (to)   params.set('to',   to);
+
+  const r = await apiFetch(`${API}/dashboard/consumption?${params}`);
+  if (!r) return;
+  const data = await r.json();
+  if (data.error) return;
+
+  const s = data.summary;
+  document.getElementById('cTotalPrc').textContent   = (s.total_prc   ?? 0).toLocaleString();
+  document.getElementById('cTotalFfp').textContent   = (s.total_ffp   ?? 0).toLocaleString();
+  document.getElementById('cTotalPlt').textContent   = (s.total_plt   ?? 0).toLocaleString();
+  document.getElementById('cTotalUnits').textContent = (s.total_units ?? 0).toLocaleString();
+
+  // Trend chart — stacked bar
+  const granLabel = { day: 'Daily', week: 'Weekly', month: 'Monthly' }[data.granularity] || 'Consumption';
+  const titleEl = document.getElementById('cTrendTitle');
+  if (titleEl) titleEl.textContent = granLabel + ' Consumption Trend';
+
+  if (_cTrendChart) { _cTrendChart.destroy(); _cTrendChart = null; }
+  const tEl = document.getElementById('cTrendChart');
+  if (tEl) {
+    if (data.trend.length) {
+      _cTrendChart = new Chart(tEl, {
+        type: 'bar',
+        data: {
+          labels: data.trend.map(d => d.date.length > 7 ? d.date.slice(5) : d.date),
+          datasets: [
+            { label: 'Packed Cells', data: data.trend.map(d => d.prc), backgroundColor: 'rgba(192,57,43,0.85)',  stack: 's' },
+            { label: 'FFP',          data: data.trend.map(d => d.ffp), backgroundColor: 'rgba(26,82,118,0.85)',  stack: 's' },
+            { label: 'Platelets',    data: data.trend.map(d => d.plt), backgroundColor: 'rgba(183,134,11,0.85)', stack: 's' },
+          ]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { position: 'bottom', labels: { font: { size: 10 }, boxWidth: 12 } } },
+          scales: {
+            x: { stacked: true, ticks: { font: { size: 9 }, maxRotation: 45 } },
+            y: { stacked: true, beginAtZero: true, ticks: { precision: 0, font: { size: 10 } } }
+          }
+        }
+      });
+    } else {
+      const ctx = tEl.getContext('2d');
+      ctx.clearRect(0, 0, tEl.width, tEl.height);
+      ctx.fillStyle = '#8896A7'; ctx.font = '13px sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText('No data for this period', tEl.width / 2, 90);
+    }
+  }
+
+  // Blood group chart — horizontal stacked bar
+  if (_cGroupChart) { _cGroupChart.destroy(); _cGroupChart = null; }
+  const gEl = document.getElementById('cGroupChart');
+  if (gEl) {
+    if (data.byGroup.length) {
+      _cGroupChart = new Chart(gEl, {
+        type: 'bar',
+        data: {
+          labels: data.byGroup.map(d => d.label),
+          datasets: [
+            { label: 'Packed Cells', data: data.byGroup.map(d => d.prc), backgroundColor: 'rgba(192,57,43,0.85)',  stack: 's' },
+            { label: 'FFP',          data: data.byGroup.map(d => d.ffp), backgroundColor: 'rgba(26,82,118,0.85)',  stack: 's' },
+            { label: 'Platelets',    data: data.byGroup.map(d => d.plt), backgroundColor: 'rgba(183,134,11,0.85)', stack: 's' },
+          ]
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { position: 'bottom', labels: { font: { size: 10 }, boxWidth: 12 } } },
+          scales: {
+            x: { stacked: true, beginAtZero: true, ticks: { precision: 0, font: { size: 10 } } },
+            y: { stacked: true, ticks: { font: { size: 11 } } }
+          }
+        }
+      });
+    } else {
+      const ctx = gEl.getContext('2d');
+      ctx.clearRect(0, 0, gEl.width, gEl.height);
+      ctx.fillStyle = '#8896A7'; ctx.font = '13px sans-serif'; ctx.textAlign = 'center';
+      ctx.fillText('No data for this period', gEl.width / 2, 90);
+    }
+  }
+
+  // Ward table
+  const maxWard = Math.max(1, ...data.byRoom.map(r => r.total));
+  document.getElementById('cWardTable').innerHTML = data.byRoom.length ? `
+    <table class="consump-table">
+      <thead><tr><th>Ward / Room</th><th>PRC</th><th>FFP</th><th>PLT</th><th>Total</th><th style="min-width:120px"></th></tr></thead>
+      <tbody>${data.byRoom.map(r => `
+        <tr>
+          <td><strong>${r.room}</strong></td>
+          <td>${r.prc}</td>
+          <td>${r.ffp}</td>
+          <td>${r.plt}</td>
+          <td><strong>${r.total}</strong></td>
+          <td><div class="consump-bar-wrap"><div class="consump-bar-bg"><div class="consump-bar-fill" style="width:${Math.round((r.total/maxWard)*100)}%"></div></div></div></td>
+        </tr>`).join('')}
+      </tbody>
+    </table>` : '<div class="rt-empty">No ward data for this period.</div>';
+
+  // Blood group detail table
+  document.getElementById('cGroupTable').innerHTML = data.byGroup.length ? `
+    <table class="consump-table">
+      <thead><tr><th>Blood Type</th><th>Packed Cells</th><th>FFP</th><th>Platelets</th><th>Total Units</th></tr></thead>
+      <tbody>${data.byGroup.map(g => `
+        <tr>
+          <td><strong>${g.label}</strong></td>
+          <td>${g.prc}</td>
+          <td>${g.ffp}</td>
+          <td>${g.plt}</td>
+          <td><strong>${g.total}</strong></td>
+        </tr>`).join('')}
+      </tbody>
+    </table>` : '<div class="rt-empty">No blood type data for this period.</div>';
+}
+
+// ═══════════════════════════════════════════════════════
+// MONTHLY MANAGEMENT REPORT
+// ═══════════════════════════════════════════════════════
+let _monthlyData = null;
+
+function initMonthlyReport() {
+  const input = document.getElementById('monthlyMonthInput');
+  if (!input.value) {
+    const now = new Date();
+    input.value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  }
+}
+
+async function loadMonthlyReport() {
+  const month = document.getElementById('monthlyMonthInput').value;
+  if (!month) return;
+  const preview = document.getElementById('monthlyPreview');
+  const pdfBtn  = document.getElementById('monthlyPdfBtn');
+  preview.innerHTML = '<div class="monthly-empty">Loading…</div>';
+  pdfBtn.style.display = 'none';
+  _monthlyData = null;
+
+  try {
+    const res  = await apiFetch(`${API}/report/monthly?month=${encodeURIComponent(month)}`);
+    if (!res) return;
+    const data = await res.json();
+    if (data.error) { preview.innerHTML = `<div class="monthly-empty">Error: ${data.error}</div>`; return; }
+
+    _monthlyData = data;
+    pdfBtn.style.display = '';
+    renderMonthlyPreview(data);
+  } catch (err) {
+    preview.innerHTML = `<div class="monthly-empty">Could not load: ${err.message}</div>`;
+  }
+}
+
+function renderMonthlyPreview(data) {
+  const ov = data.overview || {};
+  const units = data.units || {};
+  const rt = data.response_times || {};
+  const lsPct  = rt.ls_count    > 0 ? Math.round((rt.ls_within    / rt.ls_count)    * 100) : null;
+  const urgPct = rt.urgent_count > 0 ? Math.round((rt.urgent_within / rt.urgent_count) * 100) : null;
+
+  const bgTotal = (data.blood_groups || []).reduce((s, r) => s + r.total, 0) || 1;
+  const bgRows = (data.blood_groups || []).map(r => {
+    const pct = Math.round((r.total / bgTotal) * 100);
+    return `<tr><td><strong>${r.group}</strong></td><td>${r.prc}</td><td>${r.ffp}</td><td>${r.plt}</td><td><strong>${r.total}</strong></td><td>${pct}%</td></tr>`;
+  }).join('');
+
+  const roomRows = (data.top_rooms || []).map((r, i) => {
+    const max = (data.top_rooms[0]?.cnt) || 1;
+    const pct = Math.round((r.cnt / max) * 100);
+    return `<tr>
+      <td>${r.room}</td>
+      <td><strong>${r.cnt}</strong></td>
+      <td><div class="monthly-bar-wrap"><div class="monthly-bar-bg"><div class="monthly-bar-fill" style="width:${pct}%"></div></div></div></td>
+    </tr>`;
+  }).join('');
+
+  const physRows = (data.top_physicians  || []).map(r => `<tr><td>${e(r.physician)}</td><td><strong>${r.cnt}</strong></td></tr>`).join('');
+  const techRows = (data.top_technicians || []).map(r => `<tr><td>${e(r.technician_name)}</td><td><strong>${r.cnt}</strong></td></tr>`).join('');
+
+  document.getElementById('monthlyPreview').innerHTML = `
+    <div class="monthly-preview">
+      <div class="monthly-kpi-row">
+        <div class="monthly-kpi red"><div class="monthly-kpi-val">${ov.transfusions ?? 0}</div><div class="monthly-kpi-lbl">Transfusion Requests</div></div>
+        <div class="monthly-kpi blue"><div class="monthly-kpi-val">${ov.deliveries ?? 0}</div><div class="monthly-kpi-lbl">Blood Deliveries</div></div>
+        <div class="monthly-kpi orange"><div class="monthly-kpi-val">${ov.life_saving ?? 0}</div><div class="monthly-kpi-lbl">Life-Saving Cases</div></div>
+        <div class="monthly-kpi green"><div class="monthly-kpi-val">${(ov.transfusions||0)+(ov.deliveries||0)}</div><div class="monthly-kpi-lbl">Total Records</div></div>
+      </div>
+
+      <div class="monthly-units-bar">
+        <div class="monthly-unit-cell prc"><div class="monthly-unit-val">${units.prc ?? 0}</div><div class="monthly-unit-lbl">Packed Red Cells (PRC)</div></div>
+        <div class="monthly-unit-cell ffp"><div class="monthly-unit-val">${units.ffp ?? 0}</div><div class="monthly-unit-lbl">Fresh Frozen Plasma (FFP)</div></div>
+        <div class="monthly-unit-cell plt"><div class="monthly-unit-val">${units.plt ?? 0}</div><div class="monthly-unit-lbl">Platelets (PLT)</div></div>
+        <div class="monthly-unit-cell total"><div class="monthly-unit-val">${units.total ?? 0}</div><div class="monthly-unit-lbl">Total Units Issued</div></div>
+      </div>
+
+      <div class="monthly-panel">
+        <div class="monthly-panel-head">Response Times</div>
+        <div class="monthly-rt-grid">
+          <div class="monthly-rt-cell">
+            <div class="monthly-rt-val">${rt.avg_bb_minutes != null ? rt.avg_bb_minutes + ' min' : 'N/A'}</div>
+            <div class="monthly-rt-lbl">Avg Blood Bank Dispatch Time</div>
+          </div>
+          <div class="monthly-rt-cell">
+            <div class="monthly-rt-val">${rt.avg_nurse_minutes != null ? rt.avg_nurse_minutes + ' min' : 'N/A'}</div>
+            <div class="monthly-rt-lbl">Avg Nurse Receipt Time</div>
+          </div>
+          <div class="monthly-rt-cell">
+            <div class="monthly-rt-val" style="color:${lsPct != null ? (lsPct >= 80 ? '#1A7F4B' : '#C0392B') : '#888'}">${lsPct != null ? lsPct + '%' : 'N/A'}</div>
+            <div class="monthly-rt-lbl">Life-Saving ≤15 min (${rt.ls_within}/${rt.ls_count} cases)</div>
+          </div>
+          <div class="monthly-rt-cell">
+            <div class="monthly-rt-val" style="color:${urgPct != null ? (urgPct >= 80 ? '#1A7F4B' : '#D35400') : '#888'}">${urgPct != null ? urgPct + '%' : 'N/A'}</div>
+            <div class="monthly-rt-lbl">Urgent ≤45 min (${rt.urgent_within}/${rt.urgent_count} cases)</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="monthly-two-col">
+        <div class="monthly-panel">
+          <div class="monthly-panel-head">Blood Group Distribution</div>
+          <div class="monthly-panel-body">
+            <table class="monthly-table">
+              <thead><tr><th>Blood Group</th><th>PRC</th><th>FFP</th><th>PLT</th><th>Total</th><th>%</th></tr></thead>
+              <tbody>${bgRows || '<tr><td colspan="2" style="text-align:center;color:#aaa;padding:16px">No data</td></tr>'}</tbody>
+            </table>
+          </div>
+        </div>
+        <div class="monthly-panel">
+          <div class="monthly-panel-head">Top Wards / Rooms</div>
+          <div class="monthly-panel-body">
+            <table class="monthly-table">
+              <thead><tr><th>Room</th><th>Count</th><th></th></tr></thead>
+              <tbody>${roomRows || '<tr><td colspan="3" style="text-align:center;color:#aaa;padding:16px">No data</td></tr>'}</tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="monthly-two-col">
+        <div class="monthly-panel">
+          <div class="monthly-panel-head">Top Physicians</div>
+          <div class="monthly-panel-body">
+            <table class="monthly-table">
+              <thead><tr><th>Name</th><th>Cases</th></tr></thead>
+              <tbody>${physRows || '<tr><td colspan="2" style="text-align:center;color:#aaa;padding:16px">No data</td></tr>'}</tbody>
+            </table>
+          </div>
+        </div>
+        <div class="monthly-panel">
+          <div class="monthly-panel-head">Top Technicians</div>
+          <div class="monthly-panel-body">
+            <table class="monthly-table">
+              <thead><tr><th>Name</th><th>Cases</th></tr></thead>
+              <tbody>${techRows || '<tr><td colspan="2" style="text-align:center;color:#aaa;padding:16px">No data</td></tr>'}</tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>`;
+}
+
+async function downloadMonthlyPdf() {
+  if (!_monthlyData) return;
+  try {
+    const res = await apiFetch(`${API}/report/monthly/pdf`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(_monthlyData),
+    });
+    if (!res) return;
+    const blob = await res.blob();
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url;
+    a.download = `monthly-report-${_monthlyData.period?.month || 'report'}.pdf`;
+    a.click();
+    URL.revokeObjectURL(url);
+  } catch (err) {
+    alert('PDF generation failed: ' + err.message);
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// CHAT
+// ═══════════════════════════════════════════════════════
+const CHAT_DEPTS = [
+  'BLOOD BANK','CARDIOLOGY','CCU + ICU','CORONA 3300-3500','CORONA 3400',
+  'CSU','DELIVERY','DIALYSIS','ENDOSCOPY','ER','ER CORONA','HAEMATOLOGY',
+  'ICU 2 CORONA','ICU 3','ICU CORONA','INTERNAL MEDICINE 1','MHU',
+  'NICU CORONA','NICU-PICU','NURSERY','OBS','ODC','ONCO ADULT',
+  'ONCO PEDIATRIC','OPERATING THEATRE','OR','PEDIATRIC','RECOVERY',
+  'SURGERY 1','WTTC'
+];
+
+let _chatSocket       = null;
+let _chatActiveDept   = null;
+let _chatMyDept       = null;
+let _chatUnread       = {};
+let _chatSidebarBuilt = false;
+
+function _parseDeptFromToken() {
+  try {
+    const tok = getToken();
+    if (!tok) return null;
+    const payload = JSON.parse(atob(tok.split('.')[1]));
+    return payload.department || 'BLOOD BANK';
+  } catch { return 'BLOOD BANK'; }
+}
+
+// Called right after login — connects socket so notifications work from ANY page
+function _connectChatSocket() {
+  if (_chatSocket) return;
+  _chatMyDept = _parseDeptFromToken();
+  console.log('[Chat] Connecting socket as dept:', _chatMyDept);
+  _chatSocket = io({ auth: { token: getToken() }, transports: ['websocket'] });
+  _chatSocket.on('connect', () => console.log('[Chat] Socket connected ✓'));
+  _chatSocket.on('connect_error', (err) => console.error('[Chat] Socket error:', err.message));
+
+  // Online presence
+  _chatSocket.on('dept_status', ({ dept, online }) => {
+    if (online) _onlineDepts.add(dept); else _onlineDepts.delete(dept);
+    _updateOnlineDot(dept, online);
+  });
+
+  // Typing indicator
+  _chatSocket.on('typing', ({ from_dept, typing }) => {
+    if (_chatActiveDept !== from_dept) return;
+    const bar = document.getElementById('chatTypingBar');
+    if (bar) bar.textContent = typing ? `${from_dept} is typing…` : '';
+  });
+
+  // Read receipts — other dept read our messages
+  _chatSocket.on('messages_read', ({ by_dept }) => {
+    if (_chatActiveDept !== by_dept) return;
+    document.querySelectorAll('.chat-receipt.sent').forEach(el => {
+      el.classList.replace('sent', 'read');
+      el.textContent = '✓✓';
+    });
+  });
+
+  // New message
+  _chatSocket.on('new_message', msg => {
+    const other = msg.own ? msg.to_dept : msg.from_dept;
+    if (msg.own) {
+      if (_chatActiveDept === other) {
+        _appendChatBubble(msg);
+        _scrollChatToBottom();
+      }
+    } else {
+      if (_chatActiveDept === other) {
+        _appendChatBubble(msg);
+        _scrollChatToBottom();
+        // Auto-mark as read since thread is open
+        _chatSocket.emit('mark_read', { from_dept: other });
+      } else {
+        _chatUnread[other] = (_chatUnread[other] || 0) + 1;
+        _updateUnreadBadge(other);
+        const preview = msg.message || (msg.file_name?.startsWith('voice-note') ? '🎤 Voice note' : msg.file_name ? `📎 ${msg.file_name}` : '');
+        _showChatNotification(msg.from_dept, msg.from_name, preview, msg.urgent);
+      }
+    }
+  });
+}
+
+// Called when user navigates to Chat page — builds sidebar UI
+async function initChat() {
+  if (!_chatMyDept) _chatMyDept = _parseDeptFromToken();
+  if (!_chatSocket) _connectChatSocket();
+
+  if (_chatSidebarBuilt) return;
+  _chatSidebarBuilt = true;
+
+  const isBloodBank  = _chatMyDept === 'BLOOD BANK';
+  const visibleDepts = isBloodBank
+    ? CHAT_DEPTS.filter(d => d !== 'BLOOD BANK')
+    : ['BLOOD BANK'];
+
+  const list = document.getElementById('chatDeptList');
+  list.innerHTML = visibleDepts.map(d => `
+    <div class="chat-dept-item" id="chatDept_${CSS.escape(d)}" onclick="openChatThread('${e(d)}')">
+      <span class="chat-dept-name">${e(d)}</span>
+      <div style="display:flex;align-items:center;gap:6px">
+        <span class="chat-dept-badge" id="chatBadge_${CSS.escape(d)}" style="display:none">0</span>
+        <span class="chat-offline-dot" id="chatDot_${CSS.escape(d)}"></span>
+      </div>
+    </div>`).join('');
+
+  // Fetch current online depts
+  try {
+    const res = await apiFetch(`${API}/chat/online`);
+    if (res) {
+      const online = await res.json();
+      online.forEach(d => { _onlineDepts.add(d); _updateOnlineDot(d, true); });
+    }
+  } catch {}
+}
+
+function _updateOnlineDot(dept, online) {
+  const dot = document.getElementById('chatDot_' + CSS.escape(dept));
+  if (!dot) return;
+  dot.className = online ? 'chat-online-dot' : 'chat-offline-dot';
+  dot.title = online ? `${dept} is online` : `${dept} is offline`;
+}
+
+// Browser push notification (works even when user is on another page/tab)
+function _showBrowserNotif(fromDept, message) {
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  const n = new Notification(`New message from ${fromDept}`, {
+    body: message.length > 100 ? message.slice(0, 100) + '…' : message,
+    icon: '/logo.png',
+    tag:  'chat-' + fromDept,   // replaces previous notif from same dept
+  });
+  n.onclick = () => {
+    window.focus();
+    showPage('chat');
+    setTimeout(() => openChatThread(fromDept), 80);
+    n.close();
+  };
+  setTimeout(() => n.close(), 8000);
+}
+
+// ── Notification: banner + sound ─────────────────────────────────
+function _showChatNotification(fromDept, fromName, message, urgent) {
+  // Remove any existing notification from same dept
+  const existingId = 'chatnotif_' + fromDept.replace(/\W/g,'_');
+  const existing = document.getElementById(existingId);
+  if (existing) existing.remove();
+
+  const preview = message.length > 80 ? message.slice(0, 80) + '…' : message;
+  const banner = document.createElement('div');
+  banner.id = existingId;
+  const accentColor = urgent ? '#e74c3c' : '#f39c12';
+  banner.style.cssText = [
+    'position:fixed','top:62px','left:50%','transform:translateX(-50%)',
+    `background:${urgent ? '#7b1010' : '#0D1B2A'}`, 'color:#fff',
+    'padding:14px 22px 14px 18px',
+    'border-radius:10px','z-index:999999',
+    'box-shadow:0 6px 28px rgba(0,0,0,.45)',
+    'cursor:pointer','text-align:center',
+    `border-left:5px solid ${accentColor}`,
+    'min-width:320px','max-width:480px',
+    'font-family:inherit','line-height:1.4',
+    'animation:chatNotifIn .25s ease'
+  ].join(';');
+  banner.innerHTML = `
+    <div style="font-size:13px;font-weight:800;margin-bottom:4px">
+      ${urgent ? '🚨 URGENT — ' : '💬 '}New message from <span style="color:${accentColor}">${e(fromDept)}</span>
+    </div>
+    <div style="font-size:12px;opacity:.85">${e(preview)}</div>
+    <div style="font-size:10px;opacity:.5;margin-top:6px">Click to open chat</div>`;
+  banner.onclick = () => {
+    banner.remove();
+    showPage('chat');
+    setTimeout(() => openChatThread(fromDept), 80);
+  };
+  document.body.appendChild(banner);
+
+  // Play notification sound (urgent = triple beep, normal = double beep)
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const freqs = urgent ? [880, 880, 1100] : [880, 1100];
+    freqs.forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.frequency.value = freq;
+      osc.type = 'sine';
+      const t = ctx.currentTime + i * 0.18;
+      gain.gain.setValueAtTime(urgent ? 0.4 : 0.25, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+      osc.start(t); osc.stop(t + 0.18);
+    });
+  } catch {}
+
+  // Browser notification (when tab is in background)
+  _showBrowserNotif(fromDept, message);
+
+  // Auto-dismiss after 8 seconds
+  setTimeout(() => { if (banner.parentNode) banner.remove(); }, 8000);
+}
+
+function openChatThread(dept) {
+  _chatActiveDept = dept;
+  _chatUnread[dept] = 0;
+  _updateUnreadBadge(dept);
+
+  document.querySelectorAll('.chat-dept-item').forEach(el => el.classList.remove('active'));
+  const item = document.getElementById('chatDept_' + CSS.escape(dept));
+  if (item) item.classList.add('active');
+
+  const isOnline = _onlineDepts.has(dept);
+  const quickSet = (_chatMyDept === 'BLOOD BANK' ? QUICK_REPLIES['BLOOD BANK'] : QUICK_REPLIES['OTHER']);
+
+  const main = document.getElementById('chatMain');
+  main.innerHTML = `
+    <div class="chat-main-head">
+      <div style="display:flex;align-items:center;gap:10px">
+        <span class="${isOnline ? 'chat-online-dot' : 'chat-offline-dot'}" id="chatHeadDot"></span>
+        <div>
+          <div class="chat-main-title">${e(dept)}</div>
+          <div class="chat-main-sub" id="chatHeadSub">${isOnline ? 'Online' : 'Offline'} · Chatting as <strong>${e(_chatMyDept)}</strong></div>
+        </div>
+      </div>
+      <span class="chat-my-dept">${e(_chatMyDept)}</span>
+    </div>
+    <div class="chat-messages" id="chatMessages">
+      <div style="text-align:center;padding:20px;color:#aaa;font-size:13px">Loading…</div>
+    </div>
+    <div class="chat-typing-bar" id="chatTypingBar"></div>
+    <div class="chat-quick-wrap">
+      ${quickSet.map(q => `<button class="chat-quick-btn" onclick="sendQuickReply('${e(q)}')">${e(q)}</button>`).join('')}
+    </div>
+    <div class="chat-file-strip" id="chatFileStrip">
+      <span>📎</span>
+      <span class="chat-file-strip-name"></span>
+      <span class="chat-file-strip-remove" onclick="removePendingFile()">✕</span>
+    </div>
+    <div class="chat-input-bar">
+      <button class="chat-attach-btn" onclick="attachFile()" title="Attach file">📎</button>
+      <button class="chat-mic-btn" id="chatMicBtn" onclick="toggleVoiceNote()" title="Voice note">🎤</button>
+      <span class="chat-rec-timer" id="chatRecTimer">0:00</span>
+      <button class="chat-urgent-btn" id="chatUrgentBtn" onclick="toggleUrgent()" title="Mark as urgent">🚨</button>
+      <textarea class="chat-input" id="chatInput" placeholder="Type a message… (Enter to send)"
+        oninput="_onChatInput()"
+        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChatMessage();}"></textarea>
+      <button class="chat-send-btn" onclick="sendChatMessage()">Send</button>
+    </div>`;
+
+  _loadChatHistory(dept);
+  // Mark received messages as read
+  if (_chatSocket) _chatSocket.emit('mark_read', { from_dept: dept });
+}
+
+async function _loadChatHistory(toDept) {
+  try {
+    const res = await apiFetch(
+      `${API}/chat/history?from=${encodeURIComponent(_chatMyDept)}&to=${encodeURIComponent(toDept)}`
+    );
+    if (!res) return;
+    const msgs = await res.json();
+    const box = document.getElementById('chatMessages');
+    if (!box) return;
+    box.innerHTML = '';
+    if (!msgs.length) {
+      box.innerHTML = '<div style="text-align:center;padding:30px;color:#aaa;font-size:13px">No messages yet. Say hello! 👋</div>';
+      return;
+    }
+    msgs.forEach(m => _appendChatBubble(m));
+    _scrollChatToBottom();
+  } catch { }
+}
+
+function _appendChatBubble(msg) {
+  const box = document.getElementById('chatMessages');
+  if (!box) return;
+  const mine = msg.from_dept === _chatMyDept || msg.own === true;
+  const time = msg.created_at
+    ? new Date(msg.created_at).toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' })
+    : '';
+  const isRead = !!msg.read_at || _readMsgIds.has(msg.message_id);
+
+  let fileHtml = '';
+  if (msg.file_url) {
+    const fname   = msg.file_name || '';
+    const isImage = /\.(jpg|jpeg|png|gif)$/i.test(fname);
+    const isAudio = /\.(webm|ogg|mp4|wav|mp3)$/i.test(fname) ||
+                    fname.startsWith('voice-note');
+    if (isAudio) {
+      fileHtml = `
+        <div class="chat-voice-bubble">
+          <span class="chat-voice-icon">🎤</span>
+          <audio controls src="${e(msg.file_url)}" preload="none"
+            style="flex:1;height:32px;min-width:0;max-width:200px"></audio>
+        </div>`;
+    } else if (isImage) {
+      fileHtml = `<br><img src="${e(msg.file_url)}" alt="${e(msg.file_name)}"
+        style="max-width:200px;max-height:160px;border-radius:8px;margin-top:6px;cursor:pointer"
+        onclick="window.open('${e(msg.file_url)}','_blank')">`;
+    } else {
+      fileHtml = `<a class="chat-attachment" href="${e(msg.file_url)}" target="_blank" download="${e(msg.file_name)}">
+        <span class="chat-attach-icon">📄</span>
+        <span class="chat-attach-label">${e(msg.file_name)}</span>
+      </a>`;
+    }
+  }
+
+  const receiptHtml = mine
+    ? `<span class="chat-receipt ${isRead ? 'read' : 'sent'}" data-id="${msg.message_id}">${isRead ? '✓✓' : '✓'}</span>`
+    : '';
+
+  const div = document.createElement('div');
+  div.className = 'chat-msg ' + (mine ? 'mine' : 'theirs') + (msg.urgent ? ' urgent' : '');
+  div.dataset.msgId = msg.message_id;
+  div.innerHTML = `
+    ${msg.urgent ? `<div class="chat-urgent-tag">🚨 URGENT</div>` : ''}
+    <div class="chat-bubble">${msg.message ? e(msg.message) : ''}${fileHtml}</div>
+    <div class="chat-meta">
+      ${mine ? e(_chatMyDept) : e(msg.from_name || msg.from_dept)} · ${e(time)}${receiptHtml}
+    </div>`;
+  box.appendChild(div);
+}
+
+function _scrollChatToBottom() {
+  const box = document.getElementById('chatMessages');
+  if (box) box.scrollTop = box.scrollHeight;
+}
+
+function _updateUnreadBadge(dept) {
+  const badge = document.getElementById('chatBadge_' + CSS.escape(dept));
+  const count = _chatUnread[dept] || 0;
+  if (badge) {
+    badge.textContent = count;
+    badge.style.display = count > 0 ? 'flex' : 'none';
+  }
+  const total = Object.values(_chatUnread).reduce((a, b) => a + b, 0);
+  const globalBadge = document.getElementById('chatUnreadBadge');
+  if (globalBadge) {
+    globalBadge.textContent = total;
+    globalBadge.style.display = total > 0 ? 'flex' : 'none';
+  }
+}
+
+// ── Quick reply templates ─────────────────────────────────────────
+const QUICK_REPLIES = {
+  'BLOOD BANK': [
+    'Unit ready for collection ✅',
+    'Please resend the request form',
+    'Blood group confirmation needed',
+    'Unit dispatched 🚚',
+    'Cross-match in progress',
+    'Insufficient stock — please contact supervisor',
+  ],
+  OTHER: [
+    'Requesting blood unit urgently 🚨',
+    'Patient blood group: ',
+    'Transfusion reaction reported ⚠️',
+    'Unit received, thank you ✅',
+    'Please send compatible unit ASAP',
+    'Patient stable — request cancelled',
+  ],
+};
+
+// ── Urgent mode & file state ──────────────────────────────────────
+let _urgentMode  = false;
+let _pendingFile = null;   // { file, url, name }
+let _typingTimer = null;
+let _onlineDepts = new Set();
+// track which of my sent messages have been read: Set of message_ids
+let _readMsgIds  = new Set();
+
+function sendChatMessage() {
+  const input = document.getElementById('chatInput');
+  if (!input || !_chatActiveDept || !_chatSocket) return;
+  const text = input.value.trim();
+  if (!text && !_pendingFile) return;
+
+  _chatSocket.emit('send_message', {
+    to_dept:   _chatActiveDept,
+    message:   text,
+    urgent:    _urgentMode,
+    file_url:  _pendingFile?.url  || null,
+    file_name: _pendingFile?.name || null,
+  });
+
+  input.value = '';
+  input.style.height = 'auto';
+
+  // Clear urgent mode after send
+  if (_urgentMode) toggleUrgent();
+
+  // Clear pending file
+  if (_pendingFile) {
+    _pendingFile = null;
+    const strip = document.getElementById('chatFileStrip');
+    if (strip) { strip.classList.remove('show'); strip.querySelector('.chat-file-strip-name').textContent = ''; }
+  }
+
+  // Stop typing indicator
+  if (_typingTimer) { clearTimeout(_typingTimer); _typingTimer = null; }
+  _chatSocket.emit('typing', { to_dept: _chatActiveDept, typing: false });
+}
+
+function toggleUrgent() {
+  _urgentMode = !_urgentMode;
+  const btn = document.getElementById('chatUrgentBtn');
+  if (btn) btn.classList.toggle('active', _urgentMode);
+}
+
+async function attachFile() {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = 'image/*,.pdf,.doc,.docx,.xls,.xlsx';
+  input.onchange = async () => {
+    const file = input.files[0];
+    if (!file || file.size > 5 * 1024 * 1024) { alert('File too large (max 5 MB)'); return; }
+    const fd = new FormData();
+    fd.append('file', file);
+    try {
+      const res = await fetch(`${API}/chat/upload`, {
+        method: 'POST',
+        headers: { Authorization: 'Bearer ' + getToken() },
+        body: fd,
+      });
+      const data = await res.json();
+      if (!res.ok) { alert(data.error); return; }
+      _pendingFile = { url: data.url, name: data.name };
+      const strip = document.getElementById('chatFileStrip');
+      if (strip) {
+        strip.querySelector('.chat-file-strip-name').textContent = data.name;
+        strip.classList.add('show');
+      }
+    } catch { alert('Upload failed'); }
+  };
+  input.click();
+}
+
+function removePendingFile() {
+  _pendingFile = null;
+  const strip = document.getElementById('chatFileStrip');
+  if (strip) { strip.classList.remove('show'); strip.querySelector('.chat-file-strip-name').textContent = ''; }
+}
+
+function sendQuickReply(text) {
+  const input = document.getElementById('chatInput');
+  if (input) { input.value = text; input.focus(); }
+}
+
+// ── Voice note ────────────────────────────────────────────────────
+let _mediaRecorder  = null;
+let _audioChunks    = [];
+let _recTimerInt    = null;
+let _recSeconds     = 0;
+
+async function toggleVoiceNote() {
+  if (_mediaRecorder && _mediaRecorder.state === 'recording') {
+    _stopVoiceRecording();
+  } else {
+    await _startVoiceRecording();
+  }
+}
+
+async function _startVoiceRecording() {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    _audioChunks = [];
+    _recSeconds  = 0;
+
+    // Pick best supported mime type
+    const mime = ['audio/webm;codecs=opus','audio/webm','audio/ogg','audio/mp4']
+      .find(m => MediaRecorder.isTypeSupported(m)) || '';
+
+    _mediaRecorder = new MediaRecorder(stream, mime ? { mimeType: mime } : {});
+    _mediaRecorder.ondataavailable = e => { if (e.data.size > 0) _audioChunks.push(e.data); };
+    _mediaRecorder.onstop = _onVoiceRecordingStop;
+    _mediaRecorder.start(200);
+
+    // UI
+    const btn = document.getElementById('chatMicBtn');
+    const timer = document.getElementById('chatRecTimer');
+    if (btn) btn.classList.add('recording');
+    if (timer) { timer.classList.add('show'); timer.textContent = '0:00'; }
+
+    _recTimerInt = setInterval(() => {
+      _recSeconds++;
+      const m = Math.floor(_recSeconds / 60);
+      const s = String(_recSeconds % 60).padStart(2, '0');
+      const t = document.getElementById('chatRecTimer');
+      if (t) t.textContent = `${m}:${s}`;
+      if (_recSeconds >= 120) _stopVoiceRecording(); // 2 min max
+    }, 1000);
+
+  } catch (err) {
+    alert('Microphone access denied. Please allow microphone permission.');
+  }
+}
+
+function _stopVoiceRecording() {
+  if (!_mediaRecorder) return;
+  _mediaRecorder.stop();
+  _mediaRecorder.stream.getTracks().forEach(t => t.stop());
+  clearInterval(_recTimerInt);
+  const btn = document.getElementById('chatMicBtn');
+  const timer = document.getElementById('chatRecTimer');
+  if (btn) btn.classList.remove('recording');
+  if (timer) timer.classList.remove('show');
+}
+
+async function _onVoiceRecordingStop() {
+  const mime = _mediaRecorder.mimeType || 'audio/webm';
+  const blob = new Blob(_audioChunks, { type: mime });
+  const ext  = mime.includes('ogg') ? 'ogg' : mime.includes('mp4') ? 'mp4' : 'webm';
+  const file = new File([blob], `voice-note-${Date.now()}.${ext}`, { type: mime });
+
+  const fd = new FormData();
+  fd.append('file', file);
+  try {
+    const res = await fetch(`${API}/chat/upload`, {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + getToken() },
+      body: fd,
+    });
+    const data = await res.json();
+    if (!res.ok) { alert('Voice upload failed: ' + data.error); return; }
+
+    // Send immediately as a voice-note message
+    if (_chatSocket && _chatActiveDept) {
+      _chatSocket.emit('send_message', {
+        to_dept:   _chatActiveDept,
+        message:   '',
+        urgent:    false,
+        file_url:  data.url,
+        file_name: data.name,
+      });
+    }
+  } catch { alert('Voice upload failed'); }
+  _mediaRecorder = null;
+}
+
+function _onChatInput() {
+  if (!_chatSocket || !_chatActiveDept) return;
+  _chatSocket.emit('typing', { to_dept: _chatActiveDept, typing: true });
+  clearTimeout(_typingTimer);
+  _typingTimer = setTimeout(() => {
+    _chatSocket.emit('typing', { to_dept: _chatActiveDept, typing: false });
+  }, 2500);
+}
 </script>
+
+<!-- ── PATIENT HISTORY MODAL ── -->
+<div class="ph-overlay" id="phOverlay" onclick="if(event.target===this)closePatientHistory()">
+  <div class="ph-modal">
+    <div class="ph-head">
+      <div class="ph-head-info">
+        <div class="ph-head-name" id="phPatientName">Patient History</div>
+        <div class="ph-head-sub">
+          <span>File No: <strong id="phFileNo">—</strong></span>
+          <span class="ph-head-bg" id="phBG">—</span>
+        </div>
+      </div>
+      <button class="ph-close-btn" onclick="closePatientHistory()">✕</button>
+    </div>
+    <div class="ph-search-bar">
+      <input class="ph-search-input" id="phSearchInput" placeholder="Search by file number…" onkeydown="if(event.key==='Enter') searchPatientHistory()"/>
+      <button class="ph-search-btn" onclick="searchPatientHistory()">🔍 Search</button>
+    </div>
+    <div class="ph-body" id="phBody">
+      <div class="ph-empty">Enter a file number to view patient history</div>
+    </div>
+  </div>
+</div>
 
 <!-- ── BLOOD COMPATIBILITY WARNING MODAL ── -->
 <div class="compat-overlay" id="compatOverlay">
@@ -5242,5 +6497,6 @@ async function deleteExcelFile(filename) {
   </div>
 </div>
 
+<div class="chat-toast-container" id="chatToastContainer"></div>
 </body>
 </html>

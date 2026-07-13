@@ -1,20 +1,134 @@
 require("dotenv").config();
 
+const http      = require("http");
 const express   = require("express");
+const { Server: IOServer } = require("socket.io");
 const multer    = require("multer");
 const axios     = require("axios");
 const FormData  = require("form-data");
 const fs        = require("fs");
 const cors      = require("cors");
+const helmet    = require("helmet");
+const { rateLimit } = require("express-rate-limit");
 const path      = require("path");
 const bcrypt    = require("bcryptjs");
 const jwt       = require("jsonwebtoken");
 const { parseVoiceToFields, splitBatchTranscript } = require("./voiceParser");
 
-const JWT_SECRET = process.env.JWT_SECRET || "bb-hospital-secret-2024-change-in-prod";
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  console.error("FATAL: JWT_SECRET is not set in .env — server will not start");
+  process.exit(1);
+}
 
-const app = express();
-app.use(cors());
+const app    = express();
+const server = http.createServer(app);
+const io     = new IOServer(server, { cors: { origin: false } });
+
+// ── Socket.io auth middleware ────────────────────────────────────
+io.use((socket, next) => {
+  try {
+    const token = socket.handshake.auth.token;
+    socket.user = jwt.verify(token, JWT_SECRET);
+    next();
+  } catch {
+    next(new Error('Unauthorized'));
+  }
+});
+
+// ── Online departments tracker ───────────────────────────────────
+const onlineDepts = new Map(); // dept -> socket count
+
+// ── Socket.io connection ─────────────────────────────────────────
+io.on('connection', async (socket) => {
+  const dept = socket.user.department || 'BLOOD BANK';
+  socket.join(dept);
+
+  // Online presence
+  onlineDepts.set(dept, (onlineDepts.get(dept) || 0) + 1);
+  io.emit('dept_status', { dept, online: true });
+
+  socket.on('disconnect', () => {
+    const n = (onlineDepts.get(dept) || 1) - 1;
+    if (n <= 0) { onlineDepts.delete(dept); io.emit('dept_status', { dept, online: false }); }
+    else onlineDepts.set(dept, n);
+  });
+
+  // Typing indicator
+  socket.on('typing', ({ to_dept, typing }) => {
+    if (dept !== 'BLOOD BANK' && to_dept !== 'BLOOD BANK') return;
+    io.to(to_dept).emit('typing', { from_dept: dept, typing });
+  });
+
+  // Mark messages read
+  socket.on('mark_read', async ({ from_dept }) => {
+    try {
+      const pool = await getPool();
+      await pool.request()
+        .input('fdept', sql.NVarChar, from_dept)
+        .input('tdept', sql.NVarChar, dept)
+        .query(`UPDATE ChatMessages SET read_at=GETDATE()
+                WHERE from_dept=@fdept AND to_dept=@tdept AND read_at IS NULL`);
+      io.to(from_dept).emit('messages_read', { by_dept: dept });
+    } catch (err) { console.error('[chat read]', err.message); }
+  });
+
+  // Send message (supports urgent + file attachment)
+  socket.on('send_message', async ({ to_dept, message, urgent, file_url, file_name }) => {
+    if (!to_dept) return;
+    if (dept !== 'BLOOD BANK' && to_dept !== 'BLOOD BANK') return;
+    if (!message?.trim() && !file_url) return;
+    try {
+      const pool = await getPool();
+      const r = await pool.request()
+        .input('uid',       sql.Int,      socket.user.userId)
+        .input('name',      sql.NVarChar, socket.user.fullName)
+        .input('fdept',     sql.NVarChar, dept)
+        .input('tdept',     sql.NVarChar, to_dept)
+        .input('msg',       sql.NVarChar, (message || '').trim().slice(0, 2000))
+        .input('urgent',    sql.TinyInt,  urgent ? 1 : 0)
+        .input('file_url',  sql.NVarChar, file_url  || null)
+        .input('file_name', sql.NVarChar, file_name || null)
+        .query(`INSERT INTO ChatMessages (from_user_id,from_name,from_dept,to_dept,message,urgent,file_url,file_name)
+                OUTPUT INSERTED.message_id, CONVERT(VARCHAR(19),INSERTED.created_at,120) AS created_at
+                VALUES (@uid,@name,@fdept,@tdept,@msg,@urgent,@file_url,@file_name)`);
+      const msg = {
+        message_id: r.recordset[0].message_id,
+        from_name:  socket.user.fullName,
+        from_dept:  dept,
+        to_dept,
+        message:    (message || '').trim(),
+        urgent:     urgent ? 1 : 0,
+        file_url:   file_url  || null,
+        file_name:  file_name || null,
+        created_at: r.recordset[0].created_at,
+        read_at:    null,
+        own:        false,
+      };
+      io.to(dept).emit('new_message', { ...msg, own: true });
+      if (to_dept !== dept) io.to(to_dept).emit('new_message', msg);
+    } catch (err) { console.error('[chat]', err.message); }
+  });
+});
+
+// ── Security headers ────────────────────────────────────────────
+app.use(helmet({
+  contentSecurityPolicy: false, // frontend uses inline scripts/styles
+  crossOriginEmbedderPolicy: false,
+}));
+
+// ── CORS — restrict to same host (internal network only) ────────
+app.use(cors({ origin: false }));
+
+// ── Login rate limiter: 10 attempts per 15 min per IP ───────────
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many login attempts — try again in 15 minutes' },
+});
+
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "../frontend")));
 
@@ -66,6 +180,34 @@ async function initDB() {
           active     BIT           NOT NULL DEFAULT 1,
           created_at DATETIME      DEFAULT GETDATE()
         );
+    `);
+
+    // ── Migrate: department column + ChatMessages ─────────────────
+    await pool.request().query(`
+      IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='HospitalUsers' AND COLUMN_NAME='department')
+        ALTER TABLE HospitalUsers ADD department NVARCHAR(100) NULL;
+      IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='ChatMessages')
+        CREATE TABLE ChatMessages (
+          message_id   INT IDENTITY(1,1) PRIMARY KEY,
+          from_user_id INT NOT NULL,
+          from_name    NVARCHAR(100) NOT NULL,
+          from_dept    NVARCHAR(100) NOT NULL,
+          to_dept      NVARCHAR(100) NOT NULL,
+          message      NVARCHAR(2000) NOT NULL,
+          urgent       TINYINT NOT NULL DEFAULT 0,
+          file_url     NVARCHAR(500) NULL,
+          file_name    NVARCHAR(200) NULL,
+          read_at      DATETIME NULL,
+          created_at   DATETIME DEFAULT GETDATE()
+        );
+      IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='ChatMessages' AND COLUMN_NAME='urgent')
+        ALTER TABLE ChatMessages ADD urgent TINYINT NOT NULL DEFAULT 0;
+      IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='ChatMessages' AND COLUMN_NAME='read_at')
+        ALTER TABLE ChatMessages ADD read_at DATETIME NULL;
+      IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='ChatMessages' AND COLUMN_NAME='file_url')
+        ALTER TABLE ChatMessages ADD file_url NVARCHAR(500) NULL;
+      IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='ChatMessages' AND COLUMN_NAME='file_name')
+        ALTER TABLE ChatMessages ADD file_name NVARCHAR(200) NULL;
     `);
 
     // ── Seed default admin if no users exist ─────────────────────
@@ -164,7 +306,7 @@ function requireAdmin(req, res, next) {
 // ════════════════════════════════════════════════════════════════
 // POST /auth/login
 // ════════════════════════════════════════════════════════════════
-app.post('/auth/login', async (req, res) => {
+app.post('/auth/login', loginLimiter, async (req, res) => {
   const { username, password } = req.body;
   if (!username || !password) return res.status(400).json({ error: 'Username and password required' });
   if (!dbReady) return res.status(503).json({ error: 'Database not connected' });
@@ -178,7 +320,7 @@ app.post('/auth/login', async (req, res) => {
     const ok = await bcrypt.compare(password, user.password_hash);
     if (!ok) return res.status(401).json({ error: 'Invalid username or password' });
     const token = jwt.sign(
-      { userId: user.user_id, username: user.username, fullName: user.full_name, role: user.role },
+      { userId: user.user_id, username: user.username, fullName: user.full_name, role: user.role, department: user.department || 'BLOOD BANK' },
       JWT_SECRET,
       { expiresIn: '12h' }
     );
@@ -195,7 +337,7 @@ app.get('/users', requireAdmin, async (req, res) => {
   try {
     const pool   = await getPool();
     const result = await pool.request().query(
-      "SELECT user_id, username, full_name, role, active, CONVERT(VARCHAR(19), created_at, 120) AS created_at FROM HospitalUsers ORDER BY created_at"
+      "SELECT user_id, username, full_name, role, department, active, CONVERT(VARCHAR(19), created_at, 120) AS created_at FROM HospitalUsers ORDER BY created_at"
     );
     res.json(result.recordset);
   } catch (err) {
@@ -207,18 +349,20 @@ app.get('/users', requireAdmin, async (req, res) => {
 // POST /users  (admin only) — create user
 // ════════════════════════════════════════════════════════════════
 app.post('/users', requireAdmin, async (req, res) => {
-  const { username, full_name, password, role } = req.body;
+  const { username, full_name, password, role, department } = req.body;
   if (!username || !full_name || !password) return res.status(400).json({ error: 'username, full_name and password are required' });
+  if (password.length < 8) return res.status(400).json({ error: 'Password must be at least 8 characters' });
   const validRole = (role === 'admin' || role === 'staff') ? role : 'staff';
   try {
     const pool = await getPool();
     const hash = await bcrypt.hash(password, 10);
     const result = await pool.request()
-      .input('username',  sql.NVarChar, username.trim().toLowerCase())
-      .input('full_name', sql.NVarChar, full_name.trim())
-      .input('hash',      sql.NVarChar, hash)
-      .input('role',      sql.NVarChar, validRole)
-      .query("INSERT INTO HospitalUsers (username, full_name, password_hash, role) OUTPUT INSERTED.user_id VALUES (@username, @full_name, @hash, @role)");
+      .input('username',   sql.NVarChar, username.trim().toLowerCase())
+      .input('full_name',  sql.NVarChar, full_name.trim())
+      .input('hash',       sql.NVarChar, hash)
+      .input('role',       sql.NVarChar, validRole)
+      .input('department', sql.NVarChar, department || null)
+      .query("INSERT INTO HospitalUsers (username, full_name, password_hash, role, department) OUTPUT INSERTED.user_id VALUES (@username, @full_name, @hash, @role, @department)");
     res.json({ success: true, user_id: result.recordset[0].user_id });
   } catch (err) {
     if (err.message.includes('UNIQUE') || err.message.includes('unique')) {
@@ -233,7 +377,7 @@ app.post('/users', requireAdmin, async (req, res) => {
 // ════════════════════════════════════════════════════════════════
 app.put('/users/:id', requireAdmin, async (req, res) => {
   const { id } = req.params;
-  const { full_name, role, active } = req.body;
+  const { full_name, role, active, department } = req.body;
   // Prevent admin from deactivating their own account
   if (parseInt(id) === req.user.userId && active === false) {
     return res.status(400).json({ error: 'Cannot deactivate your own account' });
@@ -241,11 +385,12 @@ app.put('/users/:id', requireAdmin, async (req, res) => {
   try {
     const pool = await getPool();
     await pool.request()
-      .input('id',        sql.Int,      parseInt(id))
-      .input('full_name', sql.NVarChar, full_name)
-      .input('role',      sql.NVarChar, role === 'admin' ? 'admin' : 'staff')
-      .input('active',    sql.Bit,      active ? 1 : 0)
-      .query("UPDATE HospitalUsers SET full_name=@full_name, role=@role, active=@active WHERE user_id=@id");
+      .input('id',         sql.Int,      parseInt(id))
+      .input('full_name',  sql.NVarChar, full_name)
+      .input('role',       sql.NVarChar, role === 'admin' ? 'admin' : 'staff')
+      .input('active',     sql.Bit,      active ? 1 : 0)
+      .input('department', sql.NVarChar, department || null)
+      .query("UPDATE HospitalUsers SET full_name=@full_name, role=@role, active=@active, department=@department WHERE user_id=@id");
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -258,7 +403,7 @@ app.put('/users/:id', requireAdmin, async (req, res) => {
 app.put('/users/:id/password', requireAdmin, async (req, res) => {
   const { id } = req.params;
   const { password } = req.body;
-  if (!password || password.length < 4) return res.status(400).json({ error: 'Password must be at least 4 characters' });
+  if (!password || password.length < 8) return res.status(400).json({ error: 'Password must be at least 8 characters' });
   try {
     const pool = await getPool();
     const hash = await bcrypt.hash(password, 10);
@@ -965,6 +1110,87 @@ app.get('/patient/lookup', requireAuth, async (req, res) => {
 });
 
 // ════════════════════════════════════════════════════════════════
+// GET /patient/history?file_number=xxx
+// Full transfusion + delivery history for a patient
+// ════════════════════════════════════════════════════════════════
+app.get('/patient/history', requireAuth, async (req, res) => {
+  if (!dbReady) return res.json({ found: false });
+  const { file_number } = req.query;
+  if (!file_number?.trim()) return res.json({ found: false });
+
+  try {
+    const pool = await getPool();
+    const fn   = file_number.trim();
+
+    const tRes = await pool.request()
+      .input('fn', sql.NVarChar, fn)
+      .query(`
+        SELECT request_id AS id, patient_name, file_number,
+          blood_group, rh_factor, room, diagnosis,
+          fpc_units, fpc_type, ffp_units, ffp_type, plt_units, plt_type,
+          physician, life_saving, prev_transfusion_reaction,
+          saved_by,
+          CONVERT(VARCHAR(10), created_at, 23)  AS date,
+          CONVERT(VARCHAR(5),  created_at, 108) AS time
+        FROM TransfusionRequests
+        WHERE file_number = @fn
+        ORDER BY created_at DESC`);
+
+    const dRes = await pool.request()
+      .input('fn', sql.NVarChar, fn)
+      .query(`
+        SELECT delivery_id AS id, patient_name, file_number,
+          patient_blood_group AS blood_group, patient_rh AS rh_factor, room,
+          type_of_blood_requested, type_of_blood, blood_unit_group,
+          technician_name, life_saving, known_allergies,
+          saved_by,
+          CONVERT(VARCHAR(10), created_at, 23)  AS date,
+          CONVERT(VARCHAR(5),  created_at, 108) AS time
+        FROM BloodDeliveries
+        WHERE file_number = @fn
+        ORDER BY created_at DESC`);
+
+    const t = tRes.recordset;
+    const d = dRes.recordset;
+
+    if (!t.length && !d.length) return res.json({ found: false });
+
+    const anchor = t[0] || d[0];
+    const totalPrc = t.reduce((s, r) => s + (r.fpc_units || 0), 0);
+    const totalFfp = t.reduce((s, r) => s + (r.ffp_units || 0), 0);
+    const totalPlt = t.reduce((s, r) => s + (r.plt_units || 0), 0);
+    const reactions = t
+      .filter(r => r.prev_transfusion_reaction?.trim())
+      .map(r => ({ date: r.date, note: r.prev_transfusion_reaction }));
+
+    res.json({
+      found: true,
+      patient: {
+        name:        anchor.patient_name,
+        file_number: fn,
+        blood_group: anchor.blood_group || '',
+        rh_factor:   anchor.rh_factor   || '',
+      },
+      summary: {
+        total_transfusions: t.length,
+        total_deliveries:   d.length,
+        total_prc:          totalPrc,
+        total_ffp:          totalFfp,
+        total_plt:          totalPlt,
+        total_units:        totalPrc + totalFfp + totalPlt,
+        has_reactions:      reactions.length > 0,
+        reactions,
+      },
+      transfusions: t,
+      deliveries:   d,
+    });
+
+  } catch (err) {
+    res.status(500).json({ found: false, error: err.message });
+  }
+});
+
+// ════════════════════════════════════════════════════════════════
 // GET /dashboard/wastage
 // Compares ordered units (TransfusionRequests) vs delivered units
 // (BloodDeliveries.type_of_blood) for the same patient/file number.
@@ -1048,6 +1274,298 @@ app.get('/dashboard/wastage', requireAuth, async (req, res) => {
     });
   } catch (err) {
     console.error('Wastage error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ════════════════════════════════════════════════════════════════
+// GET /dashboard/consumption?from=YYYY-MM-DD&to=YYYY-MM-DD
+// Units consumed from the three UnitsIssuedForTransfusion Excel
+// files, broken down by component, blood type, ward, and trend.
+// Each row in those files = 1 blood unit issued.
+// ════════════════════════════════════════════════════════════════
+app.get('/dashboard/consumption', requireAuth, (req, res) => {
+  try {
+    const fromDate = req.query.from || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    const toDate   = req.query.to   || new Date().toISOString().slice(0, 10);
+
+    const CONSUMP_FILES = [
+      { name: 'UnitsIssuedForTransfusion - RBC 2023-2026.xlsx',   comp: 'prc' },
+      { name: 'UnitsIssuedForTransfusion -PLASMA 2023-2026.xlsx', comp: 'ffp' },
+      { name: 'UnitsIssuedForTransfusion - PLATELETS.xlsx',       comp: 'plt' },
+    ];
+
+    let totalPrc = 0, totalFfp = 0, totalPlt = 0;
+    const groupMap = {};
+    const roomMap  = {};
+    const trendMap = {};
+
+    for (const { name, comp } of CONSUMP_FILES) {
+      const filePath = path.join(EXCEL_DIR, name);
+      if (!fs.existsSync(filePath)) continue;
+
+      const { rows, columns } = getCachedRows(name);
+      const dateCol = columns.find(c => c.toLowerCase().trim() === 'date');
+      const grpCol  = columns.find(c => c.toLowerCase().trim() === 'group');
+      const destCol = columns.find(c => c.toLowerCase().trim() === 'destination');
+
+      for (const row of rows) {
+        // normalizeExcelDate handles both "YYYY-MM-DD" (from Date objects) and "DD/MM/YYYY" strings
+        const d = normalizeExcelDate(row[dateCol]);
+        if (!d || d < fromDate || d > toDate) continue;
+
+        if (comp === 'prc') totalPrc++;
+        else if (comp === 'ffp') totalFfp++;
+        else totalPlt++;
+
+        const grp = String(row[grpCol] || '').trim();
+        if (grp && grp !== '-') {
+          if (!groupMap[grp]) groupMap[grp] = { prc: 0, ffp: 0, plt: 0 };
+          groupMap[grp][comp]++;
+        }
+
+        const dest = String(row[destCol] || '').trim();
+        if (dest && dest !== '-') {
+          if (!roomMap[dest]) roomMap[dest] = { prc: 0, ffp: 0, plt: 0 };
+          roomMap[dest][comp]++;
+        }
+
+        if (!trendMap[d]) trendMap[d] = { prc: 0, ffp: 0, plt: 0 };
+        trendMap[d][comp]++;
+      }
+    }
+
+    const byGroup = Object.entries(groupMap)
+      .map(([label, v]) => ({ label, ...v, total: v.prc + v.ffp + v.plt }))
+      .sort((a, b) => b.total - a.total);
+
+    const byRoom = Object.entries(roomMap)
+      .map(([room, v]) => ({ room, ...v, total: v.prc + v.ffp + v.plt }))
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 10);
+
+    // Aggregate trend: daily ≤60 days, weekly ≤180 days, monthly otherwise
+    const daysDiff = Math.ceil((new Date(toDate) - new Date(fromDate)) / 86400000);
+    let trend;
+
+    if (daysDiff > 180) {
+      const mo = {};
+      Object.entries(trendMap).forEach(([d, v]) => {
+        const k = d.slice(0, 7);
+        if (!mo[k]) mo[k] = { prc: 0, ffp: 0, plt: 0 };
+        mo[k].prc += v.prc; mo[k].ffp += v.ffp; mo[k].plt += v.plt;
+      });
+      trend = Object.entries(mo).sort(([a],[b]) => a.localeCompare(b))
+        .map(([date, v]) => ({ date, ...v }));
+    } else if (daysDiff > 60) {
+      const wk = {};
+      Object.entries(trendMap).forEach(([d, v]) => {
+        const dt  = new Date(d);
+        const day = dt.getUTCDay();
+        const mon = new Date(Date.UTC(dt.getUTCFullYear(), dt.getUTCMonth(), dt.getUTCDate() - day + (day === 0 ? -6 : 1)));
+        const k   = mon.toISOString().slice(0, 10);
+        if (!wk[k]) wk[k] = { prc: 0, ffp: 0, plt: 0 };
+        wk[k].prc += v.prc; wk[k].ffp += v.ffp; wk[k].plt += v.plt;
+      });
+      trend = Object.entries(wk).sort(([a],[b]) => a.localeCompare(b))
+        .map(([date, v]) => ({ date, ...v }));
+    } else {
+      trend = Object.entries(trendMap).sort(([a],[b]) => a.localeCompare(b))
+        .map(([date, v]) => ({ date, ...v }));
+    }
+
+    res.json({
+      summary: { total_prc: totalPrc, total_ffp: totalFfp, total_plt: totalPlt,
+                 total_units: totalPrc + totalFfp + totalPlt },
+      byGroup, byRoom, trend,
+      granularity: daysDiff > 180 ? 'month' : daysDiff > 60 ? 'week' : 'day',
+    });
+
+  } catch (err) {
+    console.error('Consumption error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ════════════════════════════════════════════════════════════════
+// GET  /report/monthly?month=YYYY-MM   — aggregated KPIs for a month
+// POST /report/monthly/pdf             — streams PDF from JSON body
+// ════════════════════════════════════════════════════════════════
+async function getMonthlyReportData(monthStr) {
+  const [yr, mo] = monthStr.split('-').map(Number);
+  if (!yr || !mo || mo < 1 || mo > 12) throw new Error('Invalid month');
+
+  const from    = `${yr}-${String(mo).padStart(2,'0')}-01`;
+  const lastDay = new Date(yr, mo, 0).getDate();
+  const to      = `${yr}-${String(mo).padStart(2,'0')}-${String(lastDay).padStart(2,'0')}`;
+  const toEnd   = to + ' 23:59:59';
+  const label   = new Date(yr, mo - 1, 1).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+
+  const pool = await getPool();
+
+  // DB queries: operational data only (counts, life-saving, staff, response times)
+  const [tStats, physStats, dStats, techStats, rtStats] = await Promise.all([
+    pool.request().input('f', sql.NVarChar, from).input('t', sql.NVarChar, toEnd).query(`
+      SELECT COUNT(*) AS total,
+        SUM(CASE WHEN life_saving=1 THEN 1 ELSE 0 END) AS life_saving
+      FROM TransfusionRequests
+      WHERE created_at >= CAST(@f AS DATETIME) AND created_at <= CAST(@t AS DATETIME)`),
+
+    pool.request().input('f', sql.NVarChar, from).input('t', sql.NVarChar, toEnd).query(`
+      SELECT TOP 5 physician, COUNT(*) AS cnt
+      FROM TransfusionRequests
+      WHERE created_at >= CAST(@f AS DATETIME) AND created_at <= CAST(@t AS DATETIME)
+        AND physician IS NOT NULL AND physician <> ''
+      GROUP BY physician ORDER BY cnt DESC`),
+
+    pool.request().input('f', sql.NVarChar, from).input('t', sql.NVarChar, toEnd).query(`
+      SELECT COUNT(*) AS total,
+        SUM(CASE WHEN life_saving=1 THEN 1 ELSE 0 END) AS life_saving
+      FROM BloodDeliveries
+      WHERE created_at >= CAST(@f AS DATETIME) AND created_at <= CAST(@t AS DATETIME)`),
+
+    pool.request().input('f', sql.NVarChar, from).input('t', sql.NVarChar, toEnd).query(`
+      SELECT TOP 5 technician_name, COUNT(*) AS cnt
+      FROM BloodDeliveries
+      WHERE created_at >= CAST(@f AS DATETIME) AND created_at <= CAST(@t AS DATETIME)
+        AND technician_name IS NOT NULL AND technician_name <> ''
+      GROUP BY technician_name ORDER BY cnt DESC`),
+
+    pool.request().input('f', sql.NVarChar, from).input('t', sql.NVarChar, toEnd).query(`
+      SELECT AVG(CAST(bb_diff AS FLOAT)) AS avg_bb, AVG(CAST(nurse_diff AS FLOAT)) AS avg_nurse,
+        COUNT(*) AS total_matched,
+        SUM(CASE WHEN is_ls=1 THEN 1 ELSE 0 END) AS ls_count,
+        SUM(CASE WHEN is_ls=1 AND bb_diff<=15 THEN 1 ELSE 0 END) AS ls_within,
+        SUM(CASE WHEN is_urgent=1 THEN 1 ELSE 0 END) AS urgent_count,
+        SUM(CASE WHEN is_urgent=1 AND bb_diff<=45 THEN 1 ELSE 0 END) AS urgent_within
+      FROM (
+        SELECT
+          CASE WHEN t.life_saving=1 OR d.life_saving=1 THEN 1 ELSE 0 END AS is_ls,
+          CASE WHEN t.fpc_type='Stat' OR t.ffp_type='Stat' OR t.plt_type='Stat' THEN 1 ELSE 0 END AS is_urgent,
+          DATEDIFF(minute,
+            CAST(CONVERT(VARCHAR(10),t.request_date,23)+' '+CONVERT(VARCHAR(8),t.request_time,108) AS DATETIME),
+            CAST(CONVERT(VARCHAR(10),d.delivery_date,23)+' '+CONVERT(VARCHAR(8),d.delivery_time,108) AS DATETIME)
+          ) AS bb_diff,
+          DATEDIFF(minute,
+            CAST(CONVERT(VARCHAR(10),t.request_date,23)+' '+CONVERT(VARCHAR(8),t.request_time,108) AS DATETIME),
+            CAST(CONVERT(VARCHAR(10),d.nurse_unit_date,23)+' '+CONVERT(VARCHAR(8),d.nurse_unit_time,108) AS DATETIME)
+          ) AS nurse_diff
+        FROM TransfusionRequests t
+        OUTER APPLY (
+          SELECT TOP 1 delivery_date, delivery_time, life_saving, nurse_unit_date, nurse_unit_time
+          FROM BloodDeliveries bd
+          WHERE bd.file_number = t.file_number AND bd.file_number IS NOT NULL AND bd.file_number <> ''
+            AND (bd.delivery_date > t.request_date OR (bd.delivery_date = t.request_date AND bd.delivery_time >= t.request_time))
+          ORDER BY bd.delivery_date ASC, bd.delivery_time ASC
+        ) d
+        WHERE t.created_at >= CAST(@f AS DATETIME) AND t.created_at <= CAST(@t AS DATETIME)
+          AND t.request_date IS NOT NULL AND t.request_time IS NOT NULL
+          AND t.file_number IS NOT NULL AND t.file_number <> ''
+          AND d.delivery_date IS NOT NULL AND d.delivery_time IS NOT NULL
+      ) rt WHERE bb_diff BETWEEN 0 AND 480`),
+  ]);
+
+  // Excel: units, blood groups, wards, daily trend — all from the 3 issuance files
+  const CONSUMP_FILES = [
+    { name: 'UnitsIssuedForTransfusion - RBC 2023-2026.xlsx',   comp: 'prc' },
+    { name: 'UnitsIssuedForTransfusion -PLASMA 2023-2026.xlsx', comp: 'ffp' },
+    { name: 'UnitsIssuedForTransfusion - PLATELETS.xlsx',       comp: 'plt' },
+  ];
+  let excelPrc = 0, excelFfp = 0, excelPlt = 0;
+  const groupMap = {}, destMap = {}, trendMap = {};
+
+  for (const { name, comp } of CONSUMP_FILES) {
+    if (!fs.existsSync(path.join(EXCEL_DIR, name))) continue;
+    const { rows, columns } = getCachedRows(name);
+    const dateCol = columns.find(c => c.toLowerCase().trim() === 'date');
+    const grpCol  = columns.find(c => c.toLowerCase().trim() === 'group');
+    const destCol = columns.find(c => c.toLowerCase().trim() === 'destination');
+
+    for (const row of rows) {
+      const d = normalizeExcelDate(row[dateCol]);
+      if (!d || d < from || d > to) continue;
+
+      if (comp === 'prc') excelPrc++;
+      else if (comp === 'ffp') excelFfp++;
+      else excelPlt++;
+
+      const grp  = String(row[grpCol]  || '').trim();
+      const dest = String(row[destCol] || '').trim();
+
+      if (grp && grp !== '-') {
+        if (!groupMap[grp]) groupMap[grp] = { prc: 0, ffp: 0, plt: 0 };
+        groupMap[grp][comp]++;
+      }
+      if (dest && dest !== '-') {
+        if (!destMap[dest]) destMap[dest] = { prc: 0, ffp: 0, plt: 0 };
+        destMap[dest][comp]++;
+      }
+      if (!trendMap[d]) trendMap[d] = { prc: 0, ffp: 0, plt: 0 };
+      trendMap[d][comp]++;
+    }
+  }
+
+  const blood_groups = Object.entries(groupMap)
+    .map(([group, v]) => ({ group, ...v, total: v.prc + v.ffp + v.plt }))
+    .sort((a, b) => b.total - a.total);
+
+  const top_rooms = Object.entries(destMap)
+    .map(([room, v]) => ({ room, ...v, cnt: v.prc + v.ffp + v.plt }))
+    .sort((a, b) => b.cnt - a.cnt)
+    .slice(0, 8);
+
+  const daily_trend = Object.entries(trendMap)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([date, v]) => ({ date, prc: v.prc, ffp: v.ffp, plt: v.plt, total: v.prc + v.ffp + v.plt }));
+
+  const tRow  = tStats.recordset[0]  || {};
+  const dRow  = dStats.recordset[0]  || {};
+  const rtRow = rtStats.recordset[0] || {};
+  const lsTotal = (tRow.life_saving || 0) + (dRow.life_saving || 0);
+
+  return {
+    period:     { month: monthStr, label, from, to },
+    overview:   { transfusions: tRow.total || 0, deliveries: dRow.total || 0, life_saving: lsTotal },
+    units:      { prc: excelPrc, ffp: excelFfp, plt: excelPlt, total: excelPrc + excelFfp + excelPlt },
+    blood_groups,
+    top_rooms,
+    top_physicians:  physStats.recordset,
+    top_technicians: techStats.recordset,
+    daily_trend,
+    response_times: {
+      avg_bb_minutes:    rtRow.avg_bb    != null ? Math.round(rtRow.avg_bb)    : null,
+      avg_nurse_minutes: rtRow.avg_nurse != null ? Math.round(rtRow.avg_nurse) : null,
+      ls_count:          rtRow.ls_count   || 0,
+      ls_within:         rtRow.ls_within  || 0,
+      urgent_count:      rtRow.urgent_count  || 0,
+      urgent_within:     rtRow.urgent_within || 0,
+      total_matched:     rtRow.total_matched || 0,
+    },
+    generated_at: new Date().toLocaleString('en-GB'),
+  };
+}
+
+app.get('/report/monthly', requireAuth, async (req, res) => {
+  if (!dbReady) return res.json({ error: 'db_not_ready' });
+  try {
+    const month = req.query.month || new Date().toISOString().slice(0, 7);
+    res.json(await getMonthlyReportData(month));
+  } catch (err) {
+    console.error('Monthly report error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/report/monthly/pdf', requireAuth, async (req, res) => {
+  try {
+    const { generateMonthlyReportPdf } = require('./exportForm');
+    const buf = await generateMonthlyReportPdf(req.body);
+    const month = (req.body.period && req.body.period.month) || 'report';
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="monthly-report-${month}.pdf"`);
+    res.send(buf);
+  } catch (err) {
+    console.error('Monthly PDF error:', err.message);
     res.status(500).json({ error: err.message });
   }
 });
@@ -1148,7 +1666,97 @@ app.get("/mode-check", (req, res) => {
 // POST /export/pdf   — generate and download PDF
 // POST /export/docx  — generate and download DOCX
 // ════════════════════════════════════════════════════════════════
-const { generateDocx, generatePdf } = require('./exportForm');
+const { generateDocx, generatePdf, generateHandoverPdf } = require('./exportForm');
+
+// ════════════════════════════════════════════════════════════════
+// GET /handover?date=YYYY-MM-DD&shift=morning|afternoon|night
+// Returns all transfusions and deliveries within the shift window
+// ════════════════════════════════════════════════════════════════
+app.get('/handover', requireAuth, async (req, res) => {
+  if (!dbReady) return res.json({ error: 'db_not_ready' });
+  try {
+    const pool  = await getPool();
+    const date  = req.query.date  || new Date().toISOString().slice(0, 10);
+    const shift = req.query.shift || 'morning';
+
+    let fromDT, toDT;
+    if (shift === 'night') {
+      const next = new Date(date); next.setDate(next.getDate() + 1);
+      fromDT = `${date} 23:00:00`;
+      toDT   = `${next.toISOString().slice(0, 10)} 07:00:00`;
+    } else if (shift === 'afternoon') {
+      fromDT = `${date} 15:00:00`;
+      toDT   = `${date} 23:00:00`;
+    } else {
+      fromDT = `${date} 07:00:00`;
+      toDT   = `${date} 15:00:00`;
+    }
+
+    const transfusions = await pool.request()
+      .input('from', sql.NVarChar, fromDT)
+      .input('to',   sql.NVarChar, toDT)
+      .query(`
+        SELECT request_id, patient_name, file_number, blood_group, rh_factor, room,
+          diagnosis, fpc_units, fpc_type, ffp_units, ffp_type, plt_units, plt_type,
+          physician, life_saving, life_saving_physician, life_saving_time,
+          saved_by, CONVERT(VARCHAR(5), created_at, 108) AS time_saved
+        FROM TransfusionRequests
+        WHERE created_at >= CAST(@from AS DATETIME) AND created_at < CAST(@to AS DATETIME)
+        ORDER BY created_at ASC
+      `);
+
+    const deliveries = await pool.request()
+      .input('from', sql.NVarChar, fromDT)
+      .input('to',   sql.NVarChar, toDT)
+      .query(`
+        SELECT delivery_id, patient_name, file_number, patient_blood_group, patient_rh,
+          room, type_of_blood_requested, type_of_blood, technician_name,
+          life_saving, life_saving_physician, life_saving_time,
+          saved_by, CONVERT(VARCHAR(5), created_at, 108) AS time_saved
+        FROM BloodDeliveries
+        WHERE created_at >= CAST(@from AS DATETIME) AND created_at < CAST(@to AS DATETIME)
+        ORDER BY created_at ASC
+      `);
+
+    const t  = transfusions.recordset;
+    const d2 = deliveries.recordset;
+    const totalPrc   = t.reduce((s, r) => s + (r.fpc_units || 0), 0);
+    const totalFfp   = t.reduce((s, r) => s + (r.ffp_units || 0), 0);
+    const totalPlt   = t.reduce((s, r) => s + (r.plt_units || 0), 0);
+    const lifeSaving = [...t, ...d2].filter(r => r.life_saving).length;
+
+    res.json({
+      shift, date, from: fromDT, to: toDT,
+      summary: {
+        transfusions: t.length,  deliveries: d2.length,
+        life_saving:  lifeSaving, total_prc: totalPrc,
+        total_ffp:    totalFfp,   total_plt: totalPlt,
+        total_units:  totalPrc + totalFfp + totalPlt,
+      },
+      transfusions: t,
+      deliveries:   d2,
+    });
+  } catch (err) {
+    console.error('Handover error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ════════════════════════════════════════════════════════════════
+// POST /handover/pdf  — generates and streams the handover PDF
+// ════════════════════════════════════════════════════════════════
+app.post('/handover/pdf', requireAuth, async (req, res) => {
+  try {
+    const buf = await generateHandoverPdf(req.body);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition',
+      `attachment; filename="handover-${req.body.date}-${req.body.shift}.pdf"`);
+    res.send(buf);
+  } catch (err) {
+    console.error('Handover PDF error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
 
 app.post('/export/pdf', requireAuth, async (req, res) => {
   const { form_type, ...fields } = req.body;
@@ -2388,4 +2996,51 @@ app.post('/api/excel/query', requireAuth, (req, res) => {
   }
 });
 
-app.listen(3000, () => console.log("✅ Blood Bank server running on http://localhost:3000"));
+// ════════════════════════════════════════════════════════════════
+// GET /chat/history?from=DEPT_A&to=DEPT_B
+// ════════════════════════════════════════════════════════════════
+app.get('/chat/history', requireAuth, async (req, res) => {
+  const { from, to } = req.query;
+  if (!from || !to) return res.json([]);
+  if (from !== 'BLOOD BANK' && to !== 'BLOOD BANK') return res.json([]);
+  const myDept = req.user.department || 'BLOOD BANK';
+  try {
+    const pool = await getPool();
+    const r = await pool.request()
+      .input('d1', sql.NVarChar, from)
+      .input('d2', sql.NVarChar, to)
+      .query(`SELECT TOP 100 message_id, from_name, from_dept, to_dept, message,
+                urgent, file_url, file_name, read_at,
+                CONVERT(VARCHAR(19), created_at, 120) AS created_at
+              FROM ChatMessages
+              WHERE (from_dept=@d1 AND to_dept=@d2) OR (from_dept=@d2 AND to_dept=@d1)
+              ORDER BY created_at DESC`);
+    const rows = r.recordset.reverse().map(m => ({ ...m, own: m.from_dept === myDept }));
+    res.json(rows);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// GET /chat/online — which departments currently have active sockets
+app.get('/chat/online', requireAuth, (req, res) => {
+  res.json([...onlineDepts.keys()]);
+});
+
+// POST /chat/upload — file attachment (max 5 MB)
+const chatUploadDir = path.join(__dirname, 'uploads', 'chat');
+const chatUpload = multer({
+  dest: chatUploadDir,
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    const allowed = /jpeg|jpg|png|gif|pdf|doc|docx|xls|xlsx|webm|ogg|mp4|wav|mp3/i;
+    const okMime  = /^(image|audio|video)\//i.test(file.mimetype) ||
+                    /pdf|msword|officedocument|spreadsheet/i.test(file.mimetype);
+    cb(null, allowed.test(path.extname(file.originalname || '.webm')) || okMime);
+  }
+});
+app.post('/chat/upload', requireAuth, chatUpload.single('file'), (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'No file or unsupported type' });
+  res.json({ url: `/uploads/chat/${req.file.filename}`, name: req.file.originalname });
+});
+app.use('/uploads/chat', express.static(chatUploadDir));
+
+server.listen(3000, () => console.log("✅ Blood Bank server running on http://localhost:3000"));
