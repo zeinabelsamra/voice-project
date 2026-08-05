@@ -2,6 +2,9 @@
 node-backend/.env
 .env
 
+# Admin-editable DB credentials saved from the Settings page — never commit
+node-backend/config/
+
 # Dependencies
 node-backend/node_modules/
 python-service/venv/

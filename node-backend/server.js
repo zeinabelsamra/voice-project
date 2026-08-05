@@ -14,6 +14,52 @@ const path      = require("path");
 const bcrypt    = require("bcryptjs");
 const jwt       = require("jsonwebtoken");
 const { parseVoiceToFields, splitBatchTranscript } = require("./voiceParser");
+const { getEdelphynPool, resetEdelphynPool, testEdelphynConnection } = require("./edelphynDb");
+const { runCategoryQuery, CATEGORIES: EDELPHYN_CATEGORIES } = require("./edelphynQueries");
+const analyticsQueries = require("./edelphynAnalyticsQueries");
+const settingsStore = require("./settingsStore");
+// Same module instance initDB() lazily wires `getPool`/`sql` from below — required
+// directly here too so Settings routes can reset/test the pool without waiting on initDB().
+const dbModule = require("./db");
+
+// ── e-Delphyn live category cache: `${category}|${from}|${to}` → { columns, rows, fetchedAt } ──
+// Keeps the dashboard near-real-time (60s) without re-querying the hospital's
+// production LIS on every click/filter change.
+const CATEGORY_CACHE_TTL = 60_000;
+const categoryCache = new Map();
+
+async function getCategoryRows(category, dateFrom, dateTo) {
+  const key = `${category}|${dateFrom}|${dateTo}`;
+  const cached = categoryCache.get(key);
+  if (cached && Date.now() - cached.fetchedAt < CATEGORY_CACHE_TTL) return cached;
+  const pool  = await getEdelphynPool();
+  const fresh = await runCategoryQuery(pool, category, dateFrom, dateTo);
+  const entry = { columns: fresh.columns, rows: fresh.rows, fetchedAt: Date.now() };
+  categoryCache.set(key, entry);
+  return entry;
+}
+
+function ymdLocal(date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
+// eDelphyn queries use an exclusive end date; dashboard date pickers are inclusive.
+function nextDayStr(dateStr) {
+  const d = new Date(`${dateStr}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + 1);
+  return d.toISOString().slice(0, 10);
+}
+
+// Classifies a transfusion row's [Component] text into prc/ffp/plt — mirrors the
+// old RBC/PLASMA/PLATELETS Excel file split. Tune these patterns against the real
+// DES_COMPONENT values once connected to the live eDelphyn database.
+function classifyComponent(name) {
+  const s = String(name || '').toLowerCase();
+  if (/plat/.test(s)) return 'plt';
+  if (/plasma|ffp/.test(s)) return 'ffp';
+  if (/red|rbc|prc|pack/.test(s)) return 'prc';
+  return null;
+}
 
 const JWT_SECRET = process.env.JWT_SECRET;
 if (!JWT_SECRET) {
@@ -138,11 +184,13 @@ const upload = multer({ dest: "uploads/" });
 let dbReady = false;
 let getPool, sql;
 
+// Re-callable: also used by Settings → Save/Reload to pick up new
+// credentials without restarting the process. The IF NOT EXISTS migrations
+// below are idempotent, so re-running them on an already-migrated DB is safe.
 async function initDB() {
   try {
-    const db = require("./db");
-    getPool = db.getPool;
-    sql = db.sql;
+    getPool = dbModule.getPool;
+    sql     = dbModule.sql;
     const pool = await getPool();
     await pool.request().query("SELECT 1");
     dbReady = true;
@@ -302,6 +350,71 @@ function requireAdmin(req, res, next) {
     next();
   });
 }
+
+// ════════════════════════════════════════════════════════════════
+// Settings → Database credentials (admin only)
+// Lets an admin edit the BloodBankDB / eDelphyn SQL Server connections from
+// the UI instead of hand-editing node-backend/.env and restarting. Saved to
+// node-backend/config/db-settings.json (see settingsStore.js).
+// ════════════════════════════════════════════════════════════════
+function sanitizeDbSettings(input = {}) {
+  return {
+    server:                 String(input.server || '').trim(),
+    port:                   parseInt(input.port) || 1433,
+    database:               String(input.database || '').trim(),
+    user:                   String(input.user || '').trim(),
+    password:               input.password !== undefined ? String(input.password) : '',
+    windowsAuth:            !!input.windowsAuth,
+    trustServerCertificate: input.trustServerCertificate !== false,
+  };
+}
+
+app.get('/api/settings/db', requireAdmin, (req, res) => {
+  res.json(settingsStore.loadSettings());
+});
+
+// Test arbitrary (not-yet-saved) credentials without touching the live pools.
+app.post('/api/settings/db/test', requireAdmin, async (req, res) => {
+  const { which, ...fields } = req.body || {};
+  if (which !== 'bloodbank' && which !== 'edelphyn') {
+    return res.status(400).json({ ok: false, error: "which must be 'bloodbank' or 'edelphyn'" });
+  }
+  const settings = sanitizeDbSettings(fields);
+  const result = which === 'bloodbank'
+    ? await dbModule.testConnection(settings)
+    : await testEdelphynConnection(settings);
+  res.json(result);
+});
+
+// BloodBankDB isn't hospital-editable — it's a brand-new local DB the app
+// manages itself (schema auto-created by initDB() above), so only eDelphyn
+// (the hospital's existing LIS) is exposed through Settings.
+app.put('/api/settings/db', requireAdmin, async (req, res) => {
+  const { edelphyn } = req.body || {};
+  if (!edelphyn) return res.status(400).json({ error: 'edelphyn settings required' });
+  settingsStore.saveSettings({ edelphyn: sanitizeDbSettings(edelphyn) });
+
+  // Drop the live pool so the very next connection attempt picks up the new
+  // credentials, then reconnect right away and report back.
+  await resetEdelphynPool();
+  let edelphynResult;
+  try { await getEdelphynPool(); edelphynResult = { ok: true }; }
+  catch (err) { edelphynResult = { ok: false, error: err.message }; }
+
+  res.json({ saved: true, edelphyn: edelphynResult });
+});
+
+// Re-reads db-settings.json from disk (in case it was edited by hand) and
+// reconnects with whatever it finds, without changing the file.
+app.post('/api/settings/db/reload', requireAdmin, async (req, res) => {
+  settingsStore.loadSettings({ fresh: true });
+  await resetEdelphynPool();
+  let edelphynResult;
+  try { await getEdelphynPool(); edelphynResult = { ok: true }; }
+  catch (err) { edelphynResult = { ok: false, error: err.message }; }
+
+  res.json({ reloaded: true, edelphyn: edelphynResult });
+});
 
 // ════════════════════════════════════════════════════════════════
 // POST /auth/login
@@ -1013,6 +1126,31 @@ app.get('/dashboard/stats', requireAuth, async (req, res) => {
 });
 
 // ════════════════════════════════════════════════════════════════
+// POST /api/rag-chat — proxy to the local Python RAG chatbot service
+// (rag-chatbot/app.py, offline Ollama + Chroma over the Excel data)
+// ════════════════════════════════════════════════════════════════
+app.post('/api/rag-chat', requireAuth, async (req, res) => {
+  const { question, history } = req.body;
+  if (!question || !question.trim()) return res.status(400).json({ error: 'question is required' });
+  try {
+    const ragRes = await axios.post(
+      'http://127.0.0.1:5000/api/chat',
+      { question, history: Array.isArray(history) ? history.slice(-6) : [] },
+      { timeout: 180000 }
+    );
+    res.json(ragRes.data);
+  } catch (err) {
+    if (err.code === 'ECONNREFUSED') {
+      return res.status(503).json({ error: 'RAG chatbot service not running. Start rag-chatbot/app.py first.' });
+    }
+    if (err.code === 'ECONNABORTED' || /timeout/i.test(err.message)) {
+      return res.status(504).json({ error: 'The AI assistant is taking longer than usual to respond. Try a simpler or more specific question.' });
+    }
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ════════════════════════════════════════════════════════════════
 // GET /check-duplicate?file_number=xxx&form_type=transfusion
 // Checks if a record for this patient already exists today
 // ════════════════════════════════════════════════════════════════
@@ -1280,59 +1418,48 @@ app.get('/dashboard/wastage', requireAuth, async (req, res) => {
 
 // ════════════════════════════════════════════════════════════════
 // GET /dashboard/consumption?from=YYYY-MM-DD&to=YYYY-MM-DD
-// Units consumed from the three UnitsIssuedForTransfusion Excel
-// files, broken down by component, blood type, ward, and trend.
-// Each row in those files = 1 blood unit issued.
+// Units consumed, broken down by component, blood type, ward, and
+// trend — sourced live from eDelphyn's 'transfusion' category query.
 // ════════════════════════════════════════════════════════════════
-app.get('/dashboard/consumption', requireAuth, (req, res) => {
+app.get('/dashboard/consumption', requireAuth, async (req, res) => {
   try {
     const fromDate = req.query.from || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
     const toDate   = req.query.to   || new Date().toISOString().slice(0, 10);
 
-    const CONSUMP_FILES = [
-      { name: 'UnitsIssuedForTransfusion - RBC 2023-2026.xlsx',   comp: 'prc' },
-      { name: 'UnitsIssuedForTransfusion -PLASMA 2023-2026.xlsx', comp: 'ffp' },
-      { name: 'UnitsIssuedForTransfusion - PLATELETS.xlsx',       comp: 'plt' },
-    ];
+    const { rows, columns } = await getCategoryRows('transfusion', fromDate, nextDayStr(toDate));
+    const dateCol = columns.find(c => c.toLowerCase().trim() === 'date');
+    const grpCol  = columns.find(c => c.toLowerCase().trim() === 'group');
+    const destCol = columns.find(c => c.toLowerCase().trim() === 'destination');
+    const compCol = columns.find(c => c.toLowerCase().trim() === 'component');
 
     let totalPrc = 0, totalFfp = 0, totalPlt = 0;
     const groupMap = {};
     const roomMap  = {};
     const trendMap = {};
 
-    for (const { name, comp } of CONSUMP_FILES) {
-      const filePath = path.join(EXCEL_DIR, name);
-      if (!fs.existsSync(filePath)) continue;
+    for (const row of rows) {
+      const comp = classifyComponent(row[compCol]);
+      const d    = row[dateCol];
+      if (!comp || !d) continue;
 
-      const { rows, columns } = getCachedRows(name);
-      const dateCol = columns.find(c => c.toLowerCase().trim() === 'date');
-      const grpCol  = columns.find(c => c.toLowerCase().trim() === 'group');
-      const destCol = columns.find(c => c.toLowerCase().trim() === 'destination');
+      if (comp === 'prc') totalPrc++;
+      else if (comp === 'ffp') totalFfp++;
+      else totalPlt++;
 
-      for (const row of rows) {
-        // normalizeExcelDate handles both "YYYY-MM-DD" (from Date objects) and "DD/MM/YYYY" strings
-        const d = normalizeExcelDate(row[dateCol]);
-        if (!d || d < fromDate || d > toDate) continue;
-
-        if (comp === 'prc') totalPrc++;
-        else if (comp === 'ffp') totalFfp++;
-        else totalPlt++;
-
-        const grp = String(row[grpCol] || '').trim();
-        if (grp && grp !== '-') {
-          if (!groupMap[grp]) groupMap[grp] = { prc: 0, ffp: 0, plt: 0 };
-          groupMap[grp][comp]++;
-        }
-
-        const dest = String(row[destCol] || '').trim();
-        if (dest && dest !== '-') {
-          if (!roomMap[dest]) roomMap[dest] = { prc: 0, ffp: 0, plt: 0 };
-          roomMap[dest][comp]++;
-        }
-
-        if (!trendMap[d]) trendMap[d] = { prc: 0, ffp: 0, plt: 0 };
-        trendMap[d][comp]++;
+      const grp = String(row[grpCol] || '').trim();
+      if (grp && grp !== '-') {
+        if (!groupMap[grp]) groupMap[grp] = { prc: 0, ffp: 0, plt: 0 };
+        groupMap[grp][comp]++;
       }
+
+      const dest = String(row[destCol] || '').trim();
+      if (dest && dest !== '-') {
+        if (!roomMap[dest]) roomMap[dest] = { prc: 0, ffp: 0, plt: 0 };
+        roomMap[dest][comp]++;
+      }
+
+      if (!trendMap[d]) trendMap[d] = { prc: 0, ffp: 0, plt: 0 };
+      trendMap[d][comp]++;
     }
 
     const byGroup = Object.entries(groupMap)
@@ -1465,29 +1592,25 @@ async function getMonthlyReportData(monthStr) {
       ) rt WHERE bb_diff BETWEEN 0 AND 480`),
   ]);
 
-  // Excel: units, blood groups, wards, daily trend — all from the 3 issuance files
-  const CONSUMP_FILES = [
-    { name: 'UnitsIssuedForTransfusion - RBC 2023-2026.xlsx',   comp: 'prc' },
-    { name: 'UnitsIssuedForTransfusion -PLASMA 2023-2026.xlsx', comp: 'ffp' },
-    { name: 'UnitsIssuedForTransfusion - PLATELETS.xlsx',       comp: 'plt' },
-  ];
-  let excelPrc = 0, excelFfp = 0, excelPlt = 0;
+  // Units, blood groups, wards, daily trend — live from eDelphyn's 'transfusion' category
+  let livePrc = 0, liveFfp = 0, livePlt = 0;
   const groupMap = {}, destMap = {}, trendMap = {};
 
-  for (const { name, comp } of CONSUMP_FILES) {
-    if (!fs.existsSync(path.join(EXCEL_DIR, name))) continue;
-    const { rows, columns } = getCachedRows(name);
+  {
+    const { rows, columns } = await getCategoryRows('transfusion', from, nextDayStr(to));
     const dateCol = columns.find(c => c.toLowerCase().trim() === 'date');
     const grpCol  = columns.find(c => c.toLowerCase().trim() === 'group');
     const destCol = columns.find(c => c.toLowerCase().trim() === 'destination');
+    const compCol = columns.find(c => c.toLowerCase().trim() === 'component');
 
     for (const row of rows) {
-      const d = normalizeExcelDate(row[dateCol]);
-      if (!d || d < from || d > to) continue;
+      const comp = classifyComponent(row[compCol]);
+      const d    = row[dateCol];
+      if (!comp || !d) continue;
 
-      if (comp === 'prc') excelPrc++;
-      else if (comp === 'ffp') excelFfp++;
-      else excelPlt++;
+      if (comp === 'prc') livePrc++;
+      else if (comp === 'ffp') liveFfp++;
+      else livePlt++;
 
       const grp  = String(row[grpCol]  || '').trim();
       const dest = String(row[destCol] || '').trim();
@@ -1526,7 +1649,7 @@ async function getMonthlyReportData(monthStr) {
   return {
     period:     { month: monthStr, label, from, to },
     overview:   { transfusions: tRow.total || 0, deliveries: dRow.total || 0, life_saving: lsTotal },
-    units:      { prc: excelPrc, ffp: excelFfp, plt: excelPlt, total: excelPrc + excelFfp + excelPlt },
+    units:      { prc: livePrc, ffp: liveFfp, plt: livePlt, total: livePrc + liveFfp + livePlt },
     blood_groups,
     top_rooms,
     top_physicians:  physStats.recordset,
@@ -2097,62 +2220,9 @@ app.post('/ext-delivery/export/docx', requireAdmin, async (req, res) => {
 });
 
 // ════════════════════════════════════════════════════════════════
-// EXCEL FILES DASHBOARD
+// LIVE DASHBOARD (e-Delphyn)
 // ════════════════════════════════════════════════════════════════
-const xlsx = require('xlsx');
-
-const EXCEL_DIR = path.join(__dirname, 'uploads', 'excel');
-if (!fs.existsSync(EXCEL_DIR)) fs.mkdirSync(EXCEL_DIR, { recursive: true });
-
-const excelUpload = multer({
-  storage: multer.diskStorage({
-    destination: EXCEL_DIR,
-    filename: (req, file, cb) => cb(null, `_tmp_${Date.now()}_${file.originalname}`)
-  }),
-  fileFilter: (req, file, cb) => {
-    if (/\.(xlsx|xls)$/i.test(file.originalname)) cb(null, true);
-    else cb(new Error('Only .xlsx and .xls files are allowed'));
-  }
-});
-
-app.get('/api/excel/files', requireAuth, (req, res) => {
-  try {
-    const files = fs.readdirSync(EXCEL_DIR)
-      .filter(f => /\.(xlsx|xls)$/i.test(f))
-      .map(f => {
-        const stat = fs.statSync(path.join(EXCEL_DIR, f));
-        return { name: f, size: stat.size, modified: stat.mtime };
-      });
-    res.json(files);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-app.post('/api/excel/upload', requireAuth, excelUpload.single('file'), (req, res) => {
-  if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
-  const targetName = path.basename((req.body && req.body.targetName) || req.file.originalname);
-  if (!/\.(xlsx|xls)$/i.test(targetName)) {
-    fs.unlinkSync(req.file.path);
-    return res.status(400).json({ error: 'Invalid file type' });
-  }
-  const finalPath = path.join(EXCEL_DIR, targetName);
-  fs.renameSync(req.file.path, finalPath);
-  excelFileCache.delete(targetName);   // bust cache so next query reads fresh data
-  res.json({ success: true, name: targetName });
-});
-
-app.delete('/api/excel/files/:filename', requireAdmin, (req, res) => {
-  try {
-    const filePath = path.join(EXCEL_DIR, path.basename(req.params.filename));
-    if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'File not found' });
-    fs.unlinkSync(filePath);
-    excelFileCache.delete(path.basename(req.params.filename));
-    res.json({ success: true });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
+const xlsx = require('xlsx'); // still used by /api/dashboard/category-export
 
 // ── Excel shared date normaliser (module-level) ─────────────
 function normalizeExcelDate(val) {
@@ -2163,86 +2233,6 @@ function normalizeExcelDate(val) {
   if (m) return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
   if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.substring(0, 10);
   return s;
-}
-
-// Normalises any Excel cell value — handles both dates and time-only cells.
-// SheetJS builds Date objects using local time, so we use local-time getters
-// to avoid timezone-offset errors (e.g. UTC+2 would show times 2 hrs early).
-function normalizeExcelValue(val) {
-  if (!(val instanceof Date)) return val;
-  // Time-only cells: Excel epoch is 1899-12-30 (local year = 1899)
-  if (val.getFullYear() === 1899) {
-    const h = String(val.getHours()).padStart(2, '0');
-    const m = String(val.getMinutes()).padStart(2, '0');
-    return `${h}:${m}`;
-  }
-  // Regular date: use local date parts to avoid UTC midnight shift
-  const y  = val.getFullYear();
-  const mo = String(val.getMonth() + 1).padStart(2, '0');
-  const d  = String(val.getDate()).padStart(2, '0');
-  return `${y}-${mo}-${d}`;
-}
-
-// ── Parsed-file cache: filename → { columns, rows, mtime } ──
-const excelFileCache = new Map();
-
-function getCachedRows(filename) {
-  const filePath = path.join(EXCEL_DIR, filename);
-  const mtime    = fs.statSync(filePath).mtime.getTime();
-  const cached   = excelFileCache.get(filename);
-  if (cached && cached.mtime === mtime) return cached;
-
-  const workbook = xlsx.readFile(filePath, { cellDates: true });
-  const sheet    = workbook.Sheets[workbook.SheetNames[0]];
-  const rawRows  = xlsx.utils.sheet_to_json(sheet, { header: 1, defval: '' });
-
-  // Deduplicate header names
-  const headerRow = rawRows[0] || [];
-  const columns   = [];
-  const colSeen   = {};
-  headerRow.forEach(h => {
-    const name = String(h).trim() || '(empty)';
-    colSeen[name] = colSeen[name] ?? -1;
-    colSeen[name]++;
-    columns.push(colSeen[name] === 0 ? name : `${name}_${colSeen[name]}`);
-  });
-
-  const rows = rawRows.slice(1)
-    .filter(r => r.some(v => v !== '' && v !== null && v !== undefined))
-    .map(r => {
-      const obj = {};
-      columns.forEach((c, i) => {
-        const v = r[i] ?? '';
-        obj[c] = (v instanceof Date) ? normalizeExcelValue(v) : v;
-      });
-      return obj;
-    });
-
-  const entry = { columns, rows, mtime };
-  excelFileCache.set(filename, entry);
-  return entry;
-}
-
-// ── Excel type detection & summary helpers ──────────────────
-function detectExcelType(columns) {
-  const s = new Set(columns.map(c => String(c).toLowerCase().trim()));
-  // Donors first — dob+gender is unique to registered donor files; donor+nationality
-  // also covers donor sheets that may lack a dob column. Must run before external_units
-  // because donor registration files also contain seq/donation type/bag columns.
-  if ((s.has('dob') && s.has('gender')) || (s.has('donor') && s.has('nationality') && s.has('dob'))) return 'donors';
-  // External units from other centres
-  if (s.has('seq') && s.has('donation type') && s.has('bag'))                                return 'external_units';
-  // Units sent to other centres — hospital + expiry are unique to this type
-  if (s.has('hospital') && s.has('expiry'))                                                  return 'sent_to_centres';
-  // Patient requests — IAT or Request type are unique
-  if (s.has('request type') || s.has('iat'))                                                 return 'requests';
-  // Wasted units — Reason column is unique (exclude transfusion files that also have destination)
-  if (s.has('reason') && s.has('unit') && !s.has('destination'))                             return 'wasted';
-  // Transfusion: 'issued' is the strongest signal; fall back to patient number or destination+returned
-  if (s.has('issued') || s.has('patient number') || (s.has('destination') && s.has('returned'))) return 'transfusion';
-  // Donors fallback — donor+nationality without dob (older file formats)
-  if (s.has('donor') && s.has('nationality'))                                                 return 'donors';
-  return 'generic';
 }
 
 function excelCountBy(rows, col, topN) {
@@ -2474,52 +2464,50 @@ function excelSummary(type, rows, columns) {
   }
 }
 
-// GET /api/excel/categories  — files grouped by detected type
-app.get('/api/excel/categories', requireAuth, (req, res) => {
+// GET /api/dashboard/categories — live row counts per eDelphyn category
+app.get('/api/dashboard/categories', requireAuth, async (req, res) => {
   try {
-    const files = fs.readdirSync(EXCEL_DIR).filter(f => /\.(xlsx|xls)$/i.test(f));
-    const cats  = {};
-    const now       = new Date();
-    const pad       = n => String(n).padStart(2, '0');
-    const thisMo    = `${now.getFullYear()}-${pad(now.getMonth() + 1)}`;
+    const now        = new Date();
+    const pad        = n => String(n).padStart(2, '0');
+    const thisMo     = `${now.getFullYear()}-${pad(now.getMonth() + 1)}`;
     const lastMoDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const lastMo    = `${lastMoDate.getFullYear()}-${pad(lastMoDate.getMonth() + 1)}`;
+    const lastMo     = `${lastMoDate.getFullYear()}-${pad(lastMoDate.getMonth() + 1)}`;
 
-    for (const f of files) {
-      try {
-        const stat = fs.statSync(path.join(EXCEL_DIR, f));
-        const { columns, rows } = getCachedRows(f);
-        const type    = detectExcelType(columns);
-        const dateCol = columns.find(k => k.toLowerCase().trim() === 'date');
-        let thisMonth = 0, lastMonth = 0;
-        if (dateCol) {
-          rows.forEach(row => {
-            const ds = normalizeExcelDate(row[dateCol]);
-            if (!ds || ds.length < 7) return;
-            const mo = ds.substring(0, 7);
-            if (mo === thisMo) thisMonth++;
-            if (mo === lastMo) lastMonth++;
-          });
-        }
-        if (!cats[type]) cats[type] = [];
-        cats[type].push({ name: f, size: stat.size, modified: stat.mtime, rowCount: rows.length, thisMonth, lastMonth });
-      } catch (_) { /* skip unreadable files */ }
+    // 13-month rolling window: covers this/last month plus a year of history
+    // for the monthly comparison chart, without pulling the DB's entire history.
+    const rangeFrom = ymdLocal(new Date(now.getFullYear(), now.getMonth() - 12, 1));
+    const rangeTo   = ymdLocal(new Date(now.getFullYear(), now.getMonth() + 1, 1));
+
+    const cats = {};
+    const categoryRows = {}; // reused below for topDepts/monthlyComparison
+
+    for (const type of EDELPHYN_CATEGORIES) {
+      const { columns, rows } = await getCategoryRows(type, rangeFrom, rangeTo);
+      categoryRows[type] = { columns, rows };
+      const dateCol = columns.find(k => k.toLowerCase().trim() === 'date');
+      let thisMonth = 0, lastMonth = 0;
+      if (dateCol) {
+        rows.forEach(row => {
+          const ds = row[dateCol];
+          if (!ds || ds.length < 7) return;
+          const mo = ds.substring(0, 7);
+          if (mo === thisMo) thisMonth++;
+          if (mo === lastMo) lastMonth++;
+        });
+      }
+      cats[type] = { source: 'eDelphyn', rowCount: rows.length, thisMonth, lastMonth };
     }
 
     // Top departments/wards aggregated across transfusion + requests
     const deptMap = {};
     for (const type of ['transfusion', 'requests']) {
-      for (const fi of (cats[type] || [])) {
-        try {
-          const { columns, rows } = getCachedRows(fi.name);
-          const deptCol = excelFindCol(columns, 'destination', 'department', 'dept', 'ward');
-          if (!deptCol) continue;
-          rows.forEach(row => {
-            const v = String(row[deptCol] || '').trim();
-            if (v) deptMap[v] = (deptMap[v] || 0) + 1;
-          });
-        } catch (_) {}
-      }
+      const { columns, rows } = categoryRows[type];
+      const deptCol = excelFindCol(columns, 'destination', 'department', 'dept', 'ward');
+      if (!deptCol) continue;
+      rows.forEach(row => {
+        const v = String(row[deptCol] || '').trim();
+        if (v) deptMap[v] = (deptMap[v] || 0) + 1;
+      });
     }
     const _topDepts = Object.entries(deptMap)
       .sort((a, b) => b[1] - a[1]).slice(0, 10)
@@ -2528,20 +2516,16 @@ app.get('/api/excel/categories', requireAuth, (req, res) => {
     // Monthly comparison: requests vs issued (transfusion)
     const moMap = {};
     for (const type of ['transfusion', 'requests']) {
-      for (const fi of (cats[type] || [])) {
-        try {
-          const { columns: fc, rows: fr } = getCachedRows(fi.name);
-          const dc = fc.find(k => k.toLowerCase().trim() === 'date');
-          if (!dc) continue;
-          fr.forEach(row => {
-            const ds = normalizeExcelDate(row[dc]);
-            if (!ds || ds.length < 7) return;
-            const mo = ds.substring(0, 7);
-            if (!moMap[mo]) moMap[mo] = { requests: 0, transfusion: 0 };
-            moMap[mo][type]++;
-          });
-        } catch (_) {}
-      }
+      const { columns, rows } = categoryRows[type];
+      const dc = columns.find(k => k.toLowerCase().trim() === 'date');
+      if (!dc) continue;
+      rows.forEach(row => {
+        const ds = row[dc];
+        if (!ds || ds.length < 7) return;
+        const mo = ds.substring(0, 7);
+        if (!moMap[mo]) moMap[mo] = { requests: 0, transfusion: 0 };
+        moMap[mo][type]++;
+      });
     }
     const _monthlyComparison = Object.entries(moMap)
       .sort(([a],[b]) => a.localeCompare(b))
@@ -2551,54 +2535,27 @@ app.get('/api/excel/categories', requireAuth, (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// POST /api/excel/category-query  — combined query across all files in a category
-app.post('/api/excel/category-query', requireAuth, (req, res) => {
+// POST /api/dashboard/category-query — filtered/paginated rows + summary for one category
+app.post('/api/dashboard/category-query', requireAuth, async (req, res) => {
   try {
     const { category, dateFrom, dateTo, search, page = 1, pageSize = 100 } = req.body;
-    if (!category) return res.status(400).json({ error: 'category required' });
+    if (!EDELPHYN_CATEGORIES.includes(category)) return res.status(400).json({ error: 'Unknown category' });
 
-    const files   = fs.readdirSync(EXCEL_DIR).filter(f => /\.(xlsx|xls)$/i.test(f));
-    const catFiles = [];
-    const colSet   = new Set();
+    const from = dateFrom || '1900-01-01';
+    const to   = dateTo ? nextDayStr(dateTo) : '2999-12-31';
 
-    for (const f of files) {
-      try {
-        const { columns } = getCachedRows(f);
-        if (detectExcelType(columns) === category) {
-          catFiles.push(f);
-          columns.forEach(c => colSet.add(c));
-        }
-      } catch (_) {}
-    }
+    const { columns, rows: allRows } = await getCategoryRows(category, from, to);
 
-    if (catFiles.length === 0) {
-      return res.json({ columns: [], rows: [], total: 0, filtered: 0,
-        type: category, summary: {}, monthlyChart: [], files: [],
+    if (allRows.length === 0) {
+      return res.json({ columns, rows: [], total: 0, filtered: 0,
+        type: category, summary: {}, monthlyChart: [],
         page: 1, pageSize: 100, totalPages: 0 });
     }
 
-    const columns = [...colSet];
     const dateCol = columns.find(k => k.toLowerCase().trim() === 'date');
 
-    // Merge all rows, tagging each with its source file
-    const allRows = [];
-    for (const f of catFiles) {
-      getCachedRows(f).rows.forEach(row => allRows.push({ ...row, _file: f }));
-    }
-
-    // Date filter
-    let filtered = allRows;
-    if (dateCol && (dateFrom || dateTo)) {
-      filtered = allRows.filter(row => {
-        const ds = normalizeExcelDate(row[dateCol]);
-        if (!ds) return true;
-        if (dateFrom && ds < dateFrom) return false;
-        if (dateTo   && ds > dateTo)   return false;
-        return true;
-      });
-    }
-
     // Search filter
+    let filtered = allRows;
     if (search && search.trim()) {
       const q = search.trim().toLowerCase();
       filtered = filtered.filter(row =>
@@ -2610,7 +2567,7 @@ app.post('/api/excel/category-query', requireAuth, (req, res) => {
     const monthMap = {};
     if (dateCol) {
       filtered.forEach(row => {
-        const ds = normalizeExcelDate(row[dateCol]);
+        const ds = row[dateCol];
         if (!ds || ds.length < 7) return;
         const mo = ds.substring(0, 7);
         monthMap[mo] = (monthMap[mo] || 0) + 1;
@@ -2620,14 +2577,7 @@ app.post('/api/excel/category-query', requireAuth, (req, res) => {
       .sort(([a],[b]) => a.localeCompare(b))
       .map(([label, count]) => ({ label, count }));
 
-    const summary  = excelSummary(category, filtered, columns);
-
-    // Per-file breakdown (total rows vs filtered rows)
-    const fileBreakdown = catFiles.map(f => ({
-      name:     f,
-      total:    allRows .filter(r => r._file === f).length,
-      filtered: filtered.filter(r => r._file === f).length
-    }));
+    const summary = excelSummary(category, filtered, columns);
 
     const total         = allRows.length;
     const filteredTotal = filtered.length;
@@ -2636,56 +2586,35 @@ app.post('/api/excel/category-query', requireAuth, (req, res) => {
     const paginatedRows = filtered.slice((pageInt-1)*pageSizeInt, pageInt*pageSizeInt);
 
     res.json({
-      columns: [...columns, '_file'],
+      columns,
       rows: paginatedRows,
       total, filtered: filteredTotal,
       dateColumn: dateCol || null,
       monthlyChart, type: category, summary,
-      files: fileBreakdown,
       page: pageInt, pageSize: pageSizeInt,
       totalPages: Math.ceil(filteredTotal / pageSizeInt)
     });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// POST /api/excel/category-export  — download all filtered rows as XLSX
-app.post('/api/excel/category-export', requireAuth, (req, res) => {
+// POST /api/dashboard/category-export — download filtered rows as XLSX
+app.post('/api/dashboard/category-export', requireAuth, async (req, res) => {
   try {
     const { category, dateFrom, dateTo, search } = req.body;
-    if (!category) return res.status(400).json({ error: 'category required' });
+    if (!EDELPHYN_CATEGORIES.includes(category)) return res.status(400).json({ error: 'Unknown category' });
 
-    const files = fs.readdirSync(EXCEL_DIR).filter(f => /\.(xlsx|xls)$/i.test(f));
-    const colSet = new Set();
-    const catFiles = [];
-    for (const f of files) {
-      try {
-        const { columns } = getCachedRows(f);
-        if (detectExcelType(columns) === category) { catFiles.push(f); columns.forEach(c => colSet.add(c)); }
-      } catch (_) {}
-    }
+    const from = dateFrom || '1900-01-01';
+    const to   = dateTo ? nextDayStr(dateTo) : '2999-12-31';
+    const { columns, rows: allRows } = await getCategoryRows(category, from, to);
 
-    const columns = [...colSet];
-    const dateCol = columns.find(k => k.toLowerCase().trim() === 'date');
-
-    let rows = [];
-    for (const f of catFiles) getCachedRows(f).rows.forEach(row => rows.push({ ...row, _file: f }));
-
-    if (dateCol && (dateFrom || dateTo)) {
-      rows = rows.filter(row => {
-        const ds = normalizeExcelDate(row[dateCol]);
-        if (!ds) return true;
-        if (dateFrom && ds < dateFrom) return false;
-        if (dateTo   && ds > dateTo)   return false;
-        return true;
-      });
-    }
+    let rows = allRows;
     if (search && search.trim()) {
       const q = search.trim().toLowerCase();
       rows = rows.filter(row => Object.values(row).some(v => v !== null && v !== undefined && String(v).toLowerCase().includes(q)));
     }
 
     const wb = xlsx.utils.book_new();
-    const ws = xlsx.utils.json_to_sheet(rows, { header: [...columns, '_file'] });
+    const ws = xlsx.utils.json_to_sheet(rows, { header: columns });
     xlsx.utils.book_append_sheet(wb, ws, category.substring(0, 31));
     const buf = xlsx.write(wb, { type: 'buffer', bookType: 'xlsx' });
 
@@ -2695,41 +2624,34 @@ app.post('/api/excel/category-export', requireAuth, (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// GET /api/excel/alerts — rule-based smart alerts from all Excel data
-app.get('/api/excel/alerts', requireAuth, (req, res) => {
+// GET /api/dashboard/alerts — rule-based smart alerts from live eDelphyn data
+app.get('/api/dashboard/alerts', requireAuth, async (req, res) => {
   try {
     const alerts = [];
-    const files = fs.readdirSync(EXCEL_DIR).filter(f => /\.(xlsx|xls)$/i.test(f));
-
-    // Build per-category data (columns + rows) using cache
-    const catData = {};
-    for (const f of files) {
-      try {
-        const { columns, rows } = getCachedRows(f);
-        const type = detectExcelType(columns);
-        if (!catData[type]) catData[type] = { columns: [], rows: [] };
-        rows.forEach(r => catData[type].rows.push({ ...r, _file: f }));
-        columns.forEach(c => { if (!catData[type].columns.includes(c)) catData[type].columns.push(c); });
-      } catch (_) {}
-    }
-
     const now = new Date();
     const pad = n => String(n).padStart(2, '0');
     const thisMo = `${now.getFullYear()}-${pad(now.getMonth() + 1)}`;
     const lastMoDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     const lastMo = `${lastMoDate.getFullYear()}-${pad(lastMoDate.getMonth() + 1)}`;
 
+    // 2-month window covers "this month" and "last month" comparisons below.
+    const rangeFrom = ymdLocal(lastMoDate);
+    const tomorrow  = new Date(now); tomorrow.setDate(tomorrow.getDate() + 1);
+    const rangeTo   = ymdLocal(tomorrow);
+
+    const catData = {};
+    for (const type of ['wasted', 'requests', 'transfusion', 'donors', 'sent_to_centres']) {
+      catData[type] = await getCategoryRows(type, rangeFrom, rangeTo);
+    }
+
     const moFilter = (rows, columns, mo) => {
       const dateCol = columns.find(k => k.toLowerCase().trim() === 'date');
       if (!dateCol) return [];
-      return rows.filter(r => {
-        const ds = normalizeExcelDate(r[dateCol]);
-        return ds && ds.substring(0, 7) === mo;
-      });
+      return rows.filter(r => r[dateCol] && r[dateCol].substring(0, 7) === mo);
     };
 
     // ── Rule 1: Wastage spike (this month vs last month > 20%)
-    if (catData.wasted) {
+    {
       const { rows, columns } = catData.wasted;
       const thisCount = moFilter(rows, columns, thisMo).length;
       const lastCount = moFilter(rows, columns, lastMo).length;
@@ -2747,7 +2669,7 @@ app.get('/api/excel/alerts', requireAuth, (req, res) => {
     }
 
     // ── Rule 2: High IAT positive rate (> 5% of this month's requests)
-    if (catData.requests) {
+    {
       const { rows, columns } = catData.requests;
       const thisRows = moFilter(rows, columns, thisMo);
       const iatCol = excelFindCol(columns, 'iat');
@@ -2768,7 +2690,7 @@ app.get('/api/excel/alerts', requireAuth, (req, res) => {
     }
 
     // ── Rule 3: Requests surge (this month > last month by > 30%)
-    if (catData.requests) {
+    {
       const { rows, columns } = catData.requests;
       const thisCount = moFilter(rows, columns, thisMo).length;
       const lastCount = moFilter(rows, columns, lastMo).length;
@@ -2786,7 +2708,7 @@ app.get('/api/excel/alerts', requireAuth, (req, res) => {
     }
 
     // ── Rule 4: High return rate in transfusion (returned > 15% of issued)
-    if (catData.transfusion) {
+    {
       const { rows, columns } = catData.transfusion;
       const thisRows = moFilter(rows, columns, thisMo);
       const retCol = excelFindCol(columns, 'returned');
@@ -2807,7 +2729,7 @@ app.get('/api/excel/alerts', requireAuth, (req, res) => {
     }
 
     // ── Rule 5: Rare blood group — very few donations this month
-    if (catData.donors) {
+    {
       const { rows, columns } = catData.donors;
       const thisRows = moFilter(rows, columns, thisMo);
       const groupCol = excelFindCol(columns, 'group');
@@ -2834,15 +2756,15 @@ app.get('/api/excel/alerts', requireAuth, (req, res) => {
     }
 
     // ── Rule 6: Near-expiry units sent (≤ 7 days to expiry)
-    if (catData.sent_to_centres) {
+    {
       const { rows, columns } = catData.sent_to_centres;
       const dateCol = columns.find(k => k.toLowerCase().trim() === 'date');
       const expiryCol = excelFindCol(columns, 'expiry');
       if (dateCol && expiryCol) {
         const thisRows = moFilter(rows, columns, thisMo);
         const nearExpiry = thisRows.filter(r => {
-          const sent = new Date(normalizeExcelDate(r[dateCol]));
-          const exp  = new Date(normalizeExcelDate(r[expiryCol]));
+          const sent = new Date(r[dateCol]);
+          const exp  = new Date(r[expiryCol]);
           if (isNaN(sent) || isNaN(exp)) return false;
           const days = (exp - sent) / 86400000;
           return days >= 0 && days <= 14;
@@ -2861,7 +2783,7 @@ app.get('/api/excel/alerts', requireAuth, (req, res) => {
     }
 
     // ── Rule 7: Expiry-related waste > 50% of total waste this month
-    if (catData.wasted) {
+    {
       const { rows, columns } = catData.wasted;
       const thisRows = moFilter(rows, columns, thisMo);
       const reasonCol = excelFindCol(columns, 'reason');
@@ -2888,112 +2810,147 @@ app.get('/api/excel/alerts', requireAuth, (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-app.post('/api/excel/query', requireAuth, (req, res) => {
+// ════════════════════════════════════════════════════════════════
+// /api/analytics/* — advanced e-Delphyn analytics (KPI cards, trends,
+// donor behaviour, fulfilment/turnaround, expiry risk, demand heatmap,
+// anomaly detection). Each route defaults to a sensible date range so
+// the dashboard works with no query params.
+// ════════════════════════════════════════════════════════════════
+function defaultRange(days) {
+  const to = new Date();
+  const from = new Date(to.getTime() - days * 86400000);
+  return { from: ymdLocal(from), to: ymdLocal(to) };
+}
+
+app.get('/api/analytics/kpi-summary', requireAuth, async (req, res) => {
   try {
-    const { filename, dateFrom, dateTo, page = 1, pageSize = 100 } = req.body;
-    if (!filename) return res.status(400).json({ error: 'filename required' });
+    const { from: defFrom, to: defTo } = defaultRange(30);
+    const dateFrom = req.query.from || defFrom;
+    const dateTo   = nextDayStr(req.query.to || defTo);
+    const pool = await getEdelphynPool();
+    const data = await analyticsQueries.kpiSummary(pool, dateFrom, dateTo);
+    res.json(data);
+  } catch (err) { console.error('kpi-summary error:', err.message); res.status(500).json({ error: err.message }); }
+});
 
-    const filePath = path.join(EXCEL_DIR, path.basename(filename));
-    if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'File not found' });
+app.get('/api/analytics/monthly-trend', requireAuth, async (req, res) => {
+  try {
+    const { from: defFrom, to: defTo } = defaultRange(365);
+    const dateFrom = req.query.from || defFrom;
+    const dateTo   = nextDayStr(req.query.to || defTo);
+    const pool = await getEdelphynPool();
+    const rows = await analyticsQueries.monthlyTrend(pool, dateFrom, dateTo);
+    res.json(rows);
+  } catch (err) { console.error('monthly-trend error:', err.message); res.status(500).json({ error: err.message }); }
+});
 
-    const workbook = xlsx.readFile(filePath, { cellDates: true });
-    const sheetName = workbook.SheetNames[0];
-    const sheet = workbook.Sheets[sheetName];
+app.get('/api/analytics/donation-types', requireAuth, async (req, res) => {
+  try {
+    const { from: defFrom, to: defTo } = defaultRange(30);
+    const dateFrom = req.query.from || defFrom;
+    const dateTo   = nextDayStr(req.query.to || defTo);
+    const pool = await getEdelphynPool();
+    const rows = await analyticsQueries.donationTypes(pool, dateFrom, dateTo);
+    res.json(rows);
+  } catch (err) { console.error('donation-types error:', err.message); res.status(500).json({ error: err.message }); }
+});
 
-    // Read as arrays first so we can deduplicate column headers
-    const rawRows = xlsx.utils.sheet_to_json(sheet, { header: 1, defval: '' });
-    if (rawRows.length === 0) {
-      return res.json({ columns: [], rows: [], total: 0, filtered: 0, dateColumn: null, monthlyChart: [], type: 'generic', summary: {} });
-    }
+app.get('/api/analytics/donor-retention', requireAuth, async (req, res) => {
+  try {
+    const { from: defFrom, to: defTo } = defaultRange(365);
+    const dateFrom = req.query.from || defFrom;
+    const dateTo   = nextDayStr(req.query.to || defTo);
+    const pool = await getEdelphynPool();
+    const rows = await analyticsQueries.donorRetention(pool, dateFrom, dateTo);
+    res.json(rows);
+  } catch (err) { console.error('donor-retention error:', err.message); res.status(500).json({ error: err.message }); }
+});
 
-    // Build unique column names (handles duplicate headers like two "Component" columns)
-    const headerRow = rawRows[0];
-    const columns = [];
-    const colSeen = {};
-    headerRow.forEach(h => {
-      const name = String(h).trim() || '(empty)';
-      colSeen[name] = (colSeen[name] || 0);
-      columns.push(colSeen[name] === 0 ? name : `${name}_${colSeen[name]}`);
-      colSeen[name]++;
-    });
+app.get('/api/analytics/donor-recall', requireAuth, async (req, res) => {
+  try {
+    const inactiveDays = parseInt(req.query.inactiveDays) || 180;
+    const pool = await getEdelphynPool();
+    const rows = await analyticsQueries.donorRecall(pool, inactiveDays);
+    res.json(rows);
+  } catch (err) { console.error('donor-recall error:', err.message); res.status(500).json({ error: err.message }); }
+});
 
-    // Build object rows
-    const rows = rawRows.slice(1)
-      .filter(r => r.some(v => v !== '' && v !== null && v !== undefined))
-      .map(r => {
-        const obj = {};
-        columns.forEach((c, i) => { obj[c] = r[i] ?? ''; });
-        return obj;
-      });
+app.get('/api/analytics/fulfilment', requireAuth, async (req, res) => {
+  try {
+    const { from: defFrom, to: defTo } = defaultRange(30);
+    const dateFrom = req.query.from || defFrom;
+    const dateTo   = nextDayStr(req.query.to || defTo);
+    const pool = await getEdelphynPool();
+    const rows = await analyticsQueries.fulfilmentRate(pool, dateFrom, dateTo);
+    res.json(rows);
+  } catch (err) { console.error('fulfilment error:', err.message); res.status(500).json({ error: err.message }); }
+});
 
-    if (rows.length === 0) {
-      return res.json({ columns, rows: [], total: 0, filtered: 0, dateColumn: null, monthlyChart: [], type: detectExcelType(columns), summary: {} });
-    }
+app.get('/api/analytics/turnaround', requireAuth, async (req, res) => {
+  try {
+    const { from: defFrom, to: defTo } = defaultRange(30);
+    const dateFrom = req.query.from || defFrom;
+    const dateTo   = nextDayStr(req.query.to || defTo);
+    const pool = await getEdelphynPool();
+    const rows = await analyticsQueries.turnaroundTime(pool, dateFrom, dateTo);
+    res.json(rows);
+  } catch (err) { console.error('turnaround error:', err.message); res.status(500).json({ error: err.message }); }
+});
 
-    const dateCol = columns.find(k => k.toLowerCase().trim() === 'date');
+app.get('/api/analytics/return-rate', requireAuth, async (req, res) => {
+  try {
+    const { from: defFrom, to: defTo } = defaultRange(30);
+    const dateFrom = req.query.from || defFrom;
+    const dateTo   = nextDayStr(req.query.to || defTo);
+    const pool = await getEdelphynPool();
+    const rows = await analyticsQueries.returnRate(pool, dateFrom, dateTo);
+    res.json(rows);
+  } catch (err) { console.error('return-rate error:', err.message); res.status(500).json({ error: err.message }); }
+});
 
-    function normalizeDate(val) {
-      if (!val && val !== 0) return '';
-      if (val instanceof Date) return val.toISOString().split('T')[0];
-      const s = String(val).trim();
-      const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-      if (m) return `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`;
-      if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.substring(0, 10);
-      return s;
-    }
+app.get('/api/analytics/expiry-risk', requireAuth, async (req, res) => {
+  try {
+    const expiryDays = parseInt(req.query.expiryDays) || 14;
+    const pool = await getEdelphynPool();
+    const rows = await analyticsQueries.expiryRisk(pool, expiryDays);
+    res.json(rows);
+  } catch (err) { console.error('expiry-risk error:', err.message); res.status(500).json({ error: err.message }); }
+});
 
-    const normalizedRows = rows.map(row => {
-      const nr = {};
-      for (const [k, v] of Object.entries(row)) {
-        nr[k] = (v instanceof Date) ? normalizeDate(v) : v;
-      }
-      return nr;
-    });
+// Backs the Expiry Calendar's month-grid — one month at a time, so browsing
+// never has to pull the whole (potentially huge) backlog to render a grid.
+app.get('/api/analytics/expiry-risk/month', requireAuth, async (req, res) => {
+  try {
+    const now   = new Date();
+    const year  = parseInt(req.query.year)  || now.getFullYear();
+    const month = parseInt(req.query.month) || (now.getMonth() + 1);
+    if (month < 1 || month > 12) return res.status(400).json({ error: 'month must be 1-12' });
+    const pool = await getEdelphynPool();
+    const rows = await analyticsQueries.expiryRiskForMonth(pool, year, month);
+    res.json(rows);
+  } catch (err) { console.error('expiry-risk-month error:', err.message); res.status(500).json({ error: err.message }); }
+});
 
-    let filtered = normalizedRows;
-    if (dateCol && (dateFrom || dateTo)) {
-      filtered = normalizedRows.filter(row => {
-        const ds = normalizeDate(row[dateCol]);
-        if (!ds) return true;
-        if (dateFrom && ds < dateFrom) return false;
-        if (dateTo   && ds > dateTo)   return false;
-        return true;
-      });
-    }
+app.get('/api/analytics/demand-heatmap', requireAuth, async (req, res) => {
+  try {
+    const { from: defFrom, to: defTo } = defaultRange(180);
+    const dateFrom = req.query.from || defFrom;
+    const dateTo   = nextDayStr(req.query.to || defTo);
+    const pool = await getEdelphynPool();
+    const rows = await analyticsQueries.demandHeatmap(pool, dateFrom, dateTo);
+    res.json(rows);
+  } catch (err) { console.error('demand-heatmap error:', err.message); res.status(500).json({ error: err.message }); }
+});
 
-    // Monthly chart
-    const monthMap = {};
-    if (dateCol) {
-      filtered.forEach(row => {
-        const ds = normalizeDate(row[dateCol]);
-        if (!ds || ds.length < 7) return;
-        const month = ds.substring(0, 7);
-        monthMap[month] = (monthMap[month] || 0) + 1;
-      });
-    }
-    const monthlyChart = Object.entries(monthMap)
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([label, count]) => ({ label, count }));
-
-    const type          = detectExcelType(columns);
-    const summary       = excelSummary(type, filtered, columns);
-    const total         = normalizedRows.length;
-    const filteredTotal = filtered.length;
-    const pageInt       = Math.max(1, parseInt(page));
-    const pageSizeInt   = Math.min(500, Math.max(1, parseInt(pageSize)));
-    const paginatedRows = filtered.slice((pageInt - 1) * pageSizeInt, pageInt * pageSizeInt);
-
-    res.json({
-      columns, rows: paginatedRows,
-      total, filtered: filteredTotal,
-      dateColumn: dateCol || null,
-      monthlyChart, type, summary,
-      page: pageInt, pageSize: pageSizeInt,
-      totalPages: Math.ceil(filteredTotal / pageSizeInt)
-    });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+app.get('/api/analytics/anomaly', requireAuth, async (req, res) => {
+  try {
+    const { from: defFrom, to: defTo } = defaultRange(365);
+    const dateFrom = req.query.from || defFrom;
+    const dateTo   = nextDayStr(req.query.to || defTo);
+    const pool = await getEdelphynPool();
+    const rows = await analyticsQueries.anomalyDetection(pool, dateFrom, dateTo);
+    res.json(rows);
+  } catch (err) { console.error('anomaly error:', err.message); res.status(500).json({ error: err.message }); }
 });
 
 // ════════════════════════════════════════════════════════════════

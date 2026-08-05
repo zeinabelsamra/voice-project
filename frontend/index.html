@@ -569,6 +569,46 @@
     .consump-table td{padding:8px 10px;border-bottom:1px solid var(--mist);color:var(--text);}
     .consump-table tr:last-child td{border-bottom:none;}
     .consump-table tr:hover td{background:var(--mist);}
+    /* Analytics page — heatmap + status badges */
+    .an-badge{display:inline-block;padding:2px 9px;border-radius:20px;font-size:10.5px;font-weight:700;letter-spacing:.3px;}
+    .an-badge.critical, .an-badge.expired{background:#FDEDEC;color:#C0392B;}
+    .an-badge.warning, .an-badge.highrisk{background:#FEF5E7;color:#B7860B;}
+    .an-badge.ok, .an-badge.full{background:#EAFAF1;color:#1E8449;}
+    .an-badge.partial{background:#EBF5FB;color:#1A5276;}
+    /* Expiry-risk severity chip: dark ink + a colored dot carries the tier,
+       never the text color alone — readable at any tier's tint. */
+    .an-badge.risk-badge{display:inline-flex;align-items:center;gap:5px;color:var(--text-mid);}
+    .risk-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;display:inline-block;}
+    .an-sortable{cursor:pointer;user-select:none;white-space:nowrap;}
+    .an-sortable:hover{color:var(--text);}
+    .an-expiry-head{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px;}
+    /* Expiry Calendar — normal month-grid view */
+    .an-cal-controls{display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap;}
+    .an-cal-select{padding:6px 10px;border:1.5px solid var(--border);border-radius:6px;font-size:12px;font-family:'Instrument Sans',sans-serif;background:var(--white);cursor:pointer;}
+    .an-cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;}
+    .an-cal-dow{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--text-soft);text-align:center;padding:2px 0 6px;}
+    .an-cal-cell{aspect-ratio:1;min-height:52px;border-radius:8px;background:var(--mist);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;transition:transform .12s;}
+    .an-cal-cell:hover{transform:scale(1.05);}
+    .an-cal-cell.empty{background:transparent;cursor:default;}
+    .an-cal-cell.selected{box-shadow:0 0 0 2.5px var(--navy);}
+    .an-cal-cell.today .acc-daynum{text-decoration:underline;text-underline-offset:2px;}
+    .an-cal-cell .acc-daynum{font-size:12px;font-weight:700;}
+    .an-cal-cell.has-data .acc-daynum{font-weight:800;}
+    .an-cal-cell .acc-count{font-size:11px;font-weight:800;line-height:1;}
+    /* Anomaly chart — click detail card, shown for whichever point was clicked */
+    .an-anomaly-detail{margin-top:14px;padding:12px 16px;border-radius:8px;background:var(--mist);border:1.5px solid var(--border);}
+    .an-anomaly-detail.alert{background:#FDEDEC;border-color:#F1B0A8;}
+    .an-anomaly-detail-head{font-size:13px;font-weight:700;color:var(--text);margin-bottom:6px;}
+    .an-anomaly-detail.alert .an-anomaly-detail-head{color:#922B21;}
+    .an-anomaly-detail-body{display:flex;gap:18px;flex-wrap:wrap;font-size:12px;color:var(--text-mid);}
+    .an-heatmap{overflow-x:auto;}
+    .an-heatmap table{border-collapse:collapse;font-size:10px;width:100%;}
+    .an-heatmap th{padding:3px 4px;font-weight:700;color:var(--text-soft);text-align:center;}
+    .an-heatmap td{width:22px;height:22px;text-align:center;border-radius:3px;color:#fff;font-weight:600;cursor:default;}
+    .an-heatmap td.empty{background:var(--mist);color:transparent;}
+    .an-heatmap th.row-label{text-align:right;padding-right:8px;color:var(--text);font-weight:700;}
+    .an-recall-controls{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap;}
+    .an-recall-controls input[type=number]{width:70px;padding:5px 8px;border:1.5px solid var(--border);border-radius:6px;font-size:12px;}
     .consump-bar-wrap{display:flex;align-items:center;gap:8px;}
     .consump-bar-bg{flex:1;height:8px;background:var(--mist);border-radius:4px;overflow:hidden;}
     .consump-bar-fill{height:100%;border-radius:4px;background:var(--blood);transition:width .4s;}
@@ -676,6 +716,21 @@
 
     /* ── CHAT ── */
     .chat-unread-badge{position:absolute;top:6px;right:8px;background:#C0392B;color:#fff;font-size:10px;font-weight:800;min-width:18px;height:18px;border-radius:9px;display:flex;align-items:center;justify-content:center;padding:0 4px;}
+    .ai-section{display:none;padding:24px;}
+    .ai-section.show{display:block;}
+    .ai-chat-box{display:flex;flex-direction:column;height:calc(100vh - 200px);max-height:640px;border:1px solid var(--border);border-radius:var(--radius);background:#fff;overflow:hidden;}
+    .ai-chat-messages{flex:1;overflow-y:auto;padding:18px;display:flex;flex-direction:column;gap:12px;}
+    .ai-msg{max-width:70%;padding:10px 14px;border-radius:10px;line-height:1.5;font-size:13.5px;white-space:pre-wrap;}
+    .ai-msg.user{align-self:flex-end;background:var(--navy);color:#fff;}
+    .ai-msg.bot{align-self:flex-start;background:#f2f5f9;color:var(--text);border:1px solid var(--border);}
+    .ai-msg.bot.loading{color:var(--text-soft);font-style:italic;}
+    .ai-chat-form{display:flex;gap:10px;padding:14px 16px;border-top:1px solid var(--border);background:#fafbfd;}
+    .ai-chat-input{flex:1;padding:11px 14px;border-radius:var(--radius-sm);border:1.5px solid var(--border);font-size:13.5px;}
+    .ai-chat-input:focus{outline:none;border-color:var(--blood);}
+    .ai-chat-send{padding:11px 20px;border-radius:var(--radius-sm);border:none;background:var(--blood);color:#fff;font-weight:700;font-size:13px;cursor:pointer;}
+    .ai-chat-send:hover{background:var(--blood-dim);}
+    .ai-chat-send:disabled{opacity:.5;cursor:not-allowed;}
+
     .chat-section{display:none;height:calc(100vh - 56px);overflow:hidden;}
     .chat-section.show{display:flex;}
     .chat-layout{display:flex;width:100%;height:100%;}
@@ -914,6 +969,54 @@
   .tbl-btn.danger:hover { background: #dc2626; border-color: #dc2626; color: #fff; }
 
   /* ══════════════════════════════════════════════════════
+     SETTINGS
+  ══════════════════════════════════════════════════════ */
+  .settings-panel { max-width: 900px; margin: 0 auto; }
+  .settings-card {
+    background: #fff; border: 1.5px solid var(--border); border-radius: var(--radius);
+    padding: 24px; box-shadow: var(--shadow-sm);
+  }
+  .settings-msg {
+    padding: 10px 14px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 600; margin-bottom: 16px;
+  }
+  .settings-msg.ok   { background: var(--green-light); color: var(--green); border: 1px solid #b7e4cb; }
+  .settings-msg.fail { background: var(--warn-light);  color: #b0470a; border: 1px solid #f3c98f; }
+  .settings-conn-block { padding: 18px 0; border-bottom: 1px solid var(--border); }
+  .settings-conn-block:last-of-type { border-bottom: none; }
+  .settings-conn-title { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 16px; }
+  .settings-conn-sub { font-family: 'Instrument Sans', sans-serif; font-size: 12px; font-weight: 500; color: var(--text-soft); }
+  .settings-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 16px 24px; margin-bottom: 14px;
+  }
+  .settings-pw-wrap { position: relative; }
+  .settings-pw-wrap .fi { padding-right: 36px; }
+  .settings-pw-toggle {
+    position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+    background: none; border: none; cursor: pointer; font-size: 14px; color: var(--text-soft); padding: 4px;
+  }
+  .settings-toggle-fg { flex-direction: row; align-items: center; justify-content: space-between; }
+  .settings-switch { position: relative; display: inline-block; width: 40px; height: 22px; flex-shrink: 0; }
+  .settings-switch input { opacity: 0; width: 0; height: 0; }
+  .settings-slider {
+    position: absolute; inset: 0; background: #ccd3dc; border-radius: 22px; cursor: pointer; transition: background .18s;
+  }
+  .settings-slider::before {
+    content: ""; position: absolute; height: 16px; width: 16px; left: 3px; bottom: 3px;
+    background: #fff; border-radius: 50%; box-shadow: 0 1px 3px rgba(0,0,0,.25); transition: transform .18s;
+  }
+  .settings-switch input:checked + .settings-slider { background: #2563eb; }
+  .settings-switch input:checked + .settings-slider::before { transform: translateX(18px); }
+  .settings-switch input:disabled + .settings-slider { opacity: .45; cursor: not-allowed; }
+  .settings-test-row { display: flex; align-items: center; gap: 12px; margin-top: 4px; }
+  .settings-test-result { font-size: 12px; font-weight: 600; }
+  .settings-test-result.ok   { color: var(--green); }
+  .settings-test-result.fail { color: #b0470a; }
+  .settings-test-result.pending { color: var(--text-soft); }
+  .settings-savebar {
+    display: flex; justify-content: flex-end; gap: 10px; margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--border);
+  }
+
+  /* ══════════════════════════════════════════════════════
      MODAL (add/edit user)
   ══════════════════════════════════════════════════════ */
   #modalBg {
@@ -950,8 +1053,6 @@
     .excel-section.show{display:block;}
     .excel-dash-header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:20px;}
     .excel-dash-title{font-size:20px;font-weight:800;color:var(--navy);}
-    .excel-upload-btn{padding:8px 16px;background:var(--blood);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;}
-    .excel-upload-btn:hover{background:#a01f1f;}
     .excel-back-btn{padding:7px 14px;border:1.5px solid var(--border);border-radius:8px;background:#fff;color:var(--text-soft);cursor:pointer;font-size:12px;font-weight:700;}
     .excel-back-btn:hover{border-color:var(--blood);color:var(--blood);}
     /* category cards */
@@ -962,15 +1063,6 @@
     .excel-cat-name{font-size:13px;font-weight:800;color:var(--navy);line-height:1.35;margin-bottom:10px;}
     .excel-cat-meta{font-size:11px;color:var(--text-soft);display:flex;align-items:center;justify-content:center;gap:6px;}
     .excel-cat-count{font-weight:700;color:var(--blood);}
-    /* file pills inside category dashboard */
-    .excel-file-list{background:#fff;border:1.5px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:16px;}
-    .excel-file-pills-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--text-soft);margin-bottom:10px;}
-    .excel-file-pills{display:flex;flex-wrap:wrap;gap:8px;}
-    .excel-file-pill{display:flex;align-items:center;gap:8px;padding:5px 10px;border:1.5px solid var(--border);border-radius:8px;background:var(--mist);font-size:11px;}
-    .excel-file-pill-name{font-weight:600;color:var(--navy);max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-    .excel-file-pill-count{color:var(--text-soft);}
-    .excel-file-pill-upd{border:none;background:none;cursor:pointer;font-size:12px;padding:0 2px;opacity:.6;}
-    .excel-file-pill-upd:hover{opacity:1;}
     .excel-no-files{text-align:center;padding:40px;color:var(--text-soft);font-size:13px;border:1.5px dashed var(--border);border-radius:12px;}
     .excel-filter-bar{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:10px 14px;background:var(--mist);border-radius:8px;border:1px solid var(--border);margin-bottom:18px;}
     .excel-filter-bar label{font-size:12px;font-weight:600;color:var(--text-soft);}
@@ -1253,13 +1345,16 @@
       <span class="sidebar-nav-icon">🚚</span> Ext. Delivery
     </button>
     <button class="sidebar-nav-btn" id="tabExcel" onclick="showPage('excel')">
-      <span class="sidebar-nav-icon">📁</span> Excel Files
+      <span class="sidebar-nav-icon">📊</span> Live Dashboard
     </button>
     <button class="sidebar-nav-btn" id="tabHandover" onclick="showPage('handover')">
       <span class="sidebar-nav-icon">📋</span> Handover
     </button>
     <button class="sidebar-nav-btn" id="tabConsumption" onclick="showPage('consumption')">
       <span class="sidebar-nav-icon">📈</span> Consumption
+    </button>
+    <button class="sidebar-nav-btn" id="tabAnalytics" onclick="showPage('analytics')">
+      <span class="sidebar-nav-icon">🧪</span> Analytics
     </button>
     <button class="sidebar-nav-btn" onclick="openPatientHistory('')">
       <span class="sidebar-nav-icon">🧑‍⚕️</span> Patient History
@@ -1271,8 +1366,14 @@
       <span class="sidebar-nav-icon">💬</span> Chat
       <span class="chat-unread-badge" id="chatUnreadBadge" style="display:none"></span>
     </button>
+    <button class="sidebar-nav-btn" id="tabAI" onclick="showPage('ai')">
+      <span class="sidebar-nav-icon">🤖</span> AI Assistant
+    </button>
     <button class="sidebar-nav-btn" id="tabAdmin" onclick="showPage('admin')" style="display:none">
       <span class="sidebar-nav-icon">👥</span> Users
+    </button>
+    <button class="sidebar-nav-btn" id="tabSettings" onclick="showPage('settings')" style="display:none">
+      <span class="sidebar-nav-icon">⚙️</span> Settings
     </button>
   </nav>
 </aside>
@@ -1796,6 +1897,60 @@
     </div>
   </div>
 
+  <!-- ═══════════════ SETTINGS ═══════════════ -->
+  <div id="settingsSection" style="display:none; padding: 24px 8px;">
+    <div class="settings-panel">
+      <div class="settings-card" id="setPaneDb">
+        <div class="settings-conn-title" style="margin-bottom:20px">🗄️ Database Settings <span class="settings-conn-sub">(إعدادات قاعدة البيانات)</span></div>
+        <div class="settings-msg" id="setMsg" style="display:none"></div>
+
+        <div class="settings-conn-block">
+          <div class="settings-conn-title">🏥 eDelphyn <span class="settings-conn-sub">— hospital LIS, read-only</span></div>
+          <div class="settings-grid">
+            <div class="fg"><label class="fl">Server / عنوان الخادم</label>
+              <input class="fi" type="text" id="ed_server" placeholder="e.g. SQLSERVER01\INSTANCE"/></div>
+            <div class="fg"><label class="fl">Port</label>
+              <input class="fi" type="number" id="ed_port" placeholder="1433"/></div>
+            <div class="fg"><label class="fl">Database Name</label>
+              <input class="fi" type="text" id="ed_database" placeholder="eDelphyn"/></div>
+            <div class="fg"><label class="fl">Username / اسم المستخدم</label>
+              <input class="fi" type="text" id="ed_user" placeholder="username"/></div>
+            <div class="fg">
+              <label class="fl">Password / كلمة المرور</label>
+              <div class="settings-pw-wrap">
+                <input class="fi" type="password" id="ed_password" placeholder="••••••••"/>
+                <button type="button" class="settings-pw-toggle" onclick="toggleSettingsPw('ed_password')" title="Show/hide">👁</button>
+              </div>
+            </div>
+            <div class="fg settings-toggle-fg">
+              <label class="fl">Windows Auth / مصادقة ويندوز</label>
+              <label class="settings-switch" title="Requires the msnodesqlv8 driver, not installed on this server — use SQL username/password for now">
+                <input type="checkbox" id="ed_windowsAuth" disabled>
+                <span class="settings-slider"></span>
+              </label>
+            </div>
+            <div class="fg settings-toggle-fg">
+              <label class="fl">Trust Server Certificate</label>
+              <label class="settings-switch">
+                <input type="checkbox" id="ed_trustCert" checked>
+                <span class="settings-slider"></span>
+              </label>
+            </div>
+          </div>
+          <div class="settings-test-row">
+            <button class="btn-clear" id="ed_testBtn" onclick="testDbSettings('edelphyn')">▶ Test Connection (اختبار الاتصال)</button>
+            <span class="settings-test-result" id="ed_testResult"></span>
+          </div>
+        </div>
+
+        <div class="settings-savebar">
+          <button class="btn-clear" onclick="reloadDbSettings()">🔄 Reload &amp; Test (إعادة تحميل)</button>
+          <button class="btn-save d" onclick="saveDbSettings()">💾 Save Settings (حفظ الإعدادات)</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- ═══════════════ EXTERNAL DELIVERY SECTION ═══════════════ -->
   <div id="extDelSection" class="ext-section">
     <div class="ext-form-card">
@@ -1889,21 +2044,17 @@
     </div>
   </div>
 
-  <!-- ═══════════════ EXCEL FILES DASHBOARD ═══════════════ -->
+  <!-- ═══════════════ LIVE DASHBOARD (e-Delphyn) ═══════════════ -->
   <div class="excel-section" id="excelSection">
 
     <!-- Shared header (always visible) -->
     <div class="excel-dash-header">
       <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
         <button class="excel-back-btn" id="excelBackBtn" onclick="showExcelCategories()" style="display:none">← Categories</button>
-        <div class="excel-dash-title" id="excelViewTitle">📁 Excel Files Dashboard</div>
+        <div class="excel-dash-title" id="excelViewTitle">📊 Live Dashboard</div>
       </div>
       <div style="display:flex;gap:8px;align-items:center;">
-        <label class="excel-upload-btn" style="cursor:pointer">
-          ⬆ Upload Excel
-          <input type="file" id="excelUploadInput" accept=".xlsx,.xls" style="display:none" onchange="uploadExcelFile(this,null)">
-        </label>
-        <input type="file" id="excelUpdateInput" accept=".xlsx,.xls" style="display:none" onchange="uploadExcelFile(this,excelUpdateTarget)">
+        <span style="font-size:12px;font-weight:700;color:#38a169;display:flex;align-items:center;gap:5px;">🔴 Live · eDelphyn</span>
       </div>
     </div>
 
@@ -1923,7 +2074,7 @@
         </div>
       </div>
       <div class="excel-cat-grid" id="excelCatGrid">
-        <div class="excel-no-files" style="grid-column:1/-1">No Excel files uploaded yet. Click "⬆ Upload Excel" to get started.</div>
+        <div class="excel-no-files" style="grid-column:1/-1">No data available for this range.</div>
       </div>
     </div>
 
@@ -1950,9 +2101,6 @@
 
       <!-- Type-specific charts (filled dynamically) -->
       <div id="excelChartGrid" style="display:none"></div>
-
-      <!-- Files in this category -->
-      <div class="excel-file-list" id="excelFileList" style="display:none"></div>
 
       <!-- Data table -->
       <div class="excel-table-wrap" id="excelTableWrap" style="display:none">
@@ -2081,6 +2229,112 @@
     </div>
   </div>
 
+  <!-- ── ADVANCED ANALYTICS (e-Delphyn) ── -->
+  <div class="consump-section" id="analyticsSection">
+    <div class="dash-title">🧪 Advanced Analytics
+      <button class="dash-refresh" onclick="loadAnalytics()">🔄 Refresh</button>
+    </div>
+
+    <div class="dash-date-filter" style="margin-bottom:16px;">
+      <label>From <input type="date" id="anFrom" oninput="loadAnalytics()"></label>
+      <label>To <input type="date" id="anTo" oninput="loadAnalytics()"></label>
+      <button class="dash-date-clear" onclick="clearAnalyticsFilter()">✕ Clear (Last 30 days)</button>
+    </div>
+
+    <!-- KPI cards -->
+    <div class="consump-cards" id="anKpiCards">
+      <div class="rt-empty">Loading…</div>
+    </div>
+
+    <!-- Monthly trend -->
+    <div class="consump-panel" style="margin-bottom:20px;">
+      <div class="consump-panel-title">Monthly Supply vs Demand Trend (last 12 months)</div>
+      <div style="position:relative;height:240px;"><canvas id="anTrendChart"></canvas></div>
+    </div>
+
+    <div class="consump-two-col">
+      <div class="consump-panel">
+        <div class="consump-panel-title">Donations by Type</div>
+        <div style="position:relative;height:220px;"><canvas id="anDonationTypeChart"></canvas></div>
+      </div>
+      <div class="consump-panel">
+        <div class="consump-panel-title">New vs Returning Donors <span id="anRetentionPct" style="font-weight:400;color:var(--text-soft);font-size:11px;"></span></div>
+        <div style="position:relative;height:220px;"><canvas id="anRetentionChart"></canvas></div>
+      </div>
+    </div>
+
+    <div class="consump-two-col">
+      <div class="consump-panel">
+        <div class="consump-panel-title">Request Fulfilment Status</div>
+        <div style="position:relative;height:220px;"><canvas id="anFulfilmentChart"></canvas></div>
+      </div>
+      <div class="consump-panel">
+        <div class="consump-panel-title">Unit Return Rate by Component</div>
+        <div style="position:relative;height:220px;"><canvas id="anReturnChart"></canvas></div>
+      </div>
+    </div>
+
+    <div class="consump-panel" style="margin-bottom:20px;">
+      <div class="consump-panel-title">Average Turnaround Time by Department (minutes)</div>
+      <div style="position:relative;height:240px;"><canvas id="anTurnaroundChart"></canvas></div>
+    </div>
+
+    <div class="consump-panel" style="margin-bottom:20px;">
+      <div class="consump-panel-title">Demand Heatmap — Weekday × Hour (last 6 months)</div>
+      <div class="an-heatmap" id="anHeatmap"><div class="rt-empty">Loading…</div></div>
+    </div>
+
+    <div class="consump-panel" style="margin-bottom:20px;">
+      <div class="consump-panel-title">Daily Demand Anomalies (last 12 months)</div>
+      <div style="position:relative;height:240px;"><canvas id="anAnomalyChart"></canvas></div>
+      <div id="anAnomalyDetail" class="an-anomaly-detail" style="display:none"></div>
+    </div>
+
+    <div class="an-expiry-head">
+      <div class="dash-title" style="font-size:15px;margin:0;">🩸 Expiry Risk — Units Expiring Soon</div>
+      <div class="an-recall-controls" style="margin-bottom:0;">
+        <label>Within <input type="number" id="anExpiryDays" value="14" min="1" max="90" oninput="loadExpiryRisk()"> days</label>
+      </div>
+    </div>
+
+    <div class="consump-two-col">
+      <div class="consump-panel">
+        <div class="consump-panel-title">Expiry-Risk Count by Component</div>
+        <div style="position:relative;height:220px;"><canvas id="anExpiryComponentChart"></canvas></div>
+      </div>
+      <div class="consump-panel">
+        <div class="consump-panel-title">Expiry-Risk Count by Blood Group</div>
+        <div style="position:relative;height:220px;"><canvas id="anExpiryGroupChart"></canvas></div>
+      </div>
+    </div>
+
+    <div class="consump-panel" style="margin-bottom:20px;">
+      <div class="consump-panel-title">Expiry Calendar</div>
+      <div class="an-cal-controls">
+        <button class="btn-clear" onclick="anCalShiftMonth(-1)" title="Previous month">◀</button>
+        <select class="an-cal-select" id="anCalMonth" onchange="loadAnExpiryCalendarMonth()"></select>
+        <select class="an-cal-select" id="anCalYear" onchange="loadAnExpiryCalendarMonth()"></select>
+        <button class="btn-clear" onclick="anCalShiftMonth(1)" title="Next month">▶</button>
+        <button class="btn-clear" onclick="anCalToday()">Today</button>
+      </div>
+      <div id="anExpiryCalendar"><div class="rt-empty">Loading…</div></div>
+      <div id="anExpiryDayDetail" style="display:none;margin-top:16px;"></div>
+    </div>
+
+    <div class="consump-panel" style="margin-bottom:20px;">
+      <div class="consump-panel-title">Units Expiring — Detail</div>
+      <div id="anExpiryTable"><div class="rt-empty">Loading…</div></div>
+    </div>
+
+    <div class="consump-panel">
+      <div class="consump-panel-title">Donor Inactivity &amp; Recall Opportunities</div>
+      <div class="an-recall-controls">
+        <label>Inactive for at least <input type="number" id="anInactiveDays" value="180" min="30" max="1000" oninput="loadDonorRecall()"> days</label>
+      </div>
+      <div id="anRecallTable"><div class="rt-empty">Loading…</div></div>
+    </div>
+  </div>
+
   <!-- ── MONTHLY REPORT ── -->
   <div class="monthly-section" id="monthlySection">
     <div class="monthly-controls">
@@ -2106,6 +2360,18 @@
       <div class="chat-main" id="chatMain">
         <div class="chat-placeholder">Select a department to start chatting</div>
       </div>
+    </div>
+  </div>
+
+  <!-- AI ASSISTANT SECTION -->
+  <div class="ai-section" id="aiSection">
+    <div class="dash-title">🤖 AI Assistant <span style="font-size:12px;font-weight:600;color:var(--text-soft)">— local &amp; offline, answers from your Excel data</span></div>
+    <div class="ai-chat-box">
+      <div class="ai-chat-messages" id="aiChatMessages"></div>
+      <form class="ai-chat-form" id="aiChatForm" onsubmit="return sendAIMessage(event)">
+        <input type="text" class="ai-chat-input" id="aiChatInput" placeholder="Ask about donors, requests, transfusions, wasted units..." autocomplete="off"/>
+        <button type="submit" class="ai-chat-send" id="aiChatSend">Send</button>
+      </form>
     </div>
   </div>
 
@@ -2193,7 +2459,7 @@ function onLoginSuccess() {
   roleEl.className   = 'user-bar-role ' + currentUser.role;
   // Show Admin + Ext Delivery tabs only for admins
   const isAdmin = currentUser.role === 'admin';
-  ['tabAdmin','tabExtDel','tabDashboard','tabExcel','tabHandover','tabConsumption','tabMonthly']
+  ['tabAdmin','tabSettings','tabExtDel','tabDashboard','tabExcel','tabHandover','tabConsumption','tabMonthly']
     .forEach(id => { const el = document.getElementById(id); if (el) el.style.display = isAdmin ? '' : 'none'; });
   // Default landing page per role
   showPage(isAdmin ? 'forms' : 'forms');
@@ -2260,6 +2526,123 @@ async function loadUsers() {
       </tr>`).join('');
   } catch {
     tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#dc2626">Failed to load users.</td></tr>';
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// SETTINGS — Database connection credentials (admin only)
+// ═══════════════════════════════════════════════════════
+function toggleSettingsPw(id) {
+  const input = document.getElementById(id);
+  input.type = input.type === 'password' ? 'text' : 'password';
+}
+
+function fillDbForm(prefix, s) {
+  document.getElementById(prefix + '_server').value      = s.server || '';
+  document.getElementById(prefix + '_port').value         = s.port || 1433;
+  document.getElementById(prefix + '_database').value     = s.database || '';
+  document.getElementById(prefix + '_user').value         = s.user || '';
+  document.getElementById(prefix + '_password').value     = s.password || '';
+  document.getElementById(prefix + '_windowsAuth').checked = !!s.windowsAuth;
+  document.getElementById(prefix + '_trustCert').checked   = s.trustServerCertificate !== false;
+}
+
+function collectDbForm(prefix) {
+  return {
+    server:                 document.getElementById(prefix + '_server').value.trim(),
+    port:                   parseInt(document.getElementById(prefix + '_port').value) || 1433,
+    database:               document.getElementById(prefix + '_database').value.trim(),
+    user:                   document.getElementById(prefix + '_user').value.trim(),
+    password:               document.getElementById(prefix + '_password').value,
+    windowsAuth:            document.getElementById(prefix + '_windowsAuth').checked,
+    trustServerCertificate: document.getElementById(prefix + '_trustCert').checked,
+  };
+}
+
+function showSetMsg(text, ok) {
+  const el = document.getElementById('setMsg');
+  el.textContent = text;
+  el.className = 'settings-msg ' + (ok ? 'ok' : 'fail');
+  el.style.display = '';
+}
+
+async function loadDbSettings() {
+  document.getElementById('setMsg').style.display = 'none';
+  try {
+    const res = await apiFetch(`${API}/api/settings/db`);
+    if (!res) return;
+    const data = await res.json();
+    fillDbForm('ed', data.edelphyn || {});
+  } catch {
+    showSetMsg('Failed to load current settings.', false);
+  }
+}
+
+async function testDbSettings(which) {
+  const prefix   = 'ed';
+  const resultEl = document.getElementById(prefix + '_testResult');
+  const btn      = document.getElementById(prefix + '_testBtn');
+  resultEl.className   = 'settings-test-result pending';
+  resultEl.textContent = 'Testing…';
+  btn.disabled = true;
+  try {
+    const res  = await apiFetch(`${API}/api/settings/db/test`, {
+      method: 'POST',
+      body: { which, ...collectDbForm(prefix) },
+    });
+    if (!res) return;
+    const data = await res.json();
+    if (data.ok) {
+      resultEl.className   = 'settings-test-result ok';
+      resultEl.textContent = '✓ Connected successfully';
+    } else {
+      resultEl.className   = 'settings-test-result fail';
+      resultEl.textContent = '✗ ' + (data.error || 'Connection failed');
+    }
+  } catch (err) {
+    resultEl.className   = 'settings-test-result fail';
+    resultEl.textContent = '✗ ' + err.message;
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function saveDbSettings() {
+  document.getElementById('setMsg').style.display = 'none';
+  try {
+    const res = await apiFetch(`${API}/api/settings/db`, {
+      method: 'PUT',
+      body: { edelphyn: collectDbForm('ed') },
+    });
+    if (!res) return;
+    const data = await res.json();
+    if (!res.ok) { showSetMsg(data.error || 'Failed to save settings.', false); return; }
+    const edOk = data.edelphyn?.ok;
+    if (edOk) {
+      showSetMsg('✓ Settings saved — connection verified.', true);
+    } else {
+      showSetMsg('Settings saved, but could not connect: ' + (data.edelphyn?.error || 'unknown error'), false);
+    }
+  } catch (err) {
+    showSetMsg('Failed to save settings: ' + err.message, false);
+  }
+}
+
+async function reloadDbSettings() {
+  document.getElementById('setMsg').style.display = 'none';
+  try {
+    const res = await apiFetch(`${API}/api/settings/db/reload`, { method: 'POST' });
+    if (!res) return;
+    const data = await res.json();
+    await loadDbSettings();
+    const edOk = data.edelphyn?.ok;
+    showSetMsg(
+      edOk ? '✓ Reloaded — connection verified.'
+           : 'Reloaded, but could not connect: ' + (data.edelphyn?.error || 'unknown error'),
+      edOk
+    );
+  } catch (err) {
+    showSetMsg('Failed to reload: ' + err.message, false);
   }
 }
 
@@ -2907,40 +3290,50 @@ function fillExtFields(fields) {
 // PAGE NAV — FORMS / DASHBOARD
 // ═══════════════════════════════════════════════════════
 function showPage(page) {
-  const adminOnly = ['dashboard','admin','extdel','excel','handover','consumption','monthly'];
+  const adminOnly = ['dashboard','admin','settings','extdel','excel','handover','consumption','monthly','ai','analytics'];
   if (adminOnly.includes(page) && currentUser?.role !== 'admin') page = 'forms';
   const isForm        = page === 'forms';
   const isDash        = page === 'dashboard';
   const isAdmin       = page === 'admin';
+  const isSettings    = page === 'settings';
   const isExtDel      = page === 'extdel';
   const isExcel       = page === 'excel';
   const isConsumption = page === 'consumption';
   const isHandover    = page === 'handover';
   const isMonthly     = page === 'monthly';
   const isChat        = page === 'chat';
+  const isAI          = page === 'ai';
+  const isAnalytics   = page === 'analytics';
   document.getElementById('tabForms').classList.toggle('active', isForm);
   document.getElementById('tabDashboard').classList.toggle('active', isDash);
   document.getElementById('tabAdmin').classList.toggle('active', isAdmin);
+  document.getElementById('tabSettings').classList.toggle('active', isSettings);
   document.getElementById('tabExtDel').classList.toggle('active', isExtDel);
   document.getElementById('tabExcel').classList.toggle('active', isExcel);
   document.getElementById('tabConsumption').classList.toggle('active', isConsumption);
   document.getElementById('tabHandover').classList.toggle('active', isHandover);
   document.getElementById('tabMonthly').classList.toggle('active', isMonthly);
   document.getElementById('tabChat').classList.toggle('active', isChat);
+  document.getElementById('tabAI').classList.toggle('active', isAI);
+  document.getElementById('tabAnalytics').classList.toggle('active', isAnalytics);
   document.querySelector('.forms-row').style.display    = isForm  ? '' : 'none';
   document.querySelector('.history-wrap').style.display = isForm  ? '' : 'none';
   document.querySelector('.voice-bar').style.display    = (isForm || isExtDel) ? '' : 'none';
   document.getElementById('dashSection').classList.toggle('show', isDash);
   document.getElementById('adminSection').style.display = isAdmin ? '' : 'none';
+  document.getElementById('settingsSection').style.display = isSettings ? '' : 'none';
   document.getElementById('extDelSection').classList.toggle('show', isExtDel);
   document.getElementById('excelSection').classList.toggle('show', isExcel);
   document.getElementById('consumptionSection').classList.toggle('show', isConsumption);
   document.getElementById('handoverSection').classList.toggle('show', isHandover);
   document.getElementById('monthlySection').classList.toggle('show', isMonthly);
   document.getElementById('chatSection').classList.toggle('show', isChat);
+  document.getElementById('aiSection').classList.toggle('show', isAI);
+  document.getElementById('analyticsSection').classList.toggle('show', isAnalytics);
   if (!isChat) _chatActiveDept = null;  // leaving chat → re-enable notifications
   if (isMonthly) initMonthlyReport();
   if (isChat)    initChat();
+  if (isAI)      initAI();
   // Toggle voice bar seg-tabs: normal forms vs ext delivery
   ['tabBoth','tabTransfusion','tabDelivery'].forEach(id => {
     const el = document.getElementById(id);
@@ -2960,10 +3353,12 @@ function showPage(page) {
   } else if (!isForm && activeForm === 'ext_delivery') setForm('both');
   if (isDash)        loadDashboard();
   if (isAdmin)       loadUsers();
+  if (isSettings)    loadDbSettings();
   if (isExtDel)      { renderExtCompTable(); loadExtHistory(); }
   if (isExcel)       loadExcelFiles();
   if (isConsumption) loadConsumption();
   if (isHandover)    initHandover();
+  if (isAnalytics)   loadAnalytics();
 }
 
 async function loadDashboard() {
@@ -4515,7 +4910,6 @@ loadHistory();
 let excelActiveCategory = null;
 let excelCurrentPage    = 1;
 let excelChartInstances = [];
-let excelUpdateTarget   = null;
 let excelSearchTimer    = null;
 let excelActiveShortcut = null;
 
@@ -4535,8 +4929,8 @@ async function loadExcelFiles() { await loadExcelCategories(); }
 async function loadExcelCategories() {
   try {
     const [catRes, alertRes] = await Promise.all([
-      apiFetch(`${API}/api/excel/categories`),
-      apiFetch(`${API}/api/excel/alerts`)
+      apiFetch(`${API}/api/dashboard/categories`),
+      apiFetch(`${API}/api/dashboard/alerts`)
     ]);
     if (!catRes) return;
     const data          = await catRes.json();
@@ -4631,21 +5025,20 @@ function dismissAllAlerts() {
 
 function renderCategoryGrid(cats) {
   const grid = document.getElementById('excelCatGrid');
-  const keys = Object.keys(cats).filter(k => !k.startsWith('_') && cats[k]?.length > 0);
+  const keys = Object.keys(cats).filter(k => !k.startsWith('_'));
   if (keys.length === 0) {
-    grid.innerHTML = `<div class="excel-no-files" style="grid-column:1/-1">No Excel files uploaded yet. Click "⬆ Upload Excel" to get started.</div>`;
+    grid.innerHTML = `<div class="excel-no-files" style="grid-column:1/-1">No data available for this range.</div>`;
     document.getElementById('excelOverviewStrip').style.display = 'none';
     return;
   }
   grid.innerHTML = keys.map(type => {
-    const cfg   = CAT_CONFIG[type] || CAT_CONFIG.generic;
-    const files = cats[type];
-    const rows  = files.reduce((s, f) => s + (f.rowCount || 0), 0);
+    const cfg  = CAT_CONFIG[type] || CAT_CONFIG.generic;
+    const rows = cats[type].rowCount || 0;
     return `<div class="excel-cat-card" onclick="selectCategory('${type}')">
       <div class="excel-cat-icon">${cfg.icon}</div>
       <div class="excel-cat-name">${cfg.label}</div>
       <div class="excel-cat-meta">
-        <span class="excel-cat-count">${files.length} ${files.length === 1 ? 'file' : 'files'}</span>
+        <span class="excel-cat-count">🔴 Live</span>
         <span>·</span>
         <span>${rows.toLocaleString()} rows</span>
       </div>
@@ -4659,9 +5052,9 @@ function renderEfficiencyScore(cats) {
   const wrap = document.getElementById('excelEfficiencyWrap');
   if (!wrap) return;
 
-  const total  = t => (cats[t] || []).reduce((s, f) => s + (f.rowCount  || 0), 0);
-  const thisMo = t => (cats[t] || []).reduce((s, f) => s + (f.thisMonth || 0), 0);
-  const lastMo = t => (cats[t] || []).reduce((s, f) => s + (f.lastMonth || 0), 0);
+  const total  = t => cats[t]?.rowCount  || 0;
+  const thisMo = t => cats[t]?.thisMonth || 0;
+  const lastMo = t => cats[t]?.lastMonth || 0;
 
   const supply  = total('donors') + total('external_units');
   const used    = total('transfusion') + total('sent_to_centres');
@@ -4763,10 +5156,9 @@ function renderOverviewStrip(cats) {
   const strip = document.getElementById('excelOverviewStrip');
   if (!strip) return;
 
-  const total  = t => (cats[t] || []).reduce((s, f) => s + (f.rowCount   || 0), 0);
-  const thisMo = t => (cats[t] || []).reduce((s, f) => s + (f.thisMonth  || 0), 0);
-  const lastMo = t => (cats[t] || []).reduce((s, f) => s + (f.lastMonth  || 0), 0);
-  const fcount = t => (cats[t] || []).length;
+  const total  = t => cats[t]?.rowCount  || 0;
+  const thisMo = t => cats[t]?.thisMonth || 0;
+  const lastMo = t => cats[t]?.lastMonth || 0;
 
   const issued   = total('transfusion');
   const wasted   = total('wasted');
@@ -4788,13 +5180,13 @@ function renderOverviewStrip(cats) {
   };
 
   const cards = [
-    { icon: '📊', num: allTotal.toLocaleString(), label: 'Total Records',     sub: `${Object.keys(cats).filter(k=>!k.startsWith('_')&&cats[k]?.length).length} categories`, color: '#4a9eff', delta: '' },
-    issued    ? { icon: '🩸', num: issued.toLocaleString(),   label: 'Units Issued',      sub: `${fcount('transfusion')} file(s)`,           color: '#e53e3e', delta: delta(thisMo('transfusion'),  lastMo('transfusion'),  false) } : null,
-    wasted    ? { icon: '🗑️', num: wasted.toLocaleString(),   label: 'Units Wasted',      sub: wastageRate ? `${wastageRate}% of issued` : `${fcount('wasted')} file(s)`, color: '#dd6b20', delta: delta(thisMo('wasted'),       lastMo('wasted'),       true)  } : null,
-    donors    ? { icon: '👤', num: donors.toLocaleString(),   label: 'Donors Registered', sub: `${fcount('donors')} file(s)`,                color: '#38a169', delta: delta(thisMo('donors'),       lastMo('donors'),       false) } : null,
-    extUnits  ? { icon: '📥', num: extUnits.toLocaleString(), label: 'External Units',    sub: `${fcount('external_units')} file(s)`,        color: '#805ad5', delta: delta(thisMo('external_units'),lastMo('external_units'),false) } : null,
-    sentOut   ? { icon: '📤', num: sentOut.toLocaleString(),  label: 'Sent to Centres',   sub: `${fcount('sent_to_centres')} file(s)`,       color: '#2b6cb0', delta: delta(thisMo('sent_to_centres'),lastMo('sent_to_centres'),false) } : null,
-    requests  ? { icon: '📋', num: requests.toLocaleString(), label: 'Requests',           sub: `${fcount('requests')} file(s)`,              color: '#d69e2e', delta: delta(thisMo('requests'),     lastMo('requests'),     false) } : null,
+    { icon: '📊', num: allTotal.toLocaleString(), label: 'Total Records',     sub: `${Object.keys(cats).filter(k=>!k.startsWith('_')).length} categories`, color: '#4a9eff', delta: '' },
+    issued    ? { icon: '🩸', num: issued.toLocaleString(),   label: 'Units Issued',      sub: 'eDelphyn',           color: '#e53e3e', delta: delta(thisMo('transfusion'),  lastMo('transfusion'),  false) } : null,
+    wasted    ? { icon: '🗑️', num: wasted.toLocaleString(),   label: 'Units Wasted',      sub: wastageRate ? `${wastageRate}% of issued` : 'eDelphyn', color: '#dd6b20', delta: delta(thisMo('wasted'),       lastMo('wasted'),       true)  } : null,
+    donors    ? { icon: '👤', num: donors.toLocaleString(),   label: 'Donors Registered', sub: 'eDelphyn',                color: '#38a169', delta: delta(thisMo('donors'),       lastMo('donors'),       false) } : null,
+    extUnits  ? { icon: '📥', num: extUnits.toLocaleString(), label: 'External Units',    sub: 'eDelphyn',        color: '#805ad5', delta: delta(thisMo('external_units'),lastMo('external_units'),false) } : null,
+    sentOut   ? { icon: '📤', num: sentOut.toLocaleString(),  label: 'Sent to Centres',   sub: 'eDelphyn',       color: '#2b6cb0', delta: delta(thisMo('sent_to_centres'),lastMo('sent_to_centres'),false) } : null,
+    requests  ? { icon: '📋', num: requests.toLocaleString(), label: 'Requests',           sub: 'eDelphyn',              color: '#d69e2e', delta: delta(thisMo('requests'),     lastMo('requests'),     false) } : null,
   ].filter(Boolean);
 
   strip.style.display = '';
@@ -4910,7 +5302,6 @@ async function queryCategoryData() {
   tableWrap.style.display = 'none';
   document.getElementById('excelSummaryCards').style.display = 'none';
   document.getElementById('excelChartGrid').style.display    = 'none';
-  document.getElementById('excelFileList').style.display     = 'none';
 
   try {
     const body = {
@@ -4920,18 +5311,21 @@ async function queryCategoryData() {
       search:   (document.getElementById('excelSearchInput')?.value || '').trim() || null,
       page: excelCurrentPage, pageSize: 100
     };
-    const r = await apiFetch(`${API}/api/excel/category-query`, { method: 'POST', body: JSON.stringify(body) });
+    const r = await apiFetch(`${API}/api/dashboard/category-query`, { method: 'POST', body: JSON.stringify(body) });
     if (!r) { loading.style.display = 'none'; return; }
     const data = await r.json();
     if (data.error) { loading.style.display = 'none'; return; }
 
     const isFiltered = body.dateFrom || body.dateTo;
-    document.getElementById('excelFilterStatus').textContent = isFiltered
+    let statusText = isFiltered
       ? `Showing ${data.filtered.toLocaleString()} of ${data.total.toLocaleString()} rows` : '';
+    if (isFiltered && data.skippedUndated) {
+      statusText += ` (${data.skippedUndated.toLocaleString()} skipped — missing date)`;
+    }
+    document.getElementById('excelFilterStatus').textContent = statusText;
 
     renderTypeCards(data.type, data.summary, data.total, data.filtered, data.dateColumn, data.columns.length);
     renderTypeCharts(data.type, data.summary, data.monthlyChart);
-    renderFileList(data.files);
     renderExcelTable(data.columns, data.rows, data.filtered, data.page, data.pageSize, data.totalPages);
     tableWrap.style.display = '';
     loading.style.display   = 'none';
@@ -4999,7 +5393,7 @@ async function exportExcelData() {
     search:   (document.getElementById('excelSearchInput')?.value || '').trim() || null,
   };
   try {
-    const r = await fetch(`${API}/api/excel/category-export`, {
+    const r = await fetch(`${API}/api/dashboard/category-export`, {
       method: 'POST',
       headers: authHeaders(),
       body: JSON.stringify(body)
@@ -5016,24 +5410,6 @@ async function exportExcelData() {
     URL.revokeObjectURL(url);
   } catch (e) { alert('Export failed: ' + e.message); }
 }
-
-function renderFileList(files) {
-  if (!files || files.length === 0) return;
-  const el = document.getElementById('excelFileList');
-  const isAdmin = currentUser && currentUser.role === 'admin';
-  el.innerHTML = `<div class="excel-file-pills-label">Files in this category</div>
-    <div class="excel-file-pills">${files.map(f => {
-      const safe = f.name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-      return `<div class="excel-file-pill">
-        <span class="excel-file-pill-name" title="${f.name}">${f.name}</span>
-        <span class="excel-file-pill-count">${f.filtered.toLocaleString()} / ${f.total.toLocaleString()} rows</span>
-        ${isAdmin ? `<button class="excel-file-pill-upd" onclick="triggerExcelUpdate('${safe}')" title="Replace with newer version">🔄</button>` : ''}
-        ${isAdmin ? `<button class="excel-file-pill-upd" onclick="deleteExcelFile('${safe}')" title="Delete" style="color:var(--blood)">✕</button>` : ''}
-      </div>`;
-    }).join('')}</div>`;
-  el.style.display = '';
-}
-
 
 // ── Chart helpers ──────────────────────────────────────
 const CHART_PALETTE = ['#C0392B','#1A5276','#1A7F4B','#E8B84B','#8E44AD','#2E86C1','#E67E22','#1ABC9C','#D4730A','#2C3E50','#F39C12','#16A085'];
@@ -5443,46 +5819,6 @@ function renderExcelTable(columns, rows, filteredTotal, page, pageSize, totalPag
   `;
 }
 
-function triggerExcelUpdate(filename) {
-  excelUpdateTarget = filename;
-  const input = document.getElementById('excelUpdateInput');
-  input.value = '';
-  input.click();
-}
-
-async function uploadExcelFile(input, targetName) {
-  const file = input.files[0];
-  if (!file) return;
-  const fd = new FormData();
-  fd.append('file', file);
-  if (targetName) fd.append('targetName', targetName);
-  try {
-    const r = await fetch(`${API}/api/excel/upload`, {
-      method: 'POST',
-      headers: { Authorization: 'Bearer ' + getToken() },
-      body: fd
-    });
-    const data = await r.json();
-    if (data.error) { alert('Upload failed: ' + data.error); return; }
-    if (excelActiveCategory) await queryCategoryData();
-    else await loadExcelCategories();
-  } catch (e) {
-    alert('Upload failed: ' + e.message);
-  }
-  input.value = '';
-  excelUpdateTarget = null;
-}
-
-async function deleteExcelFile(filename) {
-  if (!confirm(`Delete "${filename}"?`)) return;
-  try {
-    const r = await apiFetch(`${API}/api/excel/files/${encodeURIComponent(filename)}`, { method: 'DELETE' });
-    if (!r) return;
-    if (excelActiveCategory) await queryCategoryData();
-    else await loadExcelCategories();
-  } catch (e) { alert('Delete failed: ' + e.message); }
-}
-
 // ════════════════════════════════════════════════════════════════
 // SHIFT HANDOVER REPORT
 // ════════════════════════════════════════════════════════════════
@@ -5611,6 +5947,18 @@ async function downloadHandoverPdf() {
 // CONSUMPTION REPORT
 // ════════════════════════════════════════════════════════════════
 let _cTrendChart = null, _cGroupChart = null;
+let _anTrendChart = null, _anDonationTypeChart = null, _anRetentionChart = null,
+    _anFulfilmentChart = null, _anReturnChart = null, _anTurnaroundChart = null,
+    _anAnomalyChart = null, _anExpiryComponentChart = null, _anExpiryGroupChart = null;
+
+// Expiry-risk severity ramp — single hue, light (mild) → dark (severe), reused
+// for the two bar charts, the calendar, and the detail-table badges so the
+// same color always means the same tier everywhere on the page.
+const EXPIRY_RISK_ORDER  = ['Expiring soon', 'High risk', 'Critical', 'Expired'];
+const EXPIRY_RISK_COLORS = { 'Expiring soon': '#e28378', 'High risk': '#d75142', 'Critical': '#b13325', 'Expired': '#762219' };
+const EXPIRY_RISK_TEXT   = { 'Expiring soon': '#1A2535',  'High risk': '#fff',    'Critical': '#fff',    'Expired': '#fff' };
+let _anExpiryRows = [];
+let _anExpirySort = { key: 'days', dir: 'asc' };
 
 function clearConsumpFilter() {
   document.getElementById('cFrom').value = '';
@@ -5736,6 +6084,633 @@ async function loadConsumption() {
         </tr>`).join('')}
       </tbody>
     </table>` : '<div class="rt-empty">No blood type data for this period.</div>';
+}
+
+// ═══════════════════════════════════════════════════════
+// ADVANCED ANALYTICS (e-Delphyn) — KPIs, trends, donor
+// behaviour, fulfilment/turnaround, expiry risk, demand
+// heatmap, anomaly detection.
+// ═══════════════════════════════════════════════════════
+function clearAnalyticsFilter() {
+  document.getElementById('anFrom').value = '';
+  document.getElementById('anTo').value = '';
+  loadAnalytics();
+}
+
+function noDataMsg(el, text) {
+  if (!el) return;
+  const ctx = el.getContext('2d');
+  ctx.clearRect(0, 0, el.width, el.height);
+  ctx.fillStyle = '#8896A7'; ctx.font = '13px sans-serif'; ctx.textAlign = 'center';
+  ctx.fillText(text || 'No data for this period', el.width / 2, 90);
+}
+
+async function loadAnalytics() {
+  const from = document.getElementById('anFrom').value;
+  const to   = document.getElementById('anTo').value;
+  const rangeParams = new URLSearchParams();
+  if (from) rangeParams.set('from', from);
+  if (to)   rangeParams.set('to', to);
+
+  const [kpiRes, trendRes, typesRes, retentionRes, fulfilmentRes, returnRes, turnaroundRes, heatmapRes, anomalyRes] =
+    await Promise.all([
+      apiFetch(`${API}/api/analytics/kpi-summary?${rangeParams}`),
+      apiFetch(`${API}/api/analytics/monthly-trend`),
+      apiFetch(`${API}/api/analytics/donation-types?${rangeParams}`),
+      apiFetch(`${API}/api/analytics/donor-retention`),
+      apiFetch(`${API}/api/analytics/fulfilment?${rangeParams}`),
+      apiFetch(`${API}/api/analytics/return-rate?${rangeParams}`),
+      apiFetch(`${API}/api/analytics/turnaround?${rangeParams}`),
+      apiFetch(`${API}/api/analytics/demand-heatmap`),
+      apiFetch(`${API}/api/analytics/anomaly`),
+    ]);
+
+  if (kpiRes)         renderAnKpiCards(await kpiRes.json());
+  if (trendRes)        renderAnTrendChart(await trendRes.json());
+  if (typesRes)         renderAnDonationTypeChart(await typesRes.json());
+  if (retentionRes)     renderAnRetentionChart(await retentionRes.json());
+  if (fulfilmentRes)    renderAnFulfilmentChart(await fulfilmentRes.json());
+  if (returnRes)        renderAnReturnChart(await returnRes.json());
+  if (turnaroundRes)    renderAnTurnaroundChart(await turnaroundRes.json());
+  if (heatmapRes)       renderAnHeatmap(await heatmapRes.json());
+  if (anomalyRes)       renderAnAnomalyChart(await anomalyRes.json());
+
+  loadExpiryRisk();
+  loadDonorRecall();
+  initExpiryCalendarControls();
+  loadAnExpiryCalendarMonth();
+}
+
+function renderAnKpiCards(k) {
+  const el = document.getElementById('anKpiCards');
+  if (!el) return;
+  if (!k || k.error) { el.innerHTML = '<div class="rt-empty">Unable to load KPI summary.</div>'; return; }
+  const fulfilmentRate = k.UnitsRequested > 0 ? Math.round((k.UnitsIssued / k.UnitsRequested) * 100) : 0;
+  const returnRate     = k.UnitsIssued > 0 ? Math.round((k.UnitsReturned / k.UnitsIssued) * 100) : 0;
+  const wastageRate    = (k.UnitsIssued + k.WastedUnits) > 0 ? Math.round((k.WastedUnits / (k.UnitsIssued + k.WastedUnits)) * 100) : 0;
+  const cards = [
+    { label: 'Total Donations',  num: k.TotalDonations,   cls: '' },
+    { label: 'Unique Donors',    num: k.UniqueDonors,     cls: '' },
+    { label: 'Units Requested',  num: k.UnitsRequested,   cls: '' },
+    { label: 'Units Issued',     num: k.UnitsIssued,      cls: 'prc' },
+    { label: 'Fulfilment Rate',  num: fulfilmentRate + '%', cls: 'total' },
+    { label: 'Return Rate',      num: returnRate + '%',     cls: 'ffp' },
+    { label: 'Wastage Rate',     num: wastageRate + '%',    cls: 'plt' },
+  ];
+  el.innerHTML = cards.map(c => `
+    <div class="consump-card ${c.cls}">
+      <div class="consump-card-label">${c.label}</div>
+      <div class="consump-card-num">${(typeof c.num === 'number' ? c.num.toLocaleString() : c.num) ?? '—'}</div>
+    </div>`).join('');
+}
+
+function renderAnTrendChart(rows) {
+  if (_anTrendChart) { _anTrendChart.destroy(); _anTrendChart = null; }
+  const el = document.getElementById('anTrendChart');
+  if (!el) return;
+  if (!Array.isArray(rows) || !rows.length) { noDataMsg(el); return; }
+  const labels = rows.map(r => String(r.MonthStart).slice(0, 7));
+  _anTrendChart = new Chart(el, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Donations',       data: rows.map(r => r.Donations),      borderColor: 'rgba(26,82,118,0.9)',  backgroundColor: 'rgba(26,82,118,0.15)',  tension: .3 },
+        { label: 'Units Requested', data: rows.map(r => r.RequestedUnits), borderColor: 'rgba(183,134,11,0.9)', backgroundColor: 'rgba(183,134,11,0.15)', tension: .3 },
+        { label: 'Units Issued',    data: rows.map(r => r.IssuedUnits),    borderColor: 'rgba(192,57,43,0.9)',  backgroundColor: 'rgba(192,57,43,0.15)',  tension: .3 },
+        { label: 'Wasted Units',    data: rows.map(r => r.WastedUnits),    borderColor: 'rgba(120,120,120,0.9)', backgroundColor: 'rgba(120,120,120,0.1)', tension: .3, borderDash: [4, 3] },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'bottom', labels: { font: { size: 10 }, boxWidth: 12 } } },
+      scales: { y: { beginAtZero: true, ticks: { precision: 0, font: { size: 10 } } }, x: { ticks: { font: { size: 9 } } } }
+    }
+  });
+}
+
+function renderAnDonationTypeChart(rows) {
+  if (_anDonationTypeChart) { _anDonationTypeChart.destroy(); _anDonationTypeChart = null; }
+  const el = document.getElementById('anDonationTypeChart');
+  if (!el) return;
+  if (!Array.isArray(rows) || !rows.length) { noDataMsg(el); return; }
+  _anDonationTypeChart = new Chart(el, {
+    type: 'bar',
+    data: {
+      labels: rows.map(r => r.DonationType),
+      datasets: [{ label: 'Donations', data: rows.map(r => r.DonationCount), backgroundColor: 'rgba(192,57,43,0.85)' }]
+    },
+    options: {
+      indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { x: { beginAtZero: true, ticks: { precision: 0, font: { size: 10 } } }, y: { ticks: { font: { size: 11 } } } }
+    }
+  });
+}
+
+function renderAnRetentionChart(rows) {
+  if (_anRetentionChart) { _anRetentionChart.destroy(); _anRetentionChart = null; }
+  const el = document.getElementById('anRetentionChart');
+  const pctEl = document.getElementById('anRetentionPct');
+  if (!el) return;
+  if (!Array.isArray(rows) || !rows.length) { noDataMsg(el); if (pctEl) pctEl.textContent = ''; return; }
+  const totalReturning = rows.reduce((s, r) => s + (r.ReturningDonations || 0), 0);
+  const totalActive    = rows.reduce((s, r) => s + (r.ActiveDonors || 0), 0);
+  if (pctEl) pctEl.textContent = totalActive > 0 ? `— ${Math.round(totalReturning / totalActive * 100)}% retention` : '';
+  _anRetentionChart = new Chart(el, {
+    type: 'bar',
+    data: {
+      labels: rows.map(r => String(r.MonthStart).slice(0, 7)),
+      datasets: [
+        { label: 'New Donors',       data: rows.map(r => r.NewDonors),          backgroundColor: 'rgba(26,82,118,0.85)', stack: 's' },
+        { label: 'Returning Donors', data: rows.map(r => r.ReturningDonations), backgroundColor: 'rgba(30,132,73,0.85)', stack: 's' },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'bottom', labels: { font: { size: 10 }, boxWidth: 12 } } },
+      scales: { x: { stacked: true, ticks: { font: { size: 9 } } }, y: { stacked: true, beginAtZero: true, ticks: { precision: 0, font: { size: 10 } } } }
+    }
+  });
+}
+
+function renderAnFulfilmentChart(rows) {
+  if (_anFulfilmentChart) { _anFulfilmentChart.destroy(); _anFulfilmentChart = null; }
+  const el = document.getElementById('anFulfilmentChart');
+  if (!el) return;
+  if (!Array.isArray(rows) || !rows.length) { noDataMsg(el); return; }
+  const counts = {};
+  rows.forEach(r => { counts[r.FulfilmentStatus] = (counts[r.FulfilmentStatus] || 0) + 1; });
+  const colors = {
+    'Fully fulfilled': 'rgba(30,132,73,0.85)',
+    'Partially fulfilled': 'rgba(183,134,11,0.85)',
+    'Not fulfilled': 'rgba(192,57,43,0.85)',
+    'Issued above request': 'rgba(26,82,118,0.85)',
+  };
+  const labels = Object.keys(counts);
+  _anFulfilmentChart = new Chart(el, {
+    type: 'doughnut',
+    data: { labels, datasets: [{ data: labels.map(l => counts[l]), backgroundColor: labels.map(l => colors[l] || 'rgba(150,150,150,0.85)') }] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { font: { size: 10 }, boxWidth: 12 } } } }
+  });
+}
+
+function renderAnReturnChart(rows) {
+  if (_anReturnChart) { _anReturnChart.destroy(); _anReturnChart = null; }
+  const el = document.getElementById('anReturnChart');
+  if (!el) return;
+  if (!Array.isArray(rows) || !rows.length) { noDataMsg(el); return; }
+  _anReturnChart = new Chart(el, {
+    type: 'bar',
+    data: { labels: rows.map(r => r.ComponentType || 'Unknown'), datasets: [{ label: 'Return Rate %', data: rows.map(r => r.ReturnRate), backgroundColor: 'rgba(183,134,11,0.85)' }] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { y: { beginAtZero: true, max: 100, ticks: { font: { size: 10 } } }, x: { ticks: { font: { size: 10 } } } }
+    }
+  });
+}
+
+function renderAnTurnaroundChart(rows) {
+  if (_anTurnaroundChart) { _anTurnaroundChart.destroy(); _anTurnaroundChart = null; }
+  const el = document.getElementById('anTurnaroundChart');
+  if (!el) return;
+  if (!Array.isArray(rows) || !rows.length) { noDataMsg(el); return; }
+  const deptMap = {};
+  rows.forEach(r => {
+    const dept = r.Department || 'Unknown';
+    if (!deptMap[dept]) deptMap[dept] = { routine: null, emergency: null };
+    if (r.IsEmergency) deptMap[dept].emergency = r.AverageTurnaroundMinutes;
+    else deptMap[dept].routine = r.AverageTurnaroundMinutes;
+  });
+  const depts = Object.keys(deptMap);
+  _anTurnaroundChart = new Chart(el, {
+    type: 'bar',
+    data: {
+      labels: depts,
+      datasets: [
+        { label: 'Routine',   data: depts.map(d => deptMap[d].routine),   backgroundColor: 'rgba(26,82,118,0.85)' },
+        { label: 'Emergency', data: depts.map(d => deptMap[d].emergency), backgroundColor: 'rgba(192,57,43,0.85)' },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'bottom', labels: { font: { size: 10 }, boxWidth: 12 } } },
+      scales: { y: { beginAtZero: true, ticks: { font: { size: 10 } } }, x: { ticks: { font: { size: 9 }, maxRotation: 45 } } }
+    }
+  });
+}
+
+function renderAnHeatmap(rows) {
+  const el = document.getElementById('anHeatmap');
+  if (!el) return;
+  if (!Array.isArray(rows) || !rows.length) { el.innerHTML = '<div class="rt-empty">No data for this period.</div>'; return; }
+  const max = Math.max(1, ...rows.map(r => r.RequestCount));
+  const cellMap = {};
+  const weekdayNames = {};
+  rows.forEach(r => { cellMap[`${r.WeekdayNumber}-${r.RequestHour}`] = r; weekdayNames[r.WeekdayNumber] = r.WeekdayName; });
+  const weekdays = Object.keys(weekdayNames).map(Number).sort((a, b) => a - b);
+  const hours = Array.from({ length: 24 }, (_, i) => i);
+
+  let html = '<table><thead><tr><th></th>' + hours.map(h => `<th>${h}</th>`).join('') + '</tr></thead><tbody>';
+  weekdays.forEach(wd => {
+    html += `<tr><th class="row-label">${weekdayNames[wd]}</th>`;
+    hours.forEach(h => {
+      const cell = cellMap[`${wd}-${h}`];
+      if (!cell || !cell.RequestCount) { html += '<td class="empty">·</td>'; return; }
+      const alpha = 0.15 + (cell.RequestCount / max) * 0.85;
+      html += `<td style="background:rgba(192,57,43,${alpha.toFixed(2)})" title="${weekdayNames[wd]} ${h}:00 — ${cell.RequestCount} requests, ${cell.UnitsRequested} units, ${cell.EmergencyRequests} emergency">${cell.RequestCount}</td>`;
+    });
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  el.innerHTML = html;
+}
+
+let _anAnomalyRows = [];
+
+function isDemandAnomaly(row) {
+  return !!row.DemandStatus && row.DemandStatus !== 'Normal';
+}
+
+function renderAnAnomalyChart(rows) {
+  if (_anAnomalyChart) { _anAnomalyChart.destroy(); _anAnomalyChart = null; }
+  const el = document.getElementById('anAnomalyChart');
+  const detailEl = document.getElementById('anAnomalyDetail');
+  if (detailEl) detailEl.style.display = 'none';
+  _anAnomalyRows = Array.isArray(rows) ? rows : [];
+  if (!el) return;
+  if (!_anAnomalyRows.length) { noDataMsg(el); return; }
+  const labels = _anAnomalyRows.map(r => String(r.DemandDate).slice(0, 10));
+  const upper = _anAnomalyRows.map(r => r.Previous30DayAverage != null && r.Previous30DayStdDev != null ? r.Previous30DayAverage + 2 * r.Previous30DayStdDev : null);
+  const lower = _anAnomalyRows.map(r => r.Previous30DayAverage != null && r.Previous30DayStdDev != null ? Math.max(0, r.Previous30DayAverage - 2 * r.Previous30DayStdDev) : null);
+  const pointColors = _anAnomalyRows.map(r => isDemandAnomaly(r) ? 'rgba(192,57,43,1)' : 'rgba(26,82,118,0.9)');
+  const pointRadii  = _anAnomalyRows.map(r => isDemandAnomaly(r) ? 5 : 1.5);
+  // Alert points get a much bigger invisible hit target than their drawn
+  // radius, so they're easy to click precisely — normal days keep a tight
+  // hit target so a stray click on the line doesn't pop up a detail card.
+  const hitRadii = _anAnomalyRows.map(r => isDemandAnomaly(r) ? 12 : 3);
+  _anAnomalyChart = new Chart(el, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Units Requested', data: _anAnomalyRows.map(r => r.UnitsRequested), borderColor: 'rgba(26,82,118,0.9)', backgroundColor: 'transparent', tension: .2, pointBackgroundColor: pointColors, pointRadius: pointRadii, pointHoverRadius: pointRadii.map(r => r + 2), pointHitRadius: hitRadii },
+        { label: '30-day Average',  data: _anAnomalyRows.map(r => r.Previous30DayAverage), borderColor: 'rgba(120,120,120,0.7)', backgroundColor: 'transparent', tension: .2, pointRadius: 0, borderDash: [4, 3] },
+        { label: 'Upper Threshold', data: upper, borderColor: 'rgba(192,57,43,0.4)', backgroundColor: 'transparent', pointRadius: 0, borderDash: [2, 3] },
+        { label: 'Lower Threshold', data: lower, borderColor: 'rgba(192,57,43,0.4)', backgroundColor: 'transparent', pointRadius: 0, borderDash: [2, 3] },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      // Clickable alert points: only the "Units Requested" series (dataset 0)
+      // carries per-point hit radii, so this only fires near an actual dot —
+      // clicking empty chart space or the dashed threshold lines does nothing.
+      onClick: (evt, _els, chart) => {
+        const hit = chart.getElementsAtEventForMode(evt, 'nearest', { intersect: true }, true)
+          .find(p => p.datasetIndex === 0);
+        if (hit) showAnomalyDetail(hit.index);
+      },
+      onHover: (evt, _els, chart) => {
+        const hit = chart.getElementsAtEventForMode(evt, 'nearest', { intersect: true }, true)
+          .find(p => p.datasetIndex === 0);
+        evt.native.target.style.cursor = hit ? 'pointer' : 'default';
+      },
+      plugins: { legend: { position: 'bottom', labels: { font: { size: 10 }, boxWidth: 12 } } },
+      scales: { y: { beginAtZero: true, ticks: { font: { size: 10 } } }, x: { ticks: { font: { size: 8 }, maxTicksLimit: 20 } } }
+    }
+  });
+}
+
+function showAnomalyDetail(index) {
+  const row = _anAnomalyRows[index];
+  const el  = document.getElementById('anAnomalyDetail');
+  if (!row || !el) return;
+  const anomaly = isDemandAnomaly(row);
+  const date = String(row.DemandDate).slice(0, 10);
+  const avg  = row.Previous30DayAverage != null ? Number(row.Previous30DayAverage).toFixed(1) : '—';
+  const sd   = row.Previous30DayStdDev  != null ? Number(row.Previous30DayStdDev).toFixed(1)  : '—';
+  const z    = row.DemandZScore         != null ? Number(row.DemandZScore).toFixed(2)         : '—';
+  el.style.display = '';
+  el.className = 'an-anomaly-detail' + (anomaly ? ' alert' : '');
+  el.innerHTML = `
+    <div class="an-anomaly-detail-head">${anomaly ? '⚠️' : 'ℹ️'} ${date} — ${row.DemandStatus || 'Normal'}</div>
+    <div class="an-anomaly-detail-body">
+      <span>Units requested: <strong>${row.UnitsRequested}</strong></span>
+      <span>30-day average: <strong>${avg}</strong></span>
+      <span>30-day std dev: <strong>${sd}</strong></span>
+      <span>Z-score: <strong>${z}</strong></span>
+    </div>`;
+}
+
+async function loadExpiryRisk() {
+  const days = document.getElementById('anExpiryDays').value || 14;
+  const r = await apiFetch(`${API}/api/analytics/expiry-risk?expiryDays=${encodeURIComponent(days)}`);
+  if (!r) return;
+  const rows = await r.json();
+  _anExpiryRows = Array.isArray(rows) ? rows : [];
+  renderAnExpiryComponentChart(_anExpiryRows);
+  renderAnExpiryGroupChart(_anExpiryRows);
+  renderAnExpiryTable();
+}
+
+// Counts rows per key (component/blood group) split by risk tier, e.g.
+// { 'RBC': { Critical: 3, 'High risk': 5 }, ... } — the shared input both
+// stacked-bar charts below turn into per-tier datasets.
+function riskBuckets(rows, keyFn) {
+  const buckets = {};
+  rows.forEach(row => {
+    const key = keyFn(row) || 'Unknown';
+    if (!buckets[key]) buckets[key] = {};
+    buckets[key][row.ExpiryRisk] = (buckets[key][row.ExpiryRisk] || 0) + 1;
+  });
+  return buckets;
+}
+
+function riskDatasets(buckets, labels) {
+  return EXPIRY_RISK_ORDER.map(tier => ({
+    label: tier,
+    data: labels.map(l => buckets[l]?.[tier] || 0),
+    backgroundColor: EXPIRY_RISK_COLORS[tier],
+    stack: 's',
+  }));
+}
+
+function renderAnExpiryComponentChart(rows) {
+  if (_anExpiryComponentChart) { _anExpiryComponentChart.destroy(); _anExpiryComponentChart = null; }
+  const el = document.getElementById('anExpiryComponentChart');
+  if (!el) return;
+  if (!rows.length) { noDataMsg(el); return; }
+  const buckets = riskBuckets(rows, r => r.ComponentType || r.Component);
+  // Busiest component first — the one needing the most attention leads.
+  const labels = Object.keys(buckets).sort((a, b) =>
+    Object.values(buckets[b]).reduce((s, n) => s + n, 0) - Object.values(buckets[a]).reduce((s, n) => s + n, 0));
+  _anExpiryComponentChart = new Chart(el, {
+    type: 'bar',
+    data: { labels, datasets: riskDatasets(buckets, labels) },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'bottom', labels: { font: { size: 10 }, boxWidth: 12 } } },
+      scales: {
+        x: { stacked: true, ticks: { font: { size: 10 } } },
+        y: { stacked: true, beginAtZero: true, ticks: { precision: 0, font: { size: 10 } } },
+      },
+    },
+  });
+}
+
+function renderAnExpiryGroupChart(rows) {
+  if (_anExpiryGroupChart) { _anExpiryGroupChart.destroy(); _anExpiryGroupChart = null; }
+  const el = document.getElementById('anExpiryGroupChart');
+  if (!el) return;
+  if (!rows.length) { noDataMsg(el); return; }
+  const buckets = riskBuckets(rows, r => r.BloodGroup);
+  const BG_ORDER = ['O-', 'O+', 'A-', 'A+', 'B-', 'B+', 'AB-', 'AB+'];
+  const known = BG_ORDER.filter(g => buckets[g]);
+  const rest  = Object.keys(buckets).filter(g => !BG_ORDER.includes(g)).sort();
+  const labels = [...known, ...rest];
+  _anExpiryGroupChart = new Chart(el, {
+    type: 'bar',
+    data: { labels, datasets: riskDatasets(buckets, labels) },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'bottom', labels: { font: { size: 10 }, boxWidth: 12 } } },
+      scales: {
+        x: { stacked: true, ticks: { font: { size: 10 } } },
+        y: { stacked: true, beginAtZero: true, ticks: { precision: 0, font: { size: 10 } } },
+      },
+    },
+  });
+}
+
+// ═══════════════════════════════════════════════════════
+// EXPIRY CALENDAR — normal month-grid view. Independent of the "Within N
+// days" filter above: the admin picks a year + month (or steps with ◀/▶/
+// Today) and only that month's rows are fetched from
+// /api/analytics/expiry-risk/month — so a hospital's full backlog (tens of
+// thousands of rows) never has to load at once just to browse a calendar.
+// ═══════════════════════════════════════════════════════
+let _anCalYear = null, _anCalMonth = null; // month is 1-12
+let _anCalRows = [];
+let _anCalSelectedDay = null;
+let _anCalControlsInit = false;
+
+function anCalTodayStr() {
+  const n = new Date();
+  return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}-${String(n.getDate()).padStart(2, '0')}`;
+}
+
+function initExpiryCalendarControls() {
+  if (_anCalControlsInit) return;
+  _anCalControlsInit = true;
+  const now = new Date();
+  _anCalYear  = now.getFullYear();
+  _anCalMonth = now.getMonth() + 1;
+
+  const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const monthSel = document.getElementById('anCalMonth');
+  monthSel.innerHTML = monthNames.map((m, i) => `<option value="${i + 1}">${m}</option>`).join('');
+  monthSel.value = _anCalMonth;
+
+  const yearSel  = document.getElementById('anCalYear');
+  const startY   = now.getFullYear() - 5, endY = now.getFullYear() + 1;
+  yearSel.innerHTML = Array.from({ length: endY - startY + 1 }, (_, i) => startY + i)
+    .map(y => `<option value="${y}">${y}</option>`).join('');
+  yearSel.value = _anCalYear;
+}
+
+function anCalShiftMonth(delta) {
+  _anCalMonth += delta;
+  if (_anCalMonth > 12) { _anCalMonth = 1;  _anCalYear++; }
+  if (_anCalMonth < 1)  { _anCalMonth = 12; _anCalYear--; }
+  document.getElementById('anCalMonth').value = _anCalMonth;
+  document.getElementById('anCalYear').value  = _anCalYear;
+  loadAnExpiryCalendarMonth();
+}
+
+function anCalToday() {
+  const now = new Date();
+  _anCalYear  = now.getFullYear();
+  _anCalMonth = now.getMonth() + 1;
+  document.getElementById('anCalMonth').value = _anCalMonth;
+  document.getElementById('anCalYear').value  = _anCalYear;
+  loadAnExpiryCalendarMonth();
+}
+
+async function loadAnExpiryCalendarMonth() {
+  _anCalYear  = parseInt(document.getElementById('anCalYear').value)  || _anCalYear;
+  _anCalMonth = parseInt(document.getElementById('anCalMonth').value) || _anCalMonth;
+  const el = document.getElementById('anExpiryCalendar');
+  if (el) el.innerHTML = '<div class="rt-empty">Loading…</div>';
+  document.getElementById('anExpiryDayDetail').style.display = 'none';
+  _anCalSelectedDay = null;
+
+  const r = await apiFetch(`${API}/api/analytics/expiry-risk/month?year=${_anCalYear}&month=${_anCalMonth}`);
+  if (!r) return;
+  const rows = await r.json();
+  _anCalRows = Array.isArray(rows) ? rows : [];
+  renderAnExpiryCalendarGrid();
+}
+
+function renderAnExpiryCalendarGrid() {
+  const el = document.getElementById('anExpiryCalendar');
+  if (!el) return;
+
+  // Worst (most severe) tier per day — every unit on the same date actually
+  // shares one tier already (it's a pure function of the date), this just
+  // guards against any edge-case mismatch.
+  const byDay = {};
+  _anCalRows.forEach(row => {
+    const d = String(row.ExpiryDate || '').slice(0, 10);
+    if (!d) return;
+    if (!byDay[d]) byDay[d] = { count: 0, worstRisk: row.ExpiryRisk };
+    byDay[d].count++;
+    if (EXPIRY_RISK_RANK[row.ExpiryRisk] < EXPIRY_RISK_RANK[byDay[d].worstRisk]) byDay[d].worstRisk = row.ExpiryRisk;
+  });
+
+  const firstOfMonth = new Date(Date.UTC(_anCalYear, _anCalMonth - 1, 1));
+  const daysInMonth   = new Date(Date.UTC(_anCalYear, _anCalMonth, 0)).getUTCDate();
+  const startWeekday  = firstOfMonth.getUTCDay(); // 0 = Sunday
+
+  const cells = [];
+  for (let i = 0; i < startWeekday; i++) cells.push(null);
+  for (let day = 1; day <= daysInMonth; day++) cells.push(day);
+  while (cells.length % 7 !== 0) cells.push(null);
+
+  const todayStr = anCalTodayStr();
+  const dowHeader = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d => `<div class="an-cal-dow">${d}</div>`).join('');
+
+  const cellsHtml = cells.map(day => {
+    if (!day) return `<div class="an-cal-cell empty"></div>`;
+    const dateStr = `${_anCalYear}-${String(_anCalMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    const info      = byDay[dateStr];
+    const classes   = ['an-cal-cell'];
+    if (dateStr === todayStr) classes.push('today');
+    if (dateStr === _anCalSelectedDay) classes.push('selected');
+    if (info) classes.push('has-data');
+    const style = info ? ` style="background:${EXPIRY_RISK_COLORS[info.worstRisk] || '#999'};color:${EXPIRY_RISK_TEXT[info.worstRisk] || '#fff'}"` : '';
+    const title = info ? ` title="${info.worstRisk} — ${info.count} unit${info.count !== 1 ? 's' : ''} expiring ${dateStr}"` : '';
+    return `
+      <div class="${classes.join(' ')}"${style}${title} onclick="selectAnExpiryDay('${dateStr}')">
+        <div class="acc-daynum">${day}</div>
+        ${info ? `<div class="acc-count">${info.count}</div>` : ''}
+      </div>`;
+  }).join('');
+
+  el.innerHTML = `<div class="an-cal-grid">${dowHeader}${cellsHtml}</div>`;
+}
+
+function selectAnExpiryDay(dateStr) {
+  _anCalSelectedDay = dateStr;
+  renderAnExpiryCalendarGrid();
+  const rows = _anCalRows.filter(r => String(r.ExpiryDate || '').slice(0, 10) === dateStr);
+  const el = document.getElementById('anExpiryDayDetail');
+  el.style.display = '';
+  if (!rows.length) {
+    el.innerHTML = `<div class="rt-empty">No units expiring on ${dateStr}.</div>`;
+    return;
+  }
+  el.innerHTML = `
+    <div class="consump-panel-title">Units expiring on ${dateStr} (${rows.length})</div>
+    <table class="consump-table">
+      <thead><tr><th>Unit</th><th>Component</th><th>Blood Group</th><th>Risk</th></tr></thead>
+      <tbody>${rows.map(u => `
+        <tr>
+          <td><strong>${u.UnitNumber ?? ''}</strong></td>
+          <td>${u.ComponentType || u.Component || '—'}</td>
+          <td>${u.BloodGroup || '—'}</td>
+          <td>${riskBadge(u.ExpiryRisk)}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>`;
+}
+
+function hexToRgba(hex, alpha) {
+  const h = hex.replace('#', '');
+  const r = parseInt(h.slice(0, 2), 16), g = parseInt(h.slice(2, 4), 16), b = parseInt(h.slice(4, 6), 16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
+function riskBadge(risk) {
+  const color = EXPIRY_RISK_COLORS[risk] || '#999';
+  return `<span class="an-badge risk-badge" style="background:${hexToRgba(color, 0.14)}"><span class="risk-dot" style="background:${color}"></span>${risk || '—'}</span>`;
+}
+
+const EXPIRY_RISK_RANK = { 'Expired': 0, 'Critical': 1, 'High risk': 2, 'Expiring soon': 3 };
+
+function sortAnExpiryRows(rows, key, dir) {
+  const mul = dir === 'asc' ? 1 : -1;
+  return [...rows].sort((a, b) => {
+    let av, bv;
+    switch (key) {
+      case 'unit':      av = a.UnitNumber ?? '';                         bv = b.UnitNumber ?? '';                         break;
+      case 'component': av = a.ComponentType || a.Component || '';       bv = b.ComponentType || b.Component || '';       break;
+      case 'group':      av = a.BloodGroup || '';                         bv = b.BloodGroup || '';                         break;
+      case 'expiry':     av = a.ExpiryDate || '';                         bv = b.ExpiryDate || '';                         break;
+      case 'risk':       av = EXPIRY_RISK_RANK[a.ExpiryRisk] ?? 9;        bv = EXPIRY_RISK_RANK[b.ExpiryRisk] ?? 9;        break;
+      default:           av = a.DaysToExpiry;                             bv = b.DaysToExpiry;
+    }
+    if (typeof av === 'string') { av = av.toLowerCase(); bv = String(bv).toLowerCase(); }
+    if (av < bv) return -1 * mul;
+    if (av > bv) return  1 * mul;
+    return 0;
+  });
+}
+
+function setAnExpirySort(key) {
+  _anExpirySort = _anExpirySort.key === key
+    ? { key, dir: _anExpirySort.dir === 'asc' ? 'desc' : 'asc' }
+    : { key, dir: 'asc' };
+  renderAnExpiryTable();
+}
+
+function renderAnExpiryTable() {
+  const el = document.getElementById('anExpiryTable');
+  if (!el) return;
+  if (!_anExpiryRows.length) { el.innerHTML = '<div class="rt-empty">No units expiring within this window.</div>'; return; }
+  const sorted = sortAnExpiryRows(_anExpiryRows, _anExpirySort.key, _anExpirySort.dir);
+  const arrow  = key => _anExpirySort.key === key ? (_anExpirySort.dir === 'asc' ? ' ▲' : ' ▼') : '';
+  const th     = (key, label) => `<th class="an-sortable" onclick="setAnExpirySort('${key}')">${label}${arrow(key)}</th>`;
+  el.innerHTML = `
+    <table class="consump-table">
+      <thead><tr>
+        ${th('unit', 'Unit')}${th('component', 'Component')}${th('group', 'Blood Group')}${th('expiry', 'Expiry Date')}${th('days', 'Days Left')}${th('risk', 'Risk')}
+      </tr></thead>
+      <tbody>${sorted.slice(0, 150).map(u => `
+        <tr>
+          <td><strong>${u.UnitNumber ?? ''}</strong></td>
+          <td>${u.ComponentType || u.Component || '—'}</td>
+          <td>${u.BloodGroup || '—'}</td>
+          <td>${String(u.ExpiryDate || '').slice(0, 10)}</td>
+          <td>${u.DaysToExpiry}</td>
+          <td>${riskBadge(u.ExpiryRisk)}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>${sorted.length > 150 ? `<div class="rt-empty">Showing 150 of ${sorted.length} units.</div>` : ''}`;
+}
+
+async function loadDonorRecall() {
+  const days = document.getElementById('anInactiveDays').value || 180;
+  const r = await apiFetch(`${API}/api/analytics/donor-recall?inactiveDays=${encodeURIComponent(days)}`);
+  const el = document.getElementById('anRecallTable');
+  if (!r || !el) return;
+  const rows = await r.json();
+  if (!Array.isArray(rows) || !rows.length) { el.innerHTML = '<div class="rt-empty">No inactive donors found for this threshold.</div>'; return; }
+  el.innerHTML = `
+    <table class="consump-table">
+      <thead><tr><th>Donor</th><th>Blood Group</th><th>Last Donation</th><th>Days Inactive</th><th>Lifetime Donations</th><th>Phone</th><th>Email</th></tr></thead>
+      <tbody>${rows.slice(0, 100).map(d => `
+        <tr>
+          <td><strong>${d.DonorName || '—'}</strong><br><span style="color:var(--text-soft);font-size:10.5px;">#${d.DonorNumber ?? ''}</span></td>
+          <td>${d.BloodGroup || '—'}</td>
+          <td>${String(d.LastDonationDate || '').slice(0, 10)}</td>
+          <td>${d.DaysSinceDonation}</td>
+          <td>${d.LifetimeDonations}</td>
+          <td>${d.DES_MOBILEPHONE || '—'}</td>
+          <td>${d.DES_EMAIL || '—'}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>${rows.length > 100 ? `<div class="rt-empty">Showing 100 of ${rows.length} donors.</div>` : ''}`;
 }
 
 // ═══════════════════════════════════════════════════════
@@ -5986,6 +6961,61 @@ function _connectChatSocket() {
 }
 
 // Called when user navigates to Chat page — builds sidebar UI
+// ═══════════════════════════════════════════════════════
+// AI ASSISTANT (offline RAG chatbot over the Excel data)
+// ═══════════════════════════════════════════════════════
+let _aiInitialized = false;
+let _aiHistory = [];  // [{role:'user'|'assistant', content:'...'}, ...] — sent back for follow-up context
+
+function initAI() {
+  if (_aiInitialized) { document.getElementById('aiChatInput').focus(); return; }
+  _aiInitialized = true;
+  addAIMessage('Ask me anything about donors, requests, transfusions, or wasted units — I only answer from your own Excel data, fully offline.', 'bot');
+  document.getElementById('aiChatInput').focus();
+}
+
+function addAIMessage(text, cls) {
+  const box = document.getElementById('aiChatMessages');
+  const div = document.createElement('div');
+  div.className = 'ai-msg ' + cls;
+  div.textContent = text;
+  box.appendChild(div);
+  box.scrollTop = box.scrollHeight;
+  return div;
+}
+
+async function sendAIMessage(evt) {
+  evt.preventDefault();
+  const input = document.getElementById('aiChatInput');
+  const question = input.value.trim();
+  if (!question) return false;
+  addAIMessage(question, 'user');
+  input.value = '';
+  const sendBtn = document.getElementById('aiChatSend');
+  sendBtn.disabled = true;
+  const loadingEl = addAIMessage('Thinking… (can take up to a minute on this laptop)', 'bot loading');
+
+  try {
+    const res  = await apiFetch(`${API}/api/rag-chat`, { method: 'POST', body: { question, history: _aiHistory } });
+    const data = res ? await res.json() : null;
+    loadingEl.classList.remove('loading');
+    if (data?.answer) {
+      loadingEl.textContent = data.answer;
+      _aiHistory.push({ role: 'user', content: question }, { role: 'assistant', content: data.answer });
+      _aiHistory = _aiHistory.slice(-6);
+    } else {
+      loadingEl.textContent = data?.error || 'No response.';
+    }
+  } catch (err) {
+    loadingEl.classList.remove('loading');
+    loadingEl.textContent = 'Error: could not reach the AI assistant service.';
+  } finally {
+    sendBtn.disabled = false;
+    input.focus();
+  }
+  return false;
+}
+
 async function initChat() {
   if (!_chatMyDept) _chatMyDept = _parseDeptFromToken();
   if (!_chatSocket) _connectChatSocket();
