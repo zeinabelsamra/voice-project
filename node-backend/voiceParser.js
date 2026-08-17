@@ -71,7 +71,17 @@ function extractAllUnitNums(t) {
     const dm = after.match(/^(\d)[,\s]+(\d)[,\s]+(\d)[,\s]+(\d)[,\s]+(\d)[,\s]+(\d)[,\s]+(\d)\b/);
     if (dm) { add(dm.slice(1, 8).join('')); continue; }
     const wm = [...after.matchAll(/\b(zero|one|two|three|four|five|six|seven|eight|nine)\b/g)];
-    if (wm.length >= 7) add(wm.slice(0, 7).map(x => DW[x[1]]).join(''));
+    if (wm.length >= 7) { add(wm.slice(0, 7).map(x => DW[x[1]]).join('')); continue; }
+
+    // 3. Whisper often mis-punctuates one dictated 7-digit number into
+    // uneven hyphen/comma groups ("33-12-0-45" for "3312045"). Only accept
+    // it if stripping separators leaves exactly 7 digits — that keeps this
+    // from swallowing an unrelated number that happens to follow.
+    const gm = after.match(/^([\d][\d,\-\s]{4,14}\d)\b/);
+    if (gm) {
+      const stripped = gm[1].replace(/[,\-\s]/g, '');
+      if (/^\d{7}$/.test(stripped)) add(stripped);
+    }
   }
 
   return found;
@@ -86,7 +96,12 @@ function extractTime(text) {
     .replace(/\b(\d{1,2})(am|pm)\b/g, '$1 $2')  // "3am"→"3 am", "3pm"→"3 pm"
     .replace(/\bp\.?\s*m\.?\b/g, 'pm')
     .replace(/\ba\.?\s*m\.?\b/g, 'am')
-    .replace(/\bo'?clock\b/g, '');
+    .replace(/\bo'?clock\b/g, '')
+    // Whisper repeatedly mishears "4:30 pm" as "for 30 pm" (drops the "4:",
+    // hears "for" instead). "for <number> am/pm" is a distinctive enough
+    // shape — nobody says that and means anything else — to safely recover
+    // as hour 4.
+    .replace(/\bfor\s+(\d{1,2})\s+(am|pm)\b/g, '4 $1 $2');
 
   function applyPeriod(h, p) {
     if (p === 'pm' && h !== 12) h += 12;
@@ -101,13 +116,24 @@ function extractTime(text) {
     const period = ap[1];
     const before = t.slice(0, ap.index).trimEnd();
 
-    // "3:30 pm"
+    // "3:30 pm" — a real hour is 1-12; anything else is Whisper garbage
+    // (e.g. it dropped the "4:" in "4:30 pm" and left a bare "30"), so skip
+    // it rather than silently building an invalid time like "42:00".
     let nm = before.match(/\b(\d{1,2})[:\.](\d{2})[,\s]*$/);
-    if (nm) return String(applyPeriod(parseInt(nm[1]), period)).padStart(2,'0') + ':' + nm[2];
+    if (nm && parseInt(nm[1]) >= 1 && parseInt(nm[1]) <= 12) return String(applyPeriod(parseInt(nm[1]), period)).padStart(2,'0') + ':' + nm[2];
+
+    // "9 15 am" — Whisper sometimes drops the colon in "9:15 am" and just
+    // leaves the hour and minute space-separated. Must check this before the
+    // bare-single-number fallback below, or that fallback grabs only the "15"
+    // and misreads it as the hour.
+    nm = before.match(/\b(\d{1,2})\s+(\d{2})[,\s]*$/);
+    if (nm && parseInt(nm[1]) >= 1 && parseInt(nm[1]) <= 12 && parseInt(nm[2]) <= 59) {
+      return String(applyPeriod(parseInt(nm[1]), period)).padStart(2,'0') + ':' + nm[2];
+    }
 
     // "3 pm" / "3,pm"
     nm = before.match(/\b(\d{1,2})[,\s]*$/);
-    if (nm) return String(applyPeriod(parseInt(nm[1]), period)).padStart(2,'0') + ':00';
+    if (nm && parseInt(nm[1]) >= 1 && parseInt(nm[1]) <= 12) return String(applyPeriod(parseInt(nm[1]), period)).padStart(2,'0') + ':00';
 
     // "three thirty pm" / "three pm"
     nm = before.match(/\b(one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve)[,\s]*(thirty|fifteen|forty[\s-]?five|forty|twenty[\s-]?five|twenty|ten)?[,\s]*$/i);
@@ -424,13 +450,29 @@ function parseWithRules(transcript, formType) {
 
   console.log(`  → isDelivery: ${isDelivery} (formType=${formType})`);
 
+  // ── LIFE-SAVING SEGMENT SPLIT ──────────────────────────────────
+  // A single recording can mention a regular time/physician AND a
+  // life-saving time/physician ("...Doctor Sarah Haddad... Life saving,
+  // Doctor Karim Aziz, 5pm."). Split the transcript at the "life saving"
+  // keyword so each half is searched independently instead of letting the
+  // first time/doctor found anywhere get stolen by the life-saving branch.
+  const lsIdx = t.search(/life[\s-]+sav/i);
+  const hasLifeSaving = lsIdx !== -1;
+  const tGeneral   = hasLifeSaving ? t.slice(0, lsIdx)   : t;
+  const tLS        = hasLifeSaving ? t.slice(lsIdx)      : '';
+  const rawGeneral = hasLifeSaving ? raw.slice(0, lsIdx) : raw;
+  const rawLS      = hasLifeSaving ? raw.slice(lsIdx)    : '';
+
   // ── TIME ────────────────────────────────────────────────────────
-  const timeVal = extractTime(t);
-  if (timeVal) {
-    if (/life\s+sav/i.test(t)) {
-      if (isDelivery) result.ls_time_d = timeVal; else result.ls_time_t = timeVal;
-    } else if (isDelivery) result.delivery_time = timeVal;
-    else result.request_time = timeVal;
+  const timeGeneral = extractTime(tGeneral);
+  if (timeGeneral) {
+    if (isDelivery) result.delivery_time = timeGeneral; else result.request_time = timeGeneral;
+  }
+  if (hasLifeSaving) {
+    const timeLS = extractTime(tLS);
+    if (timeLS) {
+      if (isDelivery) result.ls_time_d = timeLS; else result.ls_time_t = timeLS;
+    }
   }
 
   // ── DATE ────────────────────────────────────────────────────────
@@ -460,12 +502,14 @@ function parseWithRules(transcript, formType) {
   }
 
   // ── ROOM ────────────────────────────────────────────────────────
-  let m = t.match(/\broom\s+([0-9]+\s*[a-z]?)\b/i)
-        || t.match(/\bward\s+([0-9]+\s*[a-z]?)\b/i)
+  // Whisper can comma/hyphen-split a room number the same way it does file
+  // numbers and blood units ("210B" → "2, 10B"); tolerate those separators.
+  let m = t.match(/\broom[,\s]+([0-9][0-9,\-\s]{0,6}[0-9]?\s*[a-z]?)\b/i)
+        || t.match(/\bward[,\s]+([0-9][0-9,\-\s]{0,6}[0-9]?\s*[a-z]?)\b/i)
         || t.match(/\b(icu|itu|er|nicu|picu|ccu)\b/i);
   if (!m) m = t.match(/\b([0-9]{3,4}[a-z]?)\b/i);
   if (m) {
-    const room = (m[1] || m[0]).trim().toUpperCase().replace(/\s+/g, '');
+    const room = (m[1] || m[0]).trim().toUpperCase().replace(/[,\-\s]/g, '');
     if (isDelivery) result.d_room = room; else result.room = room;
   }
 
@@ -478,9 +522,14 @@ function parseWithRules(transcript, formType) {
   // ── FILE NUMBER ─────────────────────────────────────────────────
   // v9 fix: also match numbers with trailing letters (e.g. "3467A")
   // but strip the trailing letter if it's a blood group (A/B/O/AB)
-  m = t.match(/(?:file|record|id)\s*(?:number|num|#|is)?\s*,?\s*([a-z]?\d{4,8}[a-z]?)/i);
+  // Whisper sometimes hyphenates, comma-splits, or space-splits a dictated
+  // number ("883521" → "88352, 1" or "117-432"); allow those separators
+  // and strip them back out. (A wrong capture here still gets caught by
+  // the frontend's "needs verification" flag on File Number, so being a
+  // bit more permissive is an acceptable trade — see index.html HIGH_RISK_VOICE_LABELS.)
+  m = t.match(/(?:file|record|id)\s*(?:number|num|#|is)?\s*,?\s*([a-z]?\d[\d,\-\s]{2,12}\d?[a-z]?)/i);
   if (m) {
-    let fn = m[1].toUpperCase();
+    let fn = m[1].replace(/[\-\s,]/g, '').toUpperCase();
     // If trailing letter is a blood group letter AND followed by positive/negative,
     // strip it from the file number (it belongs to blood group)
     const trailingBG = fn.match(/^(\d+)(A|B|O)$/);
@@ -491,7 +540,32 @@ function parseWithRules(transcript, formType) {
   }
 
   // ── BLOOD GROUP + RH ────────────────────────────────────────────
-  const bgResult = extractBloodGroup(t);
+  // A single recording can mention up to three blood groups (patient's own,
+  // "unit group X", "before delivery X"). Pull "unit group ___" and "before
+  // delivery ___" from their own small windows first and strip those windows
+  // out, so the leftover text is searched for the patient's own blood group
+  // without the other two mentions overwriting it.
+  let bgSearchText = t;
+
+  const unitGroupM = t.match(/unit\s+group[,\s]+([^,.]{2,30})/i);
+  if (unitGroupM) {
+    const bgU = extractBloodGroup(unitGroupM[1]);
+    if (bgU) {
+      result.blood_unit_group = bgU.bg + (bgU.rh === 'Pos' ? '+' : bgU.rh === 'Neg' ? '-' : '');
+      bgSearchText = bgSearchText.replace(unitGroupM[0], ' ');
+    }
+  }
+
+  const beforeDeliveryM = t.match(/before\s+delivery[,\s]+([^,.]{2,30})/i);
+  if (beforeDeliveryM) {
+    const bgB = extractBloodGroup(beforeDeliveryM[1]);
+    if (bgB) {
+      result.patient_bg_delivery = bgB.bg + (bgB.rh === 'Pos' ? '+' : bgB.rh === 'Neg' ? '-' : '');
+      bgSearchText = bgSearchText.replace(beforeDeliveryM[0], ' ');
+    }
+  }
+
+  const bgResult = extractBloodGroup(bgSearchText);
   if (bgResult) {
     const { bg, rh, fileNumClean } = bgResult;
     // If we found a cleaner file number embedded in the blood group detection, use it
@@ -499,9 +573,7 @@ function parseWithRules(transcript, formType) {
       if (isDelivery) result.d_file_number = fileNumClean;
       else result.file_number = fileNumClean;
     }
-    if (/unit\s+group/i.test(t))       result.blood_unit_group    = bg + (rh === 'Pos' ? '+' : '-');
-    else if (/before\s+delivery/i.test(t)) result.patient_bg_delivery = bg + (rh === 'Pos' ? '+' : '-');
-    else if (isDelivery) {
+    if (isDelivery) {
       result.d_blood_group = bg;
       if (rh) result.d_rh = rh;
     } else {
@@ -559,30 +631,34 @@ function parseWithRules(transcript, formType) {
   if (!isDelivery) {
     // Word-number matches run FIRST so "three filtered packed cells" is caught
     // before the digit fallback can grab "24" from "24 hours" later in the text.
+    // NOTE: number/units → component keyword allows a comma in between
+    // ([,\s]+ instead of \s+) because Whisper turns a natural pause there
+    // ("One unit. Filtered packed cells.") into a comma after normalization —
+    // without it, the number never links up with its component at all.
     if (/pack\s+cells?|packed\s+cells?|filtered\s+packed|\bfiltered\b|prc|prbc|fpc|red\s+cells?/i.test(t)) {
-      m = t.match(/\b(one|two|three|four|five|six|seven|eight|nine|ten)\s+(?:units?\s+(?:of\s+)?)?(?:pack\s+cells?|packed\s+cells?|filtered|prc|fpc|red\s+cells?)/i);
+      m = t.match(/\b(one|two|three|four|five|six|seven|eight|nine|ten)[,\s]+(?:units?[,\s]+(?:of\s+)?)?(?:pack\s+cells?|packed\s+cells?|filtered|prc|fpc|red\s+cells?)/i);
       if (m) result.fpc_units = WORD_NUM[m[1].toLowerCase()] || 1;
       if (!result.fpc_units) {
         // digit before keyword, or digit within the same comma-segment after keyword
-        m = t.match(/(\d+)\s+(?:units?\s+)?(?:of\s+)?(?:pack|packed|filtered|prc|fpc)/i)
+        m = t.match(/(\d+)[,\s]+(?:units?[,\s]+)?(?:of\s+)?(?:pack|packed|filtered|prc|fpc)/i)
           || t.match(/(?:pack|packed|filtered|prc|fpc)[^,\d]{0,15}(\d+)/i);
         if (m) result.fpc_units = parseInt(m[1]);
       }
     }
     if (/\bffp\b|fresh\s+frozen|plasma/i.test(t)) {
-      m = t.match(/\b(one|two|three|four|five|six|seven|eight|nine|ten)\s+(?:units?\s+(?:of\s+)?)?(?:ffp|plasma|fresh\s+frozen)/i);
+      m = t.match(/\b(one|two|three|four|five|six|seven|eight|nine|ten)[,\s]+(?:units?[,\s]+(?:of\s+)?)?(?:ffp|plasma|fresh\s+frozen)/i);
       if (m) result.ffp_units = WORD_NUM[m[1].toLowerCase()] || 1;
       if (!result.ffp_units) {
-        m = t.match(/(\d+)\s+(?:units?\s+)?(?:of\s+)?(?:ffp|plasma)/i)
+        m = t.match(/(\d+)[,\s]+(?:units?[,\s]+)?(?:of\s+)?(?:ffp|plasma)/i)
           || t.match(/(?:ffp|plasma)[^,\d]{0,15}(\d+)/i);
         if (m) result.ffp_units = parseInt(m[1]);
       }
     }
     if (/platelet|plt/i.test(t)) {
-      m = t.match(/\b(one|two|three|four|five|six|seven|eight|nine|ten)\s+(?:units?\s+(?:of\s+)?)?(?:platelet|plt)/i);
+      m = t.match(/\b(one|two|three|four|five|six|seven|eight|nine|ten)[,\s]+(?:units?[,\s]+(?:of\s+)?)?(?:platelet|plt)/i);
       if (m) result.plt_units = WORD_NUM[m[1].toLowerCase()] || 1;
       if (!result.plt_units) {
-        m = t.match(/(\d+)\s+(?:units?\s+)?(?:of\s+)?(?:platelet|plt)/i)
+        m = t.match(/(\d+)[,\s]+(?:units?[,\s]+)?(?:of\s+)?(?:platelet|plt)/i)
           || t.match(/(?:platelet|plt)[^,\d]{0,15}(\d+)/i);
         if (m) result.plt_units = parseInt(m[1]);
       }
@@ -657,12 +733,21 @@ function parseWithRules(transcript, formType) {
   }
 
   // ── STAFF ────────────────────────────────────────────────────────
-  m = raw.match(/(?:dr|doctor|physician)\.?[,\s]+([A-Za-z][A-Za-z\s\-\',]{1,50})/i);
-  if (m) {
-    const dr = 'Dr. ' + titleCase(stopAtKeyword(m[1].replace(/,\s*/g, ' ').replace(/\s+/g, ' ').trim()) || m[1].trim());
-    if (/life\s+sav/i.test(t) && isDelivery)  result.ls_physician_d = dr;
-    else if (/life\s+sav/i.test(t))            result.ls_physician_t = dr;
-    else if (!isDelivery)                       result.physician = dr;
+  // Physician mentioned before "life saving" (or the whole transcript if it
+  // never says "life saving") is the regular attending physician.
+  m = rawGeneral.match(/(?:dr|doctor|physician)\.?[,\s]+([A-Za-z][A-Za-z\s\-\',]{1,50})/i);
+  if (m && !isDelivery) {
+    const n = stopAtKeyword(m[1].replace(/,\s*/g, ' ').replace(/\s+/g, ' ').trim()) || m[1].trim();
+    result.physician = 'Dr. ' + titleCase(n);
+  }
+  // Physician mentioned at/after "life saving" is the life-saving physician.
+  if (hasLifeSaving) {
+    m = rawLS.match(/(?:dr|doctor|physician)\.?[,\s]+([A-Za-z][A-Za-z\s\-\',]{1,50})/i);
+    if (m) {
+      const n = stopAtKeyword(m[1].replace(/,\s*/g, ' ').replace(/\s+/g, ' ').trim()) || m[1].trim();
+      const dr = 'Dr. ' + titleCase(n);
+      if (isDelivery) result.ls_physician_d = dr; else result.ls_physician_t = dr;
+    }
   }
   m = raw.match(/(?:nurse|phlebotomist)[,\s]+(?:name[,\s]+)?(?:is[,\s]+)?([A-Za-z][A-Za-z\s\-\',]{1,50})/i);
   if (m) {
@@ -734,7 +819,7 @@ function parseWithRules(transcript, formType) {
   }
 
   // ── LIFE SAVING ─────────────────────────────────────────────────
-  if (/life\s+sav/i.test(t)) {
+  if (/life[\s-]+sav/i.test(t)) {
     if (isDelivery) result.life_saving_d = true; else result.life_saving_t = true;
   }
 

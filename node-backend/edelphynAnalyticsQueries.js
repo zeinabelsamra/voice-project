@@ -9,37 +9,101 @@ function dateInput(request, name, value) {
   request.input(name, sql.Date, new Date(`${value}T00:00:00Z`));
 }
 
-// ── 1. Executive KPI summary ────────────────────────────────────────
-async function kpiSummary(pool, dateFrom, dateTo) {
+// ── 1. Executive KPI summary — current period, previous period, and a
+// daily series for sparklines, all in one round trip.
+//
+// Seven of the eight cards (Donations, Unique Donors, Units Requested,
+// Units Issued, Units Returned, Wasted Units, and the rates derived from
+// them client-side) are ordinary "count of events in a date range" metrics,
+// so "previous period" for them is the equal-length window immediately
+// before @DateFrom.
+//
+// Units Expiring Soon is different: it's a live inventory snapshot, not an
+// event count, so there's no natural "previous period" for it in the same
+// sense. Here "previous" means the same snapshot taken at the *start* of
+// the selected period (anchored on @DateFrom) instead of its end (anchored
+// on @DateTo) — i.e. "is the expiring-soon backlog bigger or smaller now
+// than when this period began?". Both readings use today's actual
+// resolution status (current TRANSFUSION/DELIVERYDETAIL/DESTROYBOXUNIT
+// state) — this is a live-inventory comparison, not a simulated historical
+// audit of what was resolved on each of those two dates.
+//
+// #LiveUnits is computed once and reused for the whole snapshot metric
+// (current, previous, and every day of the trend) instead of re-running its
+// exclusion checks per day — the checks are the expensive part once UNIT
+// holds a real hospital's volume of history, so paying that cost once
+// keeps this endpoint fast regardless of how many days are in the series.
+async function kpiTrend(pool, dateFrom, dateTo, expiryDays) {
   const request = pool.request();
   dateInput(request, "DateFrom", dateFrom);
   dateInput(request, "DateTo", dateTo);
+  request.input("ExpiryDays", sql.Int, expiryDays);
+  request.input("MaxDays", sql.Int, 120); // sparkline day cap — see kpiDailyTrend below
   const result = await request.query(`
+    SET NOCOUNT ON;
+    DECLARE @PeriodDays int = DATEDIFF(DAY, @DateFrom, @DateTo);
+    DECLARE @PrevFrom   date = DATEADD(DAY, -@PeriodDays, @DateFrom);
+    DECLARE @PrevTo     date = @DateFrom;
+
+    IF OBJECT_ID('tempdb..#LiveUnits') IS NOT NULL DROP TABLE #LiveUnits;
+    SELECT U.ID_UNIT, U.DAT_EXPIRY
+    INTO #LiveUnits
+    FROM dbo.UNIT U
+    WHERE NOT EXISTS (SELECT 1 FROM dbo.TRANSFUSION T WHERE T.ID_UNIT = U.ID_UNIT AND T.DAT_RETURN IS NULL)
+      AND NOT EXISTS (SELECT 1 FROM dbo.DELIVERYDETAIL DD WHERE DD.ID_UNIT = U.ID_UNIT AND DD.DAT_RETURN IS NULL)
+      AND NOT EXISTS (SELECT 1 FROM dbo.DESTROYBOXUNIT DBU WHERE DBU.ID_UNIT = U.ID_UNIT);
+    CREATE INDEX IX_LiveUnits_Expiry ON #LiveUnits(DAT_EXPIRY);
+
+    -- Result set 1: current vs previous period totals.
+    SELECT 'current' AS Period,
+        (SELECT COUNT(*) FROM dbo.DONATION D WHERE D.DAT_DONATION >= @DateFrom AND D.DAT_DONATION < @DateTo) AS TotalDonations,
+        (SELECT COUNT(DISTINCT D.ID_PERSON) FROM dbo.DONATION D WHERE D.DAT_DONATION >= @DateFrom AND D.DAT_DONATION < @DateTo) AS UniqueDonors,
+        (SELECT COALESCE(SUM(O.NUM_QUANTITY), 0) FROM dbo.ORDERFORM O WHERE COALESCE(O.DAT_REQUEST, O.DAT_ORDERFORM) >= @DateFrom AND COALESCE(O.DAT_REQUEST, O.DAT_ORDERFORM) < @DateTo) AS UnitsRequested,
+        (SELECT COUNT(*) FROM dbo.TRANSFUSION T WHERE T.DAT_TRANSFUSION >= @DateFrom AND T.DAT_TRANSFUSION < @DateTo) AS UnitsIssued,
+        (SELECT COUNT(*) FROM dbo.TRANSFUSION T WHERE T.DAT_RETURN >= @DateFrom AND T.DAT_RETURN < @DateTo) AS UnitsReturned,
+        (SELECT COUNT(*) FROM dbo.DESTROYBOXUNIT DBU INNER JOIN dbo.DESTROYBOX DB ON DB.ID_DESTROYBOX = DBU.ID_DESTROYBOX
+          WHERE COALESCE(DBU.DAT_DESTROYBOXUNIT, DB.DAT_DESTROYBOX) >= @DateFrom AND COALESCE(DBU.DAT_DESTROYBOXUNIT, DB.DAT_DESTROYBOX) < @DateTo) AS WastedUnits,
+        (SELECT COUNT(*) FROM #LiveUnits LU WHERE LU.DAT_EXPIRY >= @DateTo AND LU.DAT_EXPIRY < DATEADD(DAY, @ExpiryDays, @DateTo)) AS ExpiringSoon
+    UNION ALL
+    SELECT 'previous',
+        (SELECT COUNT(*) FROM dbo.DONATION D WHERE D.DAT_DONATION >= @PrevFrom AND D.DAT_DONATION < @PrevTo),
+        (SELECT COUNT(DISTINCT D.ID_PERSON) FROM dbo.DONATION D WHERE D.DAT_DONATION >= @PrevFrom AND D.DAT_DONATION < @PrevTo),
+        (SELECT COALESCE(SUM(O.NUM_QUANTITY), 0) FROM dbo.ORDERFORM O WHERE COALESCE(O.DAT_REQUEST, O.DAT_ORDERFORM) >= @PrevFrom AND COALESCE(O.DAT_REQUEST, O.DAT_ORDERFORM) < @PrevTo),
+        (SELECT COUNT(*) FROM dbo.TRANSFUSION T WHERE T.DAT_TRANSFUSION >= @PrevFrom AND T.DAT_TRANSFUSION < @PrevTo),
+        (SELECT COUNT(*) FROM dbo.TRANSFUSION T WHERE T.DAT_RETURN >= @PrevFrom AND T.DAT_RETURN < @PrevTo),
+        (SELECT COUNT(*) FROM dbo.DESTROYBOXUNIT DBU INNER JOIN dbo.DESTROYBOX DB ON DB.ID_DESTROYBOX = DBU.ID_DESTROYBOX
+          WHERE COALESCE(DBU.DAT_DESTROYBOXUNIT, DB.DAT_DESTROYBOX) >= @PrevFrom AND COALESCE(DBU.DAT_DESTROYBOXUNIT, DB.DAT_DESTROYBOX) < @PrevTo),
+        (SELECT COUNT(*) FROM #LiveUnits LU WHERE LU.DAT_EXPIRY >= @DateFrom AND LU.DAT_EXPIRY < DATEADD(DAY, @ExpiryDays, @DateFrom));
+
+    -- Result set 2: daily series across the current period, for sparklines.
+    -- Capped at @MaxDays points so a very wide custom range (a year+) can't
+    -- turn this into hundreds of correlated subqueries.
+    ;WITH Days AS (
+      SELECT @DateFrom AS SeriesDate, 0 AS N
+      UNION ALL
+      SELECT DATEADD(DAY, 1, SeriesDate), N + 1 FROM Days
+      WHERE DATEADD(DAY, 1, SeriesDate) < @DateTo AND N + 1 < @MaxDays
+    )
     SELECT
-        (SELECT COUNT(*) FROM dbo.DONATION D
-          WHERE D.DAT_DONATION >= @DateFrom AND D.DAT_DONATION < @DateTo) AS TotalDonations,
-        (SELECT COUNT(DISTINCT D.ID_PERSON) FROM dbo.DONATION D
-          WHERE D.DAT_DONATION >= @DateFrom AND D.DAT_DONATION < @DateTo) AS UniqueDonors,
-        (SELECT COUNT(*) FROM dbo.ORDERFORM O
-          WHERE COALESCE(O.DAT_REQUEST, O.DAT_ORDERFORM) >= @DateFrom
-            AND COALESCE(O.DAT_REQUEST, O.DAT_ORDERFORM) < @DateTo
-            ) AS PatientRequests,
-        (SELECT COALESCE(SUM(O.NUM_QUANTITY), 0) FROM dbo.ORDERFORM O
-          WHERE COALESCE(O.DAT_REQUEST, O.DAT_ORDERFORM) >= @DateFrom
-            AND COALESCE(O.DAT_REQUEST, O.DAT_ORDERFORM) < @DateTo
-           ) AS UnitsRequested,
-        (SELECT COUNT(*) FROM dbo.TRANSFUSION T
-          WHERE T.DAT_TRANSFUSION >= @DateFrom AND T.DAT_TRANSFUSION < @DateTo) AS UnitsIssued,
-        (SELECT COUNT(*) FROM dbo.TRANSFUSION T
-          WHERE T.DAT_RETURN >= @DateFrom AND T.DAT_RETURN < @DateTo) AS UnitsReturned,
-        (SELECT COUNT(*) FROM dbo.DESTROYBOXUNIT DBU
-          INNER JOIN dbo.DESTROYBOX DB ON DB.ID_DESTROYBOX = DBU.ID_DESTROYBOX
-          WHERE COALESCE(DBU.DAT_DESTROYBOXUNIT, DB.DAT_DESTROYBOX) >= @DateFrom
-            AND COALESCE(DBU.DAT_DESTROYBOXUNIT, DB.DAT_DESTROYBOX) < @DateTo) AS WastedUnits,
-        (SELECT COUNT(*) FROM dbo.DELIVERYDETAIL DD
-          WHERE DD.DAT_DELIVERYDETAIL >= @DateFrom AND DD.DAT_DELIVERYDETAIL < @DateTo) AS UnitsSentExternally;
+        Days.SeriesDate,
+        (SELECT COUNT(*) FROM dbo.DONATION D WHERE D.DAT_DONATION >= Days.SeriesDate AND D.DAT_DONATION < DATEADD(DAY, 1, Days.SeriesDate)) AS Donations,
+        (SELECT COUNT(DISTINCT D.ID_PERSON) FROM dbo.DONATION D WHERE D.DAT_DONATION >= Days.SeriesDate AND D.DAT_DONATION < DATEADD(DAY, 1, Days.SeriesDate)) AS UniqueDonors,
+        (SELECT COALESCE(SUM(O.NUM_QUANTITY), 0) FROM dbo.ORDERFORM O WHERE COALESCE(O.DAT_REQUEST, O.DAT_ORDERFORM) >= Days.SeriesDate AND COALESCE(O.DAT_REQUEST, O.DAT_ORDERFORM) < DATEADD(DAY, 1, Days.SeriesDate)) AS UnitsRequested,
+        (SELECT COUNT(*) FROM dbo.TRANSFUSION T WHERE T.DAT_TRANSFUSION >= Days.SeriesDate AND T.DAT_TRANSFUSION < DATEADD(DAY, 1, Days.SeriesDate)) AS UnitsIssued,
+        (SELECT COUNT(*) FROM dbo.TRANSFUSION T WHERE T.DAT_RETURN >= Days.SeriesDate AND T.DAT_RETURN < DATEADD(DAY, 1, Days.SeriesDate)) AS UnitsReturned,
+        (SELECT COUNT(*) FROM dbo.DESTROYBOXUNIT DBU INNER JOIN dbo.DESTROYBOX DB ON DB.ID_DESTROYBOX = DBU.ID_DESTROYBOX
+          WHERE COALESCE(DBU.DAT_DESTROYBOXUNIT, DB.DAT_DESTROYBOX) >= Days.SeriesDate AND COALESCE(DBU.DAT_DESTROYBOXUNIT, DB.DAT_DESTROYBOX) < DATEADD(DAY, 1, Days.SeriesDate)) AS WastedUnits,
+        (SELECT COUNT(*) FROM #LiveUnits LU WHERE LU.DAT_EXPIRY >= Days.SeriesDate AND LU.DAT_EXPIRY < DATEADD(DAY, @ExpiryDays, Days.SeriesDate)) AS ExpiringSoon
+    FROM Days
+    ORDER BY Days.SeriesDate
+    OPTION (MAXRECURSION 200);
+
+    DROP TABLE #LiveUnits;
   `);
-  return result.recordset[0];
+  const [totalsRows, dailyRows] = result.recordsets;
+  const current  = totalsRows.find(r => r.Period === 'current')  || {};
+  const previous = totalsRows.find(r => r.Period === 'previous') || {};
+  return { current, previous, daily: dailyRows || [] };
 }
 
 // ── 2. Monthly supply-versus-demand trend ───────────────────────────
@@ -148,6 +212,11 @@ async function donorRetention(pool, dateFrom, dateTo) {
 }
 
 // ── 6. Donor inactivity and recall opportunities ────────────────────
+// PhoneAvailable/EmailAvailable mean "there's a usable contact point" — the
+// field is populated AND not flagged as bad data (LOG_WRONGMOBILE/
+// LOG_WRONGEMAIL). SmsConsent/EmailConsent read LOG_BYSMS/LOG_BYEMAIL — see
+// the note in edelphyn-test-db/extend_test_edelphyn_v3_person_consent.sql on
+// why those two (and not LOG_INFORMSMS/LOG_INFORMEMAIL) were picked.
 async function donorRecall(pool, inactiveDays) {
   const request = pool.request();
   request.input("InactiveDays", sql.Int, inactiveDays);
@@ -165,8 +234,15 @@ async function donorRecall(pool, inactiveDays) {
         LD.LastDonationDate,
         DATEDIFF(DAY, LD.LastDonationDate, GETDATE()) AS DaysSinceDonation,
         LD.LifetimeDonations,
+        P.NUM_FREQUENCY AS DonationFrequencyDays,
         P.DES_MOBILEPHONE,
         P.DES_EMAIL,
+        CASE WHEN P.DES_MOBILEPHONE IS NOT NULL AND LTRIM(RTRIM(P.DES_MOBILEPHONE)) <> '' AND P.LOG_WRONGMOBILE = 0
+             THEN 1 ELSE 0 END AS PhoneAvailable,
+        CASE WHEN P.DES_EMAIL IS NOT NULL AND LTRIM(RTRIM(P.DES_EMAIL)) <> '' AND P.LOG_WRONGEMAIL = 0
+             THEN 1 ELSE 0 END AS EmailAvailable,
+        P.LOG_BYSMS AS SmsConsent,
+        P.LOG_BYEMAIL AS EmailConsent,
         P.COD_ACCEPTED,
         P.DAT_DEFERRED,
         P.DAT_INACTIVATION
@@ -196,6 +272,7 @@ async function fulfilmentRate(pool, dateFrom, dateTo) {
         O.ID_ORDERFORM,
         O.COD_ORDERFORM,
         COALESCE(O.DAT_REQUEST, O.DAT_ORDERFORM) AS RequestDate,
+        DPT.DES_DEPARTMENT AS Department,
         O.NUM_QUANTITY AS RequestedUnits,
         COALESCE(I.IssuedUnits, 0) AS IssuedUnits,
         COALESCE(I.ReturnedUnits, 0) AS ReturnedUnits,
@@ -207,9 +284,9 @@ async function fulfilmentRate(pool, dateFrom, dateTo) {
              ELSE 'Issued above request' END AS FulfilmentStatus
     FROM dbo.ORDERFORM O
     LEFT JOIN IssuedPerOrder I ON I.ID_ORDERFORM = O.ID_ORDERFORM
+    LEFT JOIN dbo.DEPARTMENT DPT ON DPT.ID_DEPARTMENT = O.ID_DEPARTMENT
     WHERE COALESCE(O.DAT_REQUEST, O.DAT_ORDERFORM) >= @DateFrom
       AND COALESCE(O.DAT_REQUEST, O.DAT_ORDERFORM) < @DateTo
-      
     ORDER BY RequestDate DESC;
   `);
   return result.recordset;
@@ -410,7 +487,7 @@ async function anomalyDetection(pool, dateFrom, dateTo) {
 }
 
 module.exports = {
-  kpiSummary,
+  kpiTrend,
   monthlyTrend,
   donationTypes,
   donorRetention,

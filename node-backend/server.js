@@ -175,7 +175,7 @@ const loginLimiter = rateLimit({
   message: { error: 'Too many login attempts — try again in 15 minutes' },
 });
 
-app.use(express.json());
+app.use(express.json({ limit: '20mb' })); // raised for base64 chart-image exports
 app.use(express.static(path.join(__dirname, "../frontend")));
 
 const upload = multer({ dest: "uploads/" });
@@ -319,6 +319,40 @@ async function initDB() {
       IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='ExternalDeliveries' AND COLUMN_NAME='components_json')
         ALTER TABLE ExternalDeliveries ADD components_json NVARCHAR(MAX) NULL;
     `);
+
+    // ── Migrate: Departments table (admin-managed, replaces the two
+    // hardcoded department lists that used to live in the frontend: the
+    // Add/Edit User modal's dropdown and Chat's CHAT_DEPTS array) ───────
+    await pool.request().query(`
+      IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='Departments')
+        CREATE TABLE Departments (
+          department_id INT IDENTITY(1,1) PRIMARY KEY,
+          name          NVARCHAR(100) NOT NULL UNIQUE,
+          active        BIT           NOT NULL DEFAULT 1,
+          sort_order    INT           NOT NULL DEFAULT 0,
+          created_at    DATETIME      DEFAULT GETDATE()
+        );
+    `);
+    const deptCount = await pool.request().query("SELECT COUNT(*) AS cnt FROM Departments");
+    if (deptCount.recordset[0].cnt === 0) {
+      // One-time seed from the list that used to be hardcoded in the
+      // frontend, in the same order, so nothing changes for existing users.
+      const seedDepartments = [
+        'BLOOD BANK', 'CARDIOLOGY', 'CCU + ICU', 'CORONA 3300-3500', 'CORONA 3400',
+        'CSU', 'DELIVERY', 'DIALYSIS', 'ENDOSCOPY', 'ER', 'ER CORONA', 'HAEMATOLOGY',
+        'ICU 2 CORONA', 'ICU 3', 'ICU CORONA', 'INTERNAL MEDICINE 1', 'MHU',
+        'NICU CORONA', 'NICU-PICU', 'NURSERY', 'OBS', 'ODC', 'ONCO ADULT',
+        'ONCO PEDIATRIC', 'OPERATING THEATRE', 'OR', 'PEDIATRIC', 'RECOVERY',
+        'SURGERY 1', 'WTTC',
+      ];
+      for (let i = 0; i < seedDepartments.length; i++) {
+        await pool.request()
+          .input('name', sql.NVarChar, seedDepartments[i])
+          .input('sort', sql.Int, i)
+          .query("INSERT INTO Departments (name, sort_order) VALUES (@name, @sort)");
+      }
+      console.log(`✅ Seeded ${seedDepartments.length} departments`);
+    }
 
     console.log("✅ Schema up to date");
 
@@ -526,6 +560,83 @@ app.put('/users/:id/password', requireAdmin, async (req, res) => {
       .query("UPDATE HospitalUsers SET password_hash=@hash WHERE user_id=@id");
     res.json({ success: true });
   } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ════════════════════════════════════════════════════════════════
+// Departments — the single source of truth for the department picklist
+// used by the Add/Edit User modal and Chat's department sidebar. Not a
+// hard foreign key: HospitalUsers.department and ChatMessages.from_dept/
+// to_dept stay free-text NVARCHAR, so removing a department here never
+// invalidates historical records — it just stops showing up as a choice
+// for *new* ones. "BLOOD BANK" is the app's own home department (hardcoded
+// in login/chat/JWT logic elsewhere) and can't be renamed or deactivated.
+// ════════════════════════════════════════════════════════════════
+
+// GET /api/departments — any authenticated user (needed for Chat + the
+// user modal, not just admins). ?includeInactive=1 for the Settings page.
+app.get('/api/departments', requireAuth, async (req, res) => {
+  try {
+    const pool = await getPool();
+    const includeInactive = req.query.includeInactive === '1';
+    const result = await pool.request().query(
+      `SELECT department_id, name, active, sort_order FROM Departments
+       ${includeInactive ? '' : 'WHERE active = 1'}
+       ORDER BY sort_order, name`
+    );
+    res.json(result.recordset);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/departments  (admin only) — add a new department
+app.post('/api/departments', requireAdmin, async (req, res) => {
+  const name = (req.body.name || '').trim().toUpperCase();
+  if (!name) return res.status(400).json({ error: 'Department name is required' });
+  try {
+    const pool = await getPool();
+    const maxOrder = await pool.request().query('SELECT COALESCE(MAX(sort_order), -1) AS m FROM Departments');
+    const result = await pool.request()
+      .input('name', sql.NVarChar, name)
+      .input('sort', sql.Int, maxOrder.recordset[0].m + 1)
+      .query('INSERT INTO Departments (name, sort_order) OUTPUT INSERTED.department_id VALUES (@name, @sort)');
+    res.json({ success: true, department_id: result.recordset[0].department_id });
+  } catch (err) {
+    if (err.message.includes('UNIQUE') || err.message.includes('unique')) {
+      return res.status(409).json({ error: 'A department with this name already exists' });
+    }
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PUT /api/departments/:id  (admin only) — rename and/or toggle active
+app.put('/api/departments/:id', requireAdmin, async (req, res) => {
+  const { id } = req.params;
+  try {
+    const pool = await getPool();
+    const current = await pool.request().input('id', sql.Int, parseInt(id))
+      .query('SELECT name FROM Departments WHERE department_id=@id');
+    if (!current.recordset[0]) return res.status(404).json({ error: 'Department not found' });
+    if (current.recordset[0].name === 'BLOOD BANK') {
+      return res.status(400).json({ error: 'BLOOD BANK is the app\'s home department and cannot be renamed or deactivated' });
+    }
+    const name   = req.body.name !== undefined ? req.body.name.trim().toUpperCase() : current.recordset[0].name;
+    const active = req.body.active !== undefined ? (req.body.active ? 1 : 0) : undefined;
+    if (!name) return res.status(400).json({ error: 'Department name is required' });
+    await pool.request()
+      .input('id',     sql.Int,      parseInt(id))
+      .input('name',   sql.NVarChar, name)
+      .input('active', sql.Bit,      active !== undefined ? active : 1)
+      .query(active !== undefined
+        ? 'UPDATE Departments SET name=@name, active=@active WHERE department_id=@id'
+        : 'UPDATE Departments SET name=@name WHERE department_id=@id');
+    res.json({ success: true });
+  } catch (err) {
+    if (err.message.includes('UNIQUE') || err.message.includes('unique')) {
+      return res.status(409).json({ error: 'A department with this name already exists' });
+    }
     res.status(500).json({ error: err.message });
   }
 });
@@ -1789,7 +1900,7 @@ app.get("/mode-check", (req, res) => {
 // POST /export/pdf   — generate and download PDF
 // POST /export/docx  — generate and download DOCX
 // ════════════════════════════════════════════════════════════════
-const { generateDocx, generatePdf, generateHandoverPdf } = require('./exportForm');
+const { generateDocx, generatePdf, generateHandoverPdf, generateChartsPdf, generateChartsDocx } = require('./exportForm');
 
 // ════════════════════════════════════════════════════════════════
 // GET /handover?date=YYYY-MM-DD&shift=morning|afternoon|night
@@ -2624,6 +2735,52 @@ app.post('/api/dashboard/category-export', requireAuth, async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// POST /api/dashboard/category-charts-export/:fileType (pdf|docx)
+// Body: { category, categoryLabel, dateFrom, dateTo, charts: [{ title, image: 'data:image/png;base64,...', width, height }] }
+// Charts are captured client-side as PNG snapshots of the on-screen Chart.js canvases.
+app.post('/api/dashboard/category-charts-export/:fileType', requireAuth, async (req, res) => {
+  try {
+    const { fileType } = req.params;
+    if (fileType !== 'pdf' && fileType !== 'docx') return res.status(400).json({ error: 'fileType must be pdf or docx' });
+
+    const { category, categoryLabel, dateFrom, dateTo, charts } = req.body;
+    if (!EDELPHYN_CATEGORIES.includes(category)) return res.status(400).json({ error: 'Unknown category' });
+    if (!Array.isArray(charts)) return res.status(400).json({ error: 'charts must be an array' });
+
+    const cleanCharts = charts
+      .filter(c => c && typeof c.image === 'string' && c.image.startsWith('data:image/'))
+      .slice(0, 20) // sane cap
+      .map(c => ({
+        title: String(c.title || 'Chart').slice(0, 120),
+        buffer: Buffer.from(c.image.split(',')[1] || '', 'base64'),
+        width: Number(c.width) || 0,
+        height: Number(c.height) || 0,
+      }));
+
+    const meta = {
+      categoryLabel: categoryLabel || category,
+      dateFrom: dateFrom || null,
+      dateTo: dateTo || null,
+      generatedAt: new Date().toLocaleString('en-GB', { hour12: false }),
+    };
+
+    if (fileType === 'pdf') {
+      const buffer = await generateChartsPdf(meta, cleanCharts);
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `attachment; filename="${category}-charts_${Date.now()}.pdf"`);
+      res.send(buffer);
+    } else {
+      const buffer = await generateChartsDocx(meta, cleanCharts);
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+      res.setHeader('Content-Disposition', `attachment; filename="${category}-charts_${Date.now()}.docx"`);
+      res.send(buffer);
+    }
+  } catch (err) {
+    console.error('Charts export error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // GET /api/dashboard/alerts — rule-based smart alerts from live eDelphyn data
 app.get('/api/dashboard/alerts', requireAuth, async (req, res) => {
   try {
@@ -2825,10 +2982,11 @@ function defaultRange(days) {
 app.get('/api/analytics/kpi-summary', requireAuth, async (req, res) => {
   try {
     const { from: defFrom, to: defTo } = defaultRange(30);
-    const dateFrom = req.query.from || defFrom;
-    const dateTo   = nextDayStr(req.query.to || defTo);
+    const dateFrom   = req.query.from || defFrom;
+    const dateTo     = nextDayStr(req.query.to || defTo);
+    const expiryDays = parseInt(req.query.expiryDays) || 14;
     const pool = await getEdelphynPool();
-    const data = await analyticsQueries.kpiSummary(pool, dateFrom, dateTo);
+    const data = await analyticsQueries.kpiTrend(pool, dateFrom, dateTo, expiryDays);
     res.json(data);
   } catch (err) { console.error('kpi-summary error:', err.message); res.status(500).json({ error: err.message }); }
 });

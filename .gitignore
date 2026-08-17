@@ -8,6 +8,14 @@ node-backend/config/
 # Dependencies
 node-backend/node_modules/
 python-service/venv/
+rag-chatbot/venv/
+rag-chatbot/__pycache__/
+
+# Regenerable build artifacts (rebuild with refresh_data.py) -- not source,
+# and data_snapshot/ is a live pull from e-Delphyn so shouldn't be
+# committed on principle even though this test data happens to be synthetic
+rag-chatbot/chroma_db/
+rag-chatbot/data_snapshot/
 
 # Uploaded audio files
 node-backend/uploads/

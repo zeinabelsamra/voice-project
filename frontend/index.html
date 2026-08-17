@@ -560,6 +560,15 @@
     .consump-card.ffp .consump-card-num{color:#1A5276;}
     .consump-card.plt .consump-card-num{color:#b7860b;}
     .consump-card.total .consump-card-num{color:var(--green);}
+    .consump-card.exp .consump-card-num{color:#b13325;}
+    .consump-card-meta{display:flex;align-items:baseline;justify-content:center;gap:8px;margin-top:2px;flex-wrap:wrap;}
+    .consump-card-prev{font-size:10.5px;color:var(--text-soft);}
+    .consump-card-delta{font-size:11px;font-weight:700;}
+    .consump-card-delta.good{color:var(--green);}
+    .consump-card-delta.bad{color:var(--blood);}
+    .consump-card-delta.flat{color:var(--text-soft);}
+    .consump-card-spark{margin-top:10px;height:28px;width:100%;}
+    .consump-card-spark svg{display:block;width:100%;height:100%;}
     .consump-two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;}
     @media(max-width:700px){.consump-two-col{grid-template-columns:1fr;}}
     .consump-panel{background:var(--white);border:1.5px solid var(--border);border-radius:12px;padding:20px;}
@@ -874,6 +883,12 @@
     .req-star{color:#e74c3c;margin-left:2px;font-weight:700;}
     .validation-banner{display:none;background:#fdf0ef;border:1.5px solid #e74c3c;border-radius:8px;padding:10px 14px;margin:0 0 10px;color:#c0392b;font-size:12.5px;font-weight:600;line-height:1.5;}
     .validation-banner.show{display:block;}
+    /* ── VOICE "NEEDS VERIFICATION" — high-risk fields (file #, blood unit #) that
+       Whisper is known to mis-transcribe (digit chunking/hyphenation). Persists
+       until the user manually touches the field, unlike the transient .voice-hit flash. ── */
+    .fi.needs-verify{border:2px dashed #d4a017!important;background:#fffbea!important;box-shadow:0 0 0 3px rgba(212,160,23,.12)!important;}
+    .verify-count{display:none;color:#b7860b;font-weight:700;margin-left:8px;}
+    .verify-count.show{display:inline;}
   /* ══════════════════════════════════════════════════════
      LOGIN SCREEN
   ══════════════════════════════════════════════════════ */
@@ -972,6 +987,18 @@
      SETTINGS
   ══════════════════════════════════════════════════════ */
   .settings-panel { max-width: 900px; margin: 0 auto; }
+  .settings-tabbar {
+    display: flex; gap: 4px; background: #eef1f6; border-radius: 10px;
+    padding: 4px; margin-bottom: 18px; flex-wrap: wrap;
+  }
+  .settings-tab {
+    flex: 1; min-width: 160px; display: flex; align-items: center; justify-content: center; gap: 8px;
+    padding: 10px 14px; border: none; border-radius: 8px; background: transparent;
+    font-family: 'Instrument Sans', sans-serif; font-size: 13px; font-weight: 600; color: var(--text-mid);
+    cursor: pointer; transition: all .15s;
+  }
+  .settings-tab:hover { color: var(--text); }
+  .settings-tab.active { background: #fff; color: #1a2a3a; box-shadow: 0 1px 4px rgba(13,27,42,0.12); }
   .settings-card {
     background: #fff; border: 1.5px solid var(--border); border-radius: var(--radius);
     padding: 24px; box-shadow: var(--shadow-sm);
@@ -1014,6 +1041,12 @@
   .settings-test-result.pending { color: var(--text-soft); }
   .settings-savebar {
     display: flex; justify-content: flex-end; gap: 10px; margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--border);
+  }
+  .dept-add-row { display: flex; gap: 10px; }
+  .dept-add-row .fi { flex: 1; }
+  .dept-system-tag {
+    font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em;
+    color: var(--text-soft); background: var(--mist); padding: 2px 7px; border-radius: 4px; margin-left: 6px;
   }
 
   /* ══════════════════════════════════════════════════════
@@ -1142,6 +1175,7 @@
     .excel-ov-sub{font-size:0.7rem;color:#a0aec0;margin-top:1px;}
   </style>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="/socket.io/socket.io.js"></script>
 </head>
@@ -1189,38 +1223,12 @@
     </div>
     <div class="modal-field">
       <label>Department</label>
+      <!-- Options populated from GET /api/departments — see
+           populateDepartmentOptions() — instead of a hardcoded list, so
+           admins can add/rename departments from Settings and they show
+           up here immediately. -->
       <select id="mDepartment">
         <option value="">— Select department —</option>
-        <option>BLOOD BANK</option>
-        <option>CARDIOLOGY</option>
-        <option>CCU + ICU</option>
-        <option>CORONA 3300-3500</option>
-        <option>CORONA 3400</option>
-        <option>CSU</option>
-        <option>DELIVERY</option>
-        <option>DIALYSIS</option>
-        <option>ENDOSCOPY</option>
-        <option>ER</option>
-        <option>ER CORONA</option>
-        <option>HAEMATOLOGY</option>
-        <option>ICU 2 CORONA</option>
-        <option>ICU 3</option>
-        <option>ICU CORONA</option>
-        <option>INTERNAL MEDICINE 1</option>
-        <option>MHU</option>
-        <option>NICU CORONA</option>
-        <option>NICU-PICU</option>
-        <option>NURSERY</option>
-        <option>OBS</option>
-        <option>ODC</option>
-        <option>ONCO ADULT</option>
-        <option>ONCO PEDIATRIC</option>
-        <option>OPERATING THEATRE</option>
-        <option>OR</option>
-        <option>PEDIATRIC</option>
-        <option>RECOVERY</option>
-        <option>SURGERY 1</option>
-        <option>WTTC</option>
       </select>
     </div>
     <div class="modal-field">
@@ -1545,7 +1553,7 @@
       </div>
       <div class="save-bar">
         <div class="validation-banner" id="t_validationBanner"></div>
-        <div class="filled-count">Voice-filled: <span id="t_count">0</span> fields<span class="draft-indicator" id="t_draftIndicator"></span></div>
+        <div class="filled-count">Voice-filled: <span id="t_count">0</span> fields<span class="draft-indicator" id="t_draftIndicator"></span><span class="verify-count" id="t_verifyCount"></span></div>
         <div class="btn-row">
           <button class="btn-clear" onclick="clearForm('t')">Clear</button>
           <button class="btn-clear" onclick="exportForm('transfusion','pdf')" title="Export as PDF">📄 PDF</button>
@@ -1738,7 +1746,7 @@
       </div>
       <div class="save-bar">
         <div class="validation-banner" id="d_validationBanner"></div>
-        <div class="filled-count">Voice-filled: <span id="d_count">0</span> fields<span class="draft-indicator" id="d_draftIndicator"></span></div>
+        <div class="filled-count">Voice-filled: <span id="d_count">0</span> fields<span class="draft-indicator" id="d_draftIndicator"></span><span class="verify-count" id="d_verifyCount"></span></div>
         <div class="btn-row">
           <button class="btn-clear" onclick="clearForm('d')">Clear</button>
           <button class="btn-clear" onclick="exportForm('delivery','pdf')" title="Export as PDF">📄 PDF</button>
@@ -1900,6 +1908,11 @@
   <!-- ═══════════════ SETTINGS ═══════════════ -->
   <div id="settingsSection" style="display:none; padding: 24px 8px;">
     <div class="settings-panel">
+      <div class="settings-tabbar">
+        <button class="settings-tab active" id="setTabDb" onclick="showSettingsTab('db')">🗄️ Database</button>
+        <button class="settings-tab" id="setTabDepts" onclick="showSettingsTab('depts')">🏢 Departments</button>
+      </div>
+
       <div class="settings-card" id="setPaneDb">
         <div class="settings-conn-title" style="margin-bottom:20px">🗄️ Database Settings <span class="settings-conn-sub">(إعدادات قاعدة البيانات)</span></div>
         <div class="settings-msg" id="setMsg" style="display:none"></div>
@@ -1947,6 +1960,21 @@
           <button class="btn-clear" onclick="reloadDbSettings()">🔄 Reload &amp; Test (إعادة تحميل)</button>
           <button class="btn-save d" onclick="saveDbSettings()">💾 Save Settings (حفظ الإعدادات)</button>
         </div>
+      </div>
+
+      <div class="settings-card" id="setPaneDepts" style="display:none">
+        <div class="settings-conn-title" style="margin-bottom:20px">🏢 Departments</div>
+        <div class="settings-msg" id="deptMsg" style="display:none"></div>
+
+        <div class="dept-add-row">
+          <input class="fi" type="text" id="deptNewName" placeholder="New department name" maxlength="100" onkeydown="if(event.key==='Enter'){event.preventDefault();addDepartment();}"/>
+          <button class="btn-save d" onclick="addDepartment()">+ Add Department</button>
+        </div>
+
+        <table class="users-table" style="margin-top:18px;">
+          <thead><tr><th>Name</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody id="deptTableBody"><tr><td colspan="3" style="text-align:center;padding:20px;color:#888">Loading…</td></tr></tbody>
+        </table>
       </div>
     </div>
   </div>
@@ -2054,6 +2082,8 @@
         <div class="excel-dash-title" id="excelViewTitle">📊 Live Dashboard</div>
       </div>
       <div style="display:flex;gap:8px;align-items:center;">
+        <button class="excel-export-btn" id="excelChartsPdfBtn"  style="display:none" onclick="exportCategoryCharts('pdf')"  title="Export charts as PDF">📄 Charts PDF</button>
+        <button class="excel-export-btn" id="excelChartsDocxBtn" style="display:none" onclick="exportCategoryCharts('docx')" title="Export charts as Word">📝 Charts Word</button>
         <span style="font-size:12px;font-weight:700;color:#38a169;display:flex;align-items:center;gap:5px;">🔴 Live · eDelphyn</span>
       </div>
     </div>
@@ -2263,15 +2293,25 @@
       </div>
     </div>
 
-    <div class="consump-two-col">
-      <div class="consump-panel">
-        <div class="consump-panel-title">Request Fulfilment Status</div>
-        <div style="position:relative;height:220px;"><canvas id="anFulfilmentChart"></canvas></div>
+    <div class="consump-panel" style="margin-bottom:20px;">
+      <div class="an-expiry-head">
+        <div class="consump-panel-title" style="margin:0;">Request Fulfilment Status</div>
+        <div class="an-recall-controls" style="margin-bottom:0;">
+          <label>Alert below <input type="number" id="anFulfilmentThreshold" min="1" max="100" value="80" oninput="onFulfilmentThresholdChange()"> %</label>
+        </div>
       </div>
-      <div class="consump-panel">
-        <div class="consump-panel-title">Unit Return Rate by Component</div>
-        <div style="position:relative;height:220px;"><canvas id="anReturnChart"></canvas></div>
-      </div>
+      <div id="anFulfilmentAlert" style="display:none;margin-bottom:14px;"></div>
+      <div style="position:relative;height:220px;"><canvas id="anFulfilmentChart"></canvas></div>
+    </div>
+
+    <div class="consump-panel" style="margin-bottom:20px;">
+      <div class="consump-panel-title">Fulfilment Rate by Department</div>
+      <div class="an-heatmap" id="anFulfilmentHeatmap"><div class="rt-empty">Loading…</div></div>
+    </div>
+
+    <div class="consump-panel" style="margin-bottom:20px;">
+      <div class="consump-panel-title">Unit Return Rate by Component</div>
+      <div style="position:relative;height:220px;"><canvas id="anReturnChart"></canvas></div>
     </div>
 
     <div class="consump-panel" style="margin-bottom:20px;">
@@ -2326,11 +2366,20 @@
       <div id="anExpiryTable"><div class="rt-empty">Loading…</div></div>
     </div>
 
-    <div class="consump-panel">
-      <div class="consump-panel-title">Donor Inactivity &amp; Recall Opportunities</div>
-      <div class="an-recall-controls">
+    <div class="an-expiry-head">
+      <div class="dash-title" style="font-size:15px;margin:0;">🩸 Donor Inactivity &amp; Recall Opportunities</div>
+      <div class="an-recall-controls" style="margin-bottom:0;">
         <label>Inactive for at least <input type="number" id="anInactiveDays" value="180" min="30" max="1000" oninput="loadDonorRecall()"> days</label>
       </div>
+    </div>
+
+    <div class="consump-panel" style="margin-bottom:20px;">
+      <div class="consump-panel-title">Donor Inactivity by Blood Group</div>
+      <div style="position:relative;height:220px;"><canvas id="anRecallGroupChart"></canvas></div>
+    </div>
+
+    <div class="consump-panel">
+      <div class="consump-panel-title">Inactive Donors — Detail</div>
       <div id="anRecallTable"><div class="rt-empty">Loading…</div></div>
     </div>
   </div>
@@ -2530,6 +2579,115 @@ async function loadUsers() {
 }
 
 // ═══════════════════════════════════════════════════════
+// SETTINGS — tab switcher (Database / Departments)
+// ═══════════════════════════════════════════════════════
+function showSettingsTab(tab) {
+  document.getElementById('setTabDb').classList.toggle('active', tab === 'db');
+  document.getElementById('setTabDepts').classList.toggle('active', tab === 'depts');
+  document.getElementById('setPaneDb').style.display    = tab === 'db'    ? '' : 'none';
+  document.getElementById('setPaneDepts').style.display  = tab === 'depts' ? '' : 'none';
+  if (tab === 'depts') loadDepartments();
+}
+
+// ═══════════════════════════════════════════════════════
+// SETTINGS — Departments (admin only)
+// The single source of truth for the department picklist used by the
+// Add/Edit User modal and Chat's sidebar — see populateDepartmentOptions()
+// and initChat() for the consumers.
+// ═══════════════════════════════════════════════════════
+function showDeptMsg(text, ok) {
+  const el = document.getElementById('deptMsg');
+  el.textContent = text;
+  el.className = 'settings-msg ' + (ok ? 'ok' : 'fail');
+  el.style.display = '';
+}
+
+async function loadDepartments() {
+  const tbody = document.getElementById('deptTableBody');
+  if (!tbody) return;
+  tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;padding:20px;color:#888">Loading…</td></tr>';
+  try {
+    const res = await apiFetch(`${API}/api/departments?includeInactive=1`);
+    if (!res) return;
+    const depts = await res.json();
+    if (!Array.isArray(depts) || !depts.length) {
+      tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;padding:20px;color:#888">No departments yet.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = depts.map(d => {
+      const isSystem = d.name === 'BLOOD BANK';
+      return `
+        <tr>
+          <td><strong>${e(d.name)}</strong>${isSystem ? '<span class="dept-system-tag">System</span>' : ''}</td>
+          <td><span class="${d.active ? 'badge-active' : 'badge-inactive'}">${d.active ? '● Active' : '○ Inactive'}</span></td>
+          <td>
+            ${isSystem ? '<span style="color:var(--text-soft);font-size:12px">—</span>' : `
+              <button class="tbl-btn" onclick="renameDepartment(${d.department_id},'${e(d.name)}')">Rename</button>
+              <button class="tbl-btn ${d.active ? 'danger' : ''}" onclick="toggleDepartmentActive(${d.department_id},${!d.active})">${d.active ? 'Deactivate' : 'Activate'}</button>
+            `}
+          </td>
+        </tr>`;
+    }).join('');
+  } catch {
+    tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:#dc2626">Failed to load departments.</td></tr>';
+  }
+}
+
+async function addDepartment() {
+  const input = document.getElementById('deptNewName');
+  const name = input.value.trim();
+  document.getElementById('deptMsg').style.display = 'none';
+  if (!name) { showDeptMsg('Enter a department name first.', false); return; }
+  const res = await apiFetch(`${API}/api/departments`, { method: 'POST', body: { name } });
+  if (!res) return;
+  const data = await res.json();
+  if (!res.ok) { showDeptMsg(data.error || 'Failed to add department.', false); return; }
+  input.value = '';
+  showDeptMsg(`✓ "${name.toUpperCase()}" added.`, true);
+  loadDepartments();
+}
+
+async function renameDepartment(id, currentName) {
+  const next = prompt('Rename department:', currentName);
+  if (next === null) return; // cancelled
+  const name = next.trim();
+  if (!name || name.toUpperCase() === currentName.toUpperCase()) return;
+  const res = await apiFetch(`${API}/api/departments/${id}`, { method: 'PUT', body: { name } });
+  if (!res) return;
+  const data = await res.json();
+  document.getElementById('deptMsg').style.display = 'none';
+  if (!res.ok) { showDeptMsg(data.error || 'Failed to rename department.', false); return; }
+  loadDepartments();
+}
+
+async function toggleDepartmentActive(id, nextActive) {
+  const res = await apiFetch(`${API}/api/departments/${id}`, { method: 'PUT', body: { active: nextActive } });
+  if (!res) return;
+  const data = await res.json();
+  document.getElementById('deptMsg').style.display = 'none';
+  if (!res.ok) { showDeptMsg(data.error || 'Failed to update department.', false); return; }
+  loadDepartments();
+}
+
+// Shared by the Add/Edit User modal's department <select>. Only active
+// departments are offered as choices for a NEW selection, but if the user
+// being edited already has a (since-deactivated) department, it's kept in
+// the list so their existing value doesn't silently disappear from view.
+async function populateDepartmentOptions(selectEl, selectedValue) {
+  selectEl.innerHTML = '<option value="">— Loading —</option>';
+  try {
+    const res = await apiFetch(`${API}/api/departments`);
+    const depts = res ? await res.json() : [];
+    const names = Array.isArray(depts) ? depts.map(d => d.name) : [];
+    if (selectedValue && !names.includes(selectedValue)) names.push(selectedValue);
+    selectEl.innerHTML = '<option value="">— Select department —</option>'
+      + names.map(n => `<option${n === selectedValue ? ' selected' : ''}>${e(n)}</option>`).join('');
+  } catch {
+    selectEl.innerHTML = '<option value="">— Failed to load departments —</option>';
+  }
+}
+
+// ═══════════════════════════════════════════════════════
 // SETTINGS — Database connection credentials (admin only)
 // ═══════════════════════════════════════════════════════
 function toggleSettingsPw(id) {
@@ -2655,7 +2813,7 @@ function openAddUser() {
   document.getElementById('mPassword').value           = '';
   document.getElementById('mPasswordLabel').textContent = 'Password';
   document.getElementById('mRole').value               = 'staff';
-  document.getElementById('mDepartment').value         = 'BLOOD BANK';
+  populateDepartmentOptions(document.getElementById('mDepartment'), 'BLOOD BANK');
   document.getElementById('mActiveWrap').style.display = 'none';
   document.getElementById('mPasswordWrap').style.display = '';
   document.getElementById('modalErr').textContent      = '';
@@ -2670,7 +2828,7 @@ function openEditUser(id, username, fullName, role, active, department) {
   document.getElementById('mFullName').value           = fullName;
   document.getElementById('mPasswordWrap').style.display = 'none';
   document.getElementById('mRole').value               = role;
-  document.getElementById('mDepartment').value         = department || 'BLOOD BANK';
+  populateDepartmentOptions(document.getElementById('mDepartment'), department || 'BLOOD BANK');
   document.getElementById('mActive').value             = active ? '1' : '0';
   document.getElementById('mActiveWrap').style.display = '';
   document.getElementById('modalErr').textContent      = '';
@@ -3071,9 +3229,11 @@ function clearForm(arg) {
     if (el.type === 'checkbox' || el.type === 'radio') el.checked = false;
     else el.value = '';
     el.classList.remove('voice-hit');
+    el.classList.remove('needs-verify');
   });
   if (prefix === 't') { tCount = 0; document.getElementById('t_count').textContent = 0; }
   else                { dCount = 0; document.getElementById('d_count').textContent = 0; }
+  updateVerifyCount(prefix);
   // Clear validation errors
   document.querySelectorAll(`[id^="${prefix}_"].field-error`).forEach(el => el.classList.remove('field-error'));
   const banner = document.getElementById(prefix + '_validationBanner');
@@ -3179,6 +3339,34 @@ const FIELD_MAP = {
 // ═══════════════════════════════════════════════════════
 // FILL FIELDS
 // ═══════════════════════════════════════════════════════
+// Fields where Whisper is known to mangle the transcription (digit chunking /
+// hyphenation of file numbers and blood unit numbers — see voiceParser.js).
+// Voice-filling one of these adds a persistent "needs verification" highlight
+// instead of the normal brief flash, until a human reviews/edits it.
+const HIGH_RISK_VOICE_LABELS = {
+  t_file_number: 'File Number',
+  t_unit_1: 'Blood Unit 1', t_unit_2: 'Blood Unit 2', t_unit_3: 'Blood Unit 3', t_unit_4: 'Blood Unit 4',
+  t_unit_5: 'Blood Unit 5', t_unit_6: 'Blood Unit 6', t_unit_7: 'Blood Unit 7', t_unit_8: 'Blood Unit 8',
+  t_room: 'Room / Ward',
+  d_file_number: 'File Number',
+  d_blood_unit_numbers: 'Blood Unit N°',
+  d_room: 'Room / Ward',
+};
+
+function updateVerifyCount(prefix) {
+  const card = document.getElementById(prefix === 't' ? 'cardTransfusion' : 'cardDelivery');
+  const countEl = document.getElementById(prefix + '_verifyCount');
+  if (!card || !countEl) return;
+  const n = card.querySelectorAll('.needs-verify').length;
+  if (n > 0) {
+    countEl.textContent = `⚠ ${n} voice field${n > 1 ? 's' : ''} need${n > 1 ? '' : 's'} verification`;
+    countEl.classList.add('show');
+  } else {
+    countEl.textContent = '';
+    countEl.classList.remove('show');
+  }
+}
+
 function fillFields(fields, targetForm) {
   for (const [key, value] of Object.entries(fields)) {
     const map = FIELD_MAP[key];
@@ -3201,6 +3389,10 @@ function fillFields(fields, targetForm) {
       void el.offsetWidth;
       el.classList.add('voice-hit');
       setTimeout(() => el.classList.remove('voice-hit'), 1200);
+      if (HIGH_RISK_VOICE_LABELS[map.id]) {
+        el.classList.add('needs-verify');
+        updateVerifyCount(map.form === 'transfusion' ? 't' : 'd');
+      }
     }
 
     if (map.form === 'transfusion') { tCount++; document.getElementById('t_count').textContent = tCount; }
@@ -3353,7 +3545,7 @@ function showPage(page) {
   } else if (!isForm && activeForm === 'ext_delivery') setForm('both');
   if (isDash)        loadDashboard();
   if (isAdmin)       loadUsers();
-  if (isSettings)    loadDbSettings();
+  if (isSettings)    { loadDbSettings(); loadDepartments(); }
   if (isExtDel)      { renderExtCompTable(); loadExtHistory(); }
   if (isExcel)       loadExcelFiles();
   if (isConsumption) loadConsumption();
@@ -3902,6 +4094,17 @@ document.addEventListener('DOMContentLoaded', () => {
     el.addEventListener('input',  () => el.classList.remove('field-error'));
     el.addEventListener('change', () => el.classList.remove('field-error'));
   });
+  // Clear "needs verification" only on an actual edit (not just tabbing past
+  // it) — a blur-only trigger would let Tab-ing through the form silently
+  // dismiss every flag without anyone reading them.
+  document.querySelectorAll('.fi').forEach(el => {
+    if (!HIGH_RISK_VOICE_LABELS[el.id]) return;
+    el.addEventListener('input', () => {
+      if (!el.classList.contains('needs-verify')) return;
+      el.classList.remove('needs-verify');
+      updateVerifyCount(el.id.startsWith('t_') ? 't' : 'd');
+    });
+  });
 });
 
 // ═══════════════════════════════════════════════════════
@@ -4124,6 +4327,18 @@ async function loadPatientHistory(fileNumber) {
 // ═══════════════════════════════════════════════════════
 async function saveForm(formType) {
   if (!validateForm(formType)) return;
+
+  // Block silent saves of voice-filled fields Whisper is known to mangle
+  // (file numbers, blood unit numbers) until a human has actually looked.
+  const prefix = formType === 'transfusion' ? 't' : 'd';
+  const card = document.getElementById(prefix === 't' ? 'cardTransfusion' : 'cardDelivery');
+  const unverified = card ? [...card.querySelectorAll('.needs-verify')] : [];
+  if (unverified.length > 0) {
+    const names = unverified.map(el => HIGH_RISK_VOICE_LABELS[el.id] || el.id).join(', ');
+    const proceed = confirm(`⚠ ${unverified.length} voice-filled field(s) haven't been manually reviewed: ${names}.\n\nWhisper is known to mis-transcribe numbers here — please double-check them.\n\nSave anyway?`);
+    if (!proceed) return;
+  }
+
   const data = { form_type: formType };
   Object.entries(FIELD_MAP).forEach(([key, map]) => {
     if (map.form !== formType) return;
@@ -4933,7 +5148,14 @@ async function loadExcelCategories() {
       apiFetch(`${API}/api/dashboard/alerts`)
     ]);
     if (!catRes) return;
-    const data          = await catRes.json();
+    const data = await catRes.json();
+    // A failed query (eDelphyn unreachable, timed out, etc.) comes back as
+    // {error: "..."} with a non-2xx status — render that as a visible error
+    // state instead of letting it fall through as a fake empty category.
+    if (!catRes.ok || data.error) {
+      renderCategoryError(data.error || `Request failed (${catRes.status})`);
+      return;
+    }
     const topDepts      = data._topDepts          || [];
     const monthlyComp   = data._monthlyComparison || [];
     const cats          = Object.fromEntries(Object.entries(data).filter(([k]) => !k.startsWith('_')));
@@ -4944,7 +5166,21 @@ async function loadExcelCategories() {
       const alertData = await alertRes.json();
       renderSmartAlerts(alertData.alerts || []);
     }
-  } catch (e) { console.error('loadExcelCategories', e); }
+  } catch (e) { console.error('loadExcelCategories', e); renderCategoryError(e.message || 'Network error'); }
+}
+
+function renderCategoryError(message) {
+  document.getElementById('excelAlertsSection').style.display   = 'none';
+  document.getElementById('excelOverviewStrip').style.display   = 'none';
+  document.getElementById('excelEfficiencyWrap').style.display  = 'none';
+  document.getElementById('excelMonthlyCompWrap').style.display = 'none';
+  document.getElementById('excelTopDeptsWrap').style.display    = 'none';
+  document.getElementById('excelCatGrid').innerHTML = `
+    <div class="excel-no-files" style="grid-column:1/-1;border-color:#e53e3e;background:#fff5f5;">
+      <div style="font-size:22px;margin-bottom:6px;">⚠️ Couldn't reach eDelphyn</div>
+      <div style="font-size:13px;color:var(--text-soft);margin-bottom:12px;">${message}</div>
+      <button class="excel-filter-apply" onclick="loadExcelCategories()">🔄 Retry</button>
+    </div>`;
 }
 
 const _dismissedAlerts = new Set(JSON.parse(sessionStorage.getItem('bb_dismissed_alerts') || '[]'));
@@ -5270,6 +5506,8 @@ async function selectCategory(type) {
   document.getElementById('excelCatView').style.display  = 'none';
   document.getElementById('excelDashView').style.display = '';
   document.getElementById('excelBackBtn').style.display  = '';
+  document.getElementById('excelChartsPdfBtn').style.display  = '';
+  document.getElementById('excelChartsDocxBtn').style.display = '';
   const cfg = CAT_CONFIG[type] || CAT_CONFIG.generic;
   document.getElementById('excelViewTitle').textContent  = `${cfg.icon} ${cfg.label}`;
   document.getElementById('excelDateFrom').value = '';
@@ -5288,6 +5526,8 @@ function showExcelCategories() {
   document.getElementById('excelCatView').style.display          = '';
   document.getElementById('excelDashView').style.display         = 'none';
   document.getElementById('excelBackBtn').style.display          = 'none';
+  document.getElementById('excelChartsPdfBtn').style.display     = 'none';
+  document.getElementById('excelChartsDocxBtn').style.display    = 'none';
   document.getElementById('excelTopDeptsWrap').style.display     = 'none';
   document.getElementById('excelMonthlyCompWrap').style.display  = 'none';
   document.getElementById('excelViewTitle').textContent          = '📁 Excel Files Dashboard';
@@ -5411,9 +5651,80 @@ async function exportExcelData() {
   } catch (e) { alert('Export failed: ' + e.message); }
 }
 
+async function exportCategoryCharts(fileType) {
+  if (!excelActiveCategory) return;
+  if (!excelChartInstances.length) { showToast('No charts to export — load a category with data first.', 'error'); return; }
+
+  // Bake the value/percentage labels into the canvas for this one snapshot —
+  // update('none') redraws synchronously (no animation) so toDataURL() captures
+  // the labelled frame, then we flip it back off to keep the live view hover-only.
+  chartExportMode = true;
+  excelChartInstances.forEach(c => { try { c.update('none'); } catch(_){} });
+
+  const charts = [];
+  excelChartInstances.forEach(inst => {
+    const canvas = inst.canvas;
+    const panel  = canvas?.closest('.excel-chart-panel');
+    const title  = panel?.querySelector('.excel-chart-title')?.textContent?.trim() || 'Chart';
+    if (!canvas) return;
+    try {
+      charts.push({ title, image: canvas.toDataURL('image/png', 1.0), width: canvas.width, height: canvas.height });
+    } catch (e) { /* skip unreadable canvas */ }
+  });
+
+  chartExportMode = false;
+  excelChartInstances.forEach(c => { try { c.update('none'); } catch(_){} });
+
+  if (!charts.length) { showToast('No charts to export.', 'error'); return; }
+
+  const cfg = CAT_CONFIG[excelActiveCategory] || CAT_CONFIG.generic;
+  const body = {
+    category:      excelActiveCategory,
+    categoryLabel: cfg.label,
+    dateFrom: document.getElementById('excelDateFrom').value || null,
+    dateTo:   document.getElementById('excelDateTo').value   || null,
+    charts
+  };
+
+  const btn = document.getElementById(fileType === 'pdf' ? 'excelChartsPdfBtn' : 'excelChartsDocxBtn');
+  const origText = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Exporting…'; }
+  try {
+    const r = await fetch(`${API}/api/dashboard/category-charts-export/${fileType}`, {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify(body)
+    });
+    if (!r.ok) { showToast('Export failed.', 'error'); return; }
+    const blob = await r.blob();
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = `${excelActiveCategory}-charts.${fileType}`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  } catch (e) {
+    showToast('Export error: ' + e.message, 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = origText; }
+  }
+}
+
 // ── Chart helpers ──────────────────────────────────────
 const CHART_PALETTE = ['#C0392B','#1A5276','#1A7F4B','#E8B84B','#8E44AD','#2E86C1','#E67E22','#1ABC9C','#D4730A','#2C3E50','#F39C12','#16A085'];
 const GROUP_COLOR_MAP = {'O+':'#2ecc71','O-':'#27ae60','A+':'#e74c3c','A-':'#c0392b','B+':'#3498db','B-':'#2980b9','AB+':'#9b59b6','AB-':'#8e44ad'};
+
+// Data-label plugin: registered globally but OFF by default, so the live dashboard
+// stays hover/tooltip-driven. The category charts below opt in with a `display`
+// callback gated on chartExportMode, so labels only bake into the canvas — and
+// therefore into the exported PNG snapshot — during a Charts PDF/Word export.
+if (typeof ChartDataLabels !== 'undefined') {
+  Chart.register(ChartDataLabels);
+  Chart.defaults.set('plugins.datalabels', { display: false });
+}
+let chartExportMode = false;
 
 function destroyCharts() {
   excelChartInstances.forEach(c => { try { c.destroy(); } catch(_){} });
@@ -5431,7 +5742,15 @@ function makeBar(id, labels, values, color) {
     },
     options: {
       responsive: true, maintainAspectRatio: true,
-      plugins: { legend: { display: false } },
+      plugins: {
+        legend: { display: false },
+        datalabels: {
+          display: () => chartExportMode,
+          anchor: 'end', align: 'top', offset: 2,
+          color: '#1a2a3a', font: { size: 9, weight: 'bold' },
+          formatter: v => v.toLocaleString()
+        }
+      },
       scales: {
         x: { grid: { display: false }, ticks: { font: { size: 10 }, maxRotation: 45 } },
         y: { beginAtZero: true, ticks: { font: { size: 10 } } }
@@ -5454,7 +5773,18 @@ function makeDoughnut(id, items, useGroupColors) {
     data: { labels, datasets: [{ data: values, backgroundColor: colors, borderWidth: 2 }] },
     options: {
       responsive: true, maintainAspectRatio: true,
-      plugins: { legend: { position: 'right', labels: { font: { size: 10 }, boxWidth: 12, padding: 8 } } }
+      plugins: {
+        legend: { position: 'right', labels: { font: { size: 10 }, boxWidth: 12, padding: 8 } },
+        datalabels: {
+          display: () => chartExportMode,
+          color: '#fff', font: { size: 9, weight: 'bold' },
+          formatter: (v, ctx) => {
+            const total = ctx.dataset.data.reduce((a,b)=>a+b,0);
+            const pct = total ? (v/total*100).toFixed(1) : 0;
+            return total ? [v.toLocaleString(), `${pct}%`] : v.toLocaleString();
+          }
+        }
+      }
     }
   });
   excelChartInstances.push(c);
@@ -5471,7 +5801,15 @@ function makeHBar(id, items) {
     },
     options: {
       indexAxis: 'y', responsive: true, maintainAspectRatio: true,
-      plugins: { legend: { display: false } },
+      plugins: {
+        legend: { display: false },
+        datalabels: {
+          display: () => chartExportMode,
+          anchor: 'end', align: 'right', offset: 4,
+          color: '#1a2a3a', font: { size: 9, weight: 'bold' },
+          formatter: v => v.toLocaleString()
+        }
+      },
       scales: {
         x: { beginAtZero: true, ticks: { font: { size: 10 } } },
         y: { ticks: { font: { size: 10 } } }
@@ -5491,14 +5829,19 @@ function makePareto(id, items) {
     data: {
       labels: items.map(d => d.label.length > 18 ? d.label.substring(0,18)+'…' : d.label),
       datasets: [
-        { label: 'Count', data: items.map(d => d.count), backgroundColor: '#4a9eff', borderRadius: 3, yAxisID: 'y' },
+        { label: 'Count', data: items.map(d => d.count), backgroundColor: '#4a9eff', borderRadius: 3, yAxisID: 'y',
+          datalabels: { anchor: 'end', align: 'top', offset: 2, color: '#1a5276', font: { size: 8, weight: 'bold' }, formatter: v => v.toLocaleString() } },
         { label: 'Cumulative %', data: items.map(d => d.cumPct), type: 'line', borderColor: '#e53e3e',
-          backgroundColor: 'transparent', borderWidth: 2, pointRadius: 3, yAxisID: 'y2', tension: 0.3 }
+          backgroundColor: 'transparent', borderWidth: 2, pointRadius: 3, yAxisID: 'y2', tension: 0.3,
+          datalabels: { anchor: 'end', align: 'top', offset: 6, color: '#e53e3e', font: { size: 8, weight: 'bold' }, formatter: v => v.toFixed(0) + '%' } }
       ]
     },
     options: {
       responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { position: 'top', labels: { font: { size: 10 } } } },
+      plugins: {
+        legend: { position: 'top', labels: { font: { size: 10 } } },
+        datalabels: { display: () => chartExportMode }
+      },
       scales: {
         x: { ticks: { font: { size: 8 }, maxRotation: 40 } },
         y:  { beginAtZero: true, position: 'left',  ticks: { precision: 0, font: { size: 9 } }, title: { display: true, text: 'Count', font: { size: 9 } } },
@@ -5530,7 +5873,15 @@ function makeGeoBar(id, items) {
     },
     options: {
       indexAxis: 'y', responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
+      plugins: {
+        legend: { display: false },
+        datalabels: {
+          display: () => chartExportMode,
+          anchor: 'end', align: 'right', offset: 4,
+          color: '#1a2a3a', font: { size: 9, weight: 'bold' },
+          formatter: v => v.toLocaleString()
+        }
+      },
       scales: {
         x: { beginAtZero: true, ticks: { precision: 0, font: { size: 10 } } },
         y: { ticks: { font: { size: 10 }, padding: 4 } }
@@ -5554,7 +5905,16 @@ function makeIATDoughnut(id, items) {
       responsive: true, maintainAspectRatio: true,
       plugins: {
         legend: { position: 'bottom', labels: { font: { size: 11 } } },
-        tooltip: { callbacks: { label: c => ` ${c.label}: ${c.parsed.toLocaleString()} (${((c.parsed/c.dataset.data.reduce((a,b)=>a+b,0))*100).toFixed(1)}%)` } }
+        tooltip: { callbacks: { label: c => ` ${c.label}: ${c.parsed.toLocaleString()} (${((c.parsed/c.dataset.data.reduce((a,b)=>a+b,0))*100).toFixed(1)}%)` } },
+        datalabels: {
+          display: () => chartExportMode,
+          color: '#fff', font: { size: 9, weight: 'bold' },
+          formatter: (v, ctx) => {
+            const total = ctx.dataset.data.reduce((a,b)=>a+b,0);
+            const pct = total ? (v/total*100).toFixed(1) : 0;
+            return total ? [v.toLocaleString(), `${pct}%`] : v.toLocaleString();
+          }
+        }
       }
     }
   });
@@ -5585,7 +5945,13 @@ function makePeakBar(id, hourData) {
       responsive: true, maintainAspectRatio: true,
       plugins: {
         legend: { display: false },
-        tooltip: { callbacks: { label: c => ` ${c.parsed.y.toLocaleString()} units` } }
+        tooltip: { callbacks: { label: c => ` ${c.parsed.y.toLocaleString()} units` } },
+        datalabels: {
+          display: () => chartExportMode,
+          anchor: 'end', align: 'top', offset: 2,
+          color: '#1a2a3a', font: { size: 9, weight: 'bold' },
+          formatter: v => v.toLocaleString()
+        }
       },
       scales: {
         x: { ticks: { font: { size: 9 }, maxRotation: 45 } },
@@ -6111,10 +6477,14 @@ async function loadAnalytics() {
   const rangeParams = new URLSearchParams();
   if (from) rangeParams.set('from', from);
   if (to)   rangeParams.set('to', to);
+  // Shares the same "within N days" window as the Expiry Risk panel further
+  // down, so the "Units Expiring Soon" KPI card and that panel always agree.
+  const kpiParams = new URLSearchParams(rangeParams);
+  kpiParams.set('expiryDays', document.getElementById('anExpiryDays')?.value || 14);
 
   const [kpiRes, trendRes, typesRes, retentionRes, fulfilmentRes, returnRes, turnaroundRes, heatmapRes, anomalyRes] =
     await Promise.all([
-      apiFetch(`${API}/api/analytics/kpi-summary?${rangeParams}`),
+      apiFetch(`${API}/api/analytics/kpi-summary?${kpiParams}`),
       apiFetch(`${API}/api/analytics/monthly-trend`),
       apiFetch(`${API}/api/analytics/donation-types?${rangeParams}`),
       apiFetch(`${API}/api/analytics/donor-retention`),
@@ -6129,6 +6499,7 @@ async function loadAnalytics() {
   if (trendRes)        renderAnTrendChart(await trendRes.json());
   if (typesRes)         renderAnDonationTypeChart(await typesRes.json());
   if (retentionRes)     renderAnRetentionChart(await retentionRes.json());
+  initFulfilmentThreshold();
   if (fulfilmentRes)    renderAnFulfilmentChart(await fulfilmentRes.json());
   if (returnRes)        renderAnReturnChart(await returnRes.json());
   if (turnaroundRes)    renderAnTurnaroundChart(await turnaroundRes.json());
@@ -6141,27 +6512,95 @@ async function loadAnalytics() {
   loadAnExpiryCalendarMonth();
 }
 
-function renderAnKpiCards(k) {
+// Card order/config for the KPI row. `direction` says which way is "good"
+// for that metric — it's what turns a raw +/- change into a green/red
+// verdict (e.g. Return Rate going up is bad, Fulfilment Rate going up is
+// good; Units Requested is just demand, not judged either way).
+const KPI_CARDS = [
+  { key: 'TotalDonations', label: 'Total Donations',     cls: '',      direction: 'good',    isRate: false, spark: d => d.Donations },
+  { key: 'UniqueDonors',   label: 'Unique Donors',        cls: '',      direction: 'good',    isRate: false, spark: d => d.UniqueDonors },
+  { key: 'UnitsRequested', label: 'Units Requested',      cls: '',      direction: 'neutral', isRate: false, spark: d => d.UnitsRequested },
+  { key: 'UnitsIssued',    label: 'Units Issued',         cls: 'prc',   direction: 'good',    isRate: false, spark: d => d.UnitsIssued },
+  { key: 'FulfilmentRate', label: 'Fulfilment Rate',      cls: 'total', direction: 'good',    isRate: true,  spark: d => d.UnitsRequested > 0 ? (d.UnitsIssued / d.UnitsRequested) * 100 : 0 },
+  { key: 'ReturnRate',     label: 'Return Rate',          cls: 'ffp',   direction: 'bad',     isRate: true,  spark: d => d.UnitsIssued > 0 ? (d.UnitsReturned / d.UnitsIssued) * 100 : 0 },
+  { key: 'WastageRate',    label: 'Wastage Rate',         cls: 'plt',   direction: 'bad',     isRate: true,  spark: d => (d.UnitsIssued + d.WastedUnits) > 0 ? (d.WastedUnits / (d.UnitsIssued + d.WastedUnits)) * 100 : 0 },
+  { key: 'ExpiringSoon',   label: 'Units Expiring Soon',  cls: 'exp',   direction: 'bad',     isRate: false, spark: d => d.ExpiringSoon },
+];
+
+// Adds the three derived rate fields onto a raw totals object (current or
+// previous), so KPI_CARDS can read FulfilmentRate/ReturnRate/WastageRate off
+// either one the same way it reads the raw counts.
+function withKpiRates(totals) {
+  const t = totals || {};
+  const fulfilment = t.UnitsRequested > 0 ? (t.UnitsIssued / t.UnitsRequested) * 100 : 0;
+  const returnRate = t.UnitsIssued > 0 ? (t.UnitsReturned / t.UnitsIssued) * 100 : 0;
+  const wastage     = (t.UnitsIssued + t.WastedUnits) > 0 ? (t.WastedUnits / (t.UnitsIssued + t.WastedUnits)) * 100 : 0;
+  return { ...t, FulfilmentRate: fulfilment, ReturnRate: returnRate, WastageRate: wastage };
+}
+
+// Rate cards (already 0-100) compare in percentage points; count cards
+// compare in relative percent change. previous===0 with current>0 has no
+// defined percent change, so that's called out as "New" instead of +Infinity%.
+function kpiDelta(current, previous, isRate) {
+  if (isRate) {
+    const diff = current - previous;
+    const sign = diff > 0.5 ? 1 : diff < -0.5 ? -1 : 0;
+    return { text: `${diff > 0 ? '+' : ''}${Math.round(diff)}pp`, sign };
+  }
+  if (previous === 0) {
+    return current === 0 ? { text: '±0%', sign: 0 } : { text: 'New', sign: 1 };
+  }
+  const pct  = ((current - previous) / previous) * 100;
+  const sign = pct > 0.5 ? 1 : pct < -0.5 ? -1 : 0;
+  return { text: `${pct > 0 ? '+' : ''}${Math.round(pct)}%`, sign };
+}
+
+// Minimal dependency-free sparkline — an SVG polyline scaled to its own
+// viewBox so it stretches to fill whatever box the CSS gives it.
+function sparklineSvg(values, color) {
+  if (!values.length) return '';
+  const w = 100, h = 28, pad = 2;
+  const max = Math.max(...values, 0);
+  const min = Math.min(...values, 0);
+  const range = (max - min) || 1;
+  const stepX = values.length > 1 ? (w - pad * 2) / (values.length - 1) : 0;
+  const points = values.map((v, i) => {
+    const x = pad + i * stepX;
+    const y = pad + (h - pad * 2) * (1 - (v - min) / range);
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(' ');
+  return `<svg viewBox="0 0 ${w} ${h}" preserveAspectRatio="none"><polyline points="${points}" fill="none" stroke="${color}" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/></svg>`;
+}
+
+function renderAnKpiCards(data) {
   const el = document.getElementById('anKpiCards');
   if (!el) return;
-  if (!k || k.error) { el.innerHTML = '<div class="rt-empty">Unable to load KPI summary.</div>'; return; }
-  const fulfilmentRate = k.UnitsRequested > 0 ? Math.round((k.UnitsIssued / k.UnitsRequested) * 100) : 0;
-  const returnRate     = k.UnitsIssued > 0 ? Math.round((k.UnitsReturned / k.UnitsIssued) * 100) : 0;
-  const wastageRate    = (k.UnitsIssued + k.WastedUnits) > 0 ? Math.round((k.WastedUnits / (k.UnitsIssued + k.WastedUnits)) * 100) : 0;
-  const cards = [
-    { label: 'Total Donations',  num: k.TotalDonations,   cls: '' },
-    { label: 'Unique Donors',    num: k.UniqueDonors,     cls: '' },
-    { label: 'Units Requested',  num: k.UnitsRequested,   cls: '' },
-    { label: 'Units Issued',     num: k.UnitsIssued,      cls: 'prc' },
-    { label: 'Fulfilment Rate',  num: fulfilmentRate + '%', cls: 'total' },
-    { label: 'Return Rate',      num: returnRate + '%',     cls: 'ffp' },
-    { label: 'Wastage Rate',     num: wastageRate + '%',    cls: 'plt' },
-  ];
-  el.innerHTML = cards.map(c => `
-    <div class="consump-card ${c.cls}">
-      <div class="consump-card-label">${c.label}</div>
-      <div class="consump-card-num">${(typeof c.num === 'number' ? c.num.toLocaleString() : c.num) ?? '—'}</div>
-    </div>`).join('');
+  if (!data || data.error || !data.current) { el.innerHTML = '<div class="rt-empty">Unable to load KPI summary.</div>'; return; }
+  const current  = withKpiRates(data.current);
+  const previous = withKpiRates(data.previous);
+  const daily    = Array.isArray(data.daily) ? data.daily : [];
+
+  el.innerHTML = KPI_CARDS.map(card => {
+    const curVal  = current[card.key]  ?? 0;
+    const prevVal = previous[card.key] ?? 0;
+    const { text: deltaText, sign } = kpiDelta(curVal, prevVal, card.isRate);
+    const semantics = card.direction === 'neutral' || sign === 0 ? 'flat'
+      : ((card.direction === 'good') === (sign > 0)) ? 'good' : 'bad';
+    const arrow      = sign > 0 ? '▲' : sign < 0 ? '▼' : '–';
+    const sparkColor = semantics === 'good' ? '#1A7F4B' : semantics === 'bad' ? '#C0392B' : '#8896A7';
+    const sparkValues = daily.map(d => card.spark(d) ?? 0);
+    const fmt = v => card.isRate ? `${Math.round(v)}%` : Math.round(v).toLocaleString();
+    return `
+      <div class="consump-card ${card.cls}">
+        <div class="consump-card-label">${card.label}</div>
+        <div class="consump-card-num">${fmt(curVal)}</div>
+        <div class="consump-card-meta">
+          <span class="consump-card-prev">was ${fmt(prevVal)}</span>
+          <span class="consump-card-delta ${semantics}">${arrow} ${deltaText}</span>
+        </div>
+        <div class="consump-card-spark">${sparklineSvg(sparkValues, sparkColor)}</div>
+      </div>`;
+  }).join('');
 }
 
 function renderAnTrendChart(rows) {
@@ -6234,25 +6673,133 @@ function renderAnRetentionChart(rows) {
   });
 }
 
+const FULFILMENT_STATUS_ORDER  = ['Fully fulfilled', 'Partially fulfilled', 'Not fulfilled', 'Issued above request'];
+const FULFILMENT_STATUS_COLORS = {
+  'Fully fulfilled': 'rgba(30,132,73,0.85)',
+  'Partially fulfilled': 'rgba(183,134,11,0.85)',
+  'Not fulfilled': 'rgba(192,57,43,0.85)',
+  'Issued above request': 'rgba(26,82,118,0.85)',
+};
+let _anFulfilmentRows = [];
+
 function renderAnFulfilmentChart(rows) {
   if (_anFulfilmentChart) { _anFulfilmentChart.destroy(); _anFulfilmentChart = null; }
   const el = document.getElementById('anFulfilmentChart');
+  _anFulfilmentRows = Array.isArray(rows) ? rows : [];
+  renderFulfilmentAlert(_anFulfilmentRows);
+  renderAnFulfilmentHeatmap(_anFulfilmentRows);
   if (!el) return;
-  if (!Array.isArray(rows) || !rows.length) { noDataMsg(el); return; }
-  const counts = {};
-  rows.forEach(r => { counts[r.FulfilmentStatus] = (counts[r.FulfilmentStatus] || 0) + 1; });
-  const colors = {
-    'Fully fulfilled': 'rgba(30,132,73,0.85)',
-    'Partially fulfilled': 'rgba(183,134,11,0.85)',
-    'Not fulfilled': 'rgba(192,57,43,0.85)',
-    'Issued above request': 'rgba(26,82,118,0.85)',
-  };
-  const labels = Object.keys(counts);
-  _anFulfilmentChart = new Chart(el, {
-    type: 'doughnut',
-    data: { labels, datasets: [{ data: labels.map(l => counts[l]), backgroundColor: labels.map(l => colors[l] || 'rgba(150,150,150,0.85)') }] },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { font: { size: 10 }, boxWidth: 12 } } } }
+  if (!_anFulfilmentRows.length) { noDataMsg(el); return; }
+  // Stacked by month instead of one aggregate doughnut, so a trend across
+  // the selected period is visible, not just a single-period snapshot.
+  const buckets = {};
+  _anFulfilmentRows.forEach(r => {
+    const month = String(r.RequestDate || '').slice(0, 7);
+    if (!month) return;
+    if (!buckets[month]) buckets[month] = {};
+    buckets[month][r.FulfilmentStatus] = (buckets[month][r.FulfilmentStatus] || 0) + 1;
   });
+  const months = Object.keys(buckets).sort();
+  const datasets = FULFILMENT_STATUS_ORDER.map(status => ({
+    label: status,
+    data: months.map(m => buckets[m][status] || 0),
+    backgroundColor: FULFILMENT_STATUS_COLORS[status],
+    stack: 's',
+  }));
+  _anFulfilmentChart = new Chart(el, {
+    type: 'bar',
+    data: { labels: months, datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'bottom', labels: { font: { size: 10 }, boxWidth: 12 } } },
+      scales: {
+        x: { stacked: true, ticks: { font: { size: 10 } } },
+        y: { stacked: true, beginAtZero: true, ticks: { precision: 0, font: { size: 10 } } },
+      },
+    },
+  });
+}
+
+// Department × month fulfilment-rate heatmap. Colored red/amber/green by
+// rate (not by volume, unlike the demand heatmap above) since the point
+// here is spotting *which department, which month* is underserved.
+function renderAnFulfilmentHeatmap(rows) {
+  const el = document.getElementById('anFulfilmentHeatmap');
+  if (!el) return;
+  const withDept = rows.filter(r => r.Department && r.RequestDate);
+  if (!withDept.length) { el.innerHTML = '<div class="rt-empty">No department data for this period.</div>'; return; }
+
+  const cellMap = {};
+  const months = new Set(), depts = new Set();
+  withDept.forEach(r => {
+    const month = String(r.RequestDate).slice(0, 7);
+    months.add(month); depts.add(r.Department);
+    const key = `${r.Department}|${month}`;
+    if (!cellMap[key]) cellMap[key] = { requested: 0, issued: 0 };
+    cellMap[key].requested += r.RequestedUnits || 0;
+    cellMap[key].issued    += r.IssuedUnits || 0;
+  });
+  const monthList = [...months].sort();
+  const deptList  = [...depts].sort();
+
+  const bucketRgb = rate => rate >= 90 ? '30,132,73' : rate >= 50 ? '183,134,11' : '192,57,43';
+
+  let html = '<table><thead><tr><th></th>' + monthList.map(m => `<th>${m}</th>`).join('') + '</tr></thead><tbody>';
+  deptList.forEach(dept => {
+    html += `<tr><th class="row-label">${dept}</th>`;
+    monthList.forEach(m => {
+      const cell = cellMap[`${dept}|${m}`];
+      if (!cell || !cell.requested) { html += '<td class="empty">·</td>'; return; }
+      const rate  = Math.round(100 * cell.issued / cell.requested);
+      const alpha = (0.4 + Math.min(rate, 100) / 100 * 0.6).toFixed(2);
+      html += `<td style="background:rgba(${bucketRgb(rate)},${alpha})" title="${dept} — ${m}: ${rate}% fulfilled (${cell.issued}/${cell.requested} units)">${rate}%</td>`;
+    });
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  el.innerHTML = html;
+}
+
+const FULFILMENT_THRESHOLD_KEY = 'sbb_fulfilment_alert_threshold';
+
+function getFulfilmentThreshold() {
+  const saved = parseFloat(localStorage.getItem(FULFILMENT_THRESHOLD_KEY));
+  return Number.isFinite(saved) ? saved : 80;
+}
+
+function initFulfilmentThreshold() {
+  const input = document.getElementById('anFulfilmentThreshold');
+  if (input) input.value = getFulfilmentThreshold();
+}
+
+function onFulfilmentThresholdChange() {
+  const val = parseFloat(document.getElementById('anFulfilmentThreshold').value);
+  localStorage.setItem(FULFILMENT_THRESHOLD_KEY, Number.isFinite(val) ? val : 80);
+  renderFulfilmentAlert(_anFulfilmentRows);
+}
+
+// Operational alert: overall fulfilment for the selected period vs the
+// admin's own configurable threshold (persisted per-browser, not shared —
+// see the Settings-vs-inline-control discussion this was chosen over).
+function renderFulfilmentAlert(rows) {
+  const el = document.getElementById('anFulfilmentAlert');
+  if (!el) return;
+  if (!rows.length) { el.style.display = 'none'; return; }
+  const totalRequested = rows.reduce((s, r) => s + (r.RequestedUnits || 0), 0);
+  const totalIssued    = rows.reduce((s, r) => s + (r.IssuedUnits || 0), 0);
+  const rate = totalRequested > 0 ? (totalIssued / totalRequested) * 100 : 0;
+  const threshold = getFulfilmentThreshold();
+  if (rate >= threshold) { el.style.display = 'none'; return; }
+  const severity = rate < threshold - 15 ? 'critical' : 'warning';
+  el.style.display = '';
+  el.innerHTML = `
+    <div class="excel-alert ${severity}">
+      <div class="excel-alert-icon">⚠️</div>
+      <div class="excel-alert-body">
+        <div class="excel-alert-title">Fulfilment Below Threshold <span class="excel-alert-badge">${severity}</span></div>
+        <div class="excel-alert-msg">Overall fulfilment for this period is ${rate.toFixed(1)}%, below your ${threshold}% alert threshold (${totalIssued} of ${totalRequested} units issued).</div>
+      </div>
+    </div>`;
 }
 
 function renderAnReturnChart(rows) {
@@ -6689,28 +7236,99 @@ function renderAnExpiryTable() {
     </table>${sorted.length > 150 ? `<div class="rt-empty">Showing 150 of ${sorted.length} units.</div>` : ''}`;
 }
 
+let _anRecallGroupChart = null;
+let _anRecallRows = [];
+let _anRecallSort = { key: 'days', dir: 'desc' };
+
 async function loadDonorRecall() {
   const days = document.getElementById('anInactiveDays').value || 180;
   const r = await apiFetch(`${API}/api/analytics/donor-recall?inactiveDays=${encodeURIComponent(days)}`);
-  const el = document.getElementById('anRecallTable');
-  if (!r || !el) return;
+  if (!r) return;
   const rows = await r.json();
-  if (!Array.isArray(rows) || !rows.length) { el.innerHTML = '<div class="rt-empty">No inactive donors found for this threshold.</div>'; return; }
+  _anRecallRows = Array.isArray(rows) ? rows : [];
+  renderAnRecallGroupChart(_anRecallRows);
+  renderAnRecallTable();
+}
+
+function renderAnRecallGroupChart(rows) {
+  if (_anRecallGroupChart) { _anRecallGroupChart.destroy(); _anRecallGroupChart = null; }
+  const el = document.getElementById('anRecallGroupChart');
+  if (!el) return;
+  if (!rows.length) { noDataMsg(el); return; }
+  const BG_ORDER = ['O-', 'O+', 'A-', 'A+', 'B-', 'B+', 'AB-', 'AB+'];
+  const counts = {};
+  rows.forEach(d => { const g = d.BloodGroup || 'Unknown'; counts[g] = (counts[g] || 0) + 1; });
+  const known = BG_ORDER.filter(g => counts[g]);
+  const rest  = Object.keys(counts).filter(g => !BG_ORDER.includes(g)).sort();
+  const labels = [...known, ...rest];
+  _anRecallGroupChart = new Chart(el, {
+    type: 'bar',
+    data: { labels, datasets: [{ label: 'Inactive Donors', data: labels.map(g => counts[g]), backgroundColor: 'rgba(26,82,118,0.85)' }] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { y: { beginAtZero: true, ticks: { precision: 0, font: { size: 10 } } }, x: { ticks: { font: { size: 10 } } } }
+    }
+  });
+}
+
+function yesNoBadge(val, yesLabel, noLabel) {
+  return val
+    ? `<span class="an-badge risk-badge" style="background:${hexToRgba('#1A7F4B', 0.14)}"><span class="risk-dot" style="background:#1A7F4B"></span>${yesLabel}</span>`
+    : `<span class="an-badge risk-badge" style="background:${hexToRgba('#8896A7', 0.14)}"><span class="risk-dot" style="background:#8896A7"></span>${noLabel}</span>`;
+}
+
+function sortAnRecallRows(rows, key, dir) {
+  const mul = dir === 'asc' ? 1 : -1;
+  return [...rows].sort((a, b) => {
+    let av, bv;
+    switch (key) {
+      case 'name':      av = a.DonorName || '';               bv = b.DonorName || '';               break;
+      case 'group':     av = a.BloodGroup || '';               bv = b.BloodGroup || '';               break;
+      case 'freq':      av = a.DonationFrequencyDays ?? 1e9;   bv = b.DonationFrequencyDays ?? 1e9;   break;
+      case 'phone':     av = a.PhoneAvailable ? 1 : 0;         bv = b.PhoneAvailable ? 1 : 0;         break;
+      case 'sms':       av = a.SmsConsent ? 1 : 0;             bv = b.SmsConsent ? 1 : 0;             break;
+      case 'email':     av = a.EmailConsent ? 1 : 0;           bv = b.EmailConsent ? 1 : 0;           break;
+      default:          av = a.DaysSinceDonation;              bv = b.DaysSinceDonation;
+    }
+    if (typeof av === 'string') { av = av.toLowerCase(); bv = String(bv).toLowerCase(); }
+    if (av < bv) return -1 * mul;
+    if (av > bv) return  1 * mul;
+    return 0;
+  });
+}
+
+function setAnRecallSort(key) {
+  _anRecallSort = _anRecallSort.key === key
+    ? { key, dir: _anRecallSort.dir === 'asc' ? 'desc' : 'asc' }
+    : { key, dir: 'asc' };
+  renderAnRecallTable();
+}
+
+function renderAnRecallTable() {
+  const el = document.getElementById('anRecallTable');
+  if (!el) return;
+  if (!_anRecallRows.length) { el.innerHTML = '<div class="rt-empty">No inactive donors found for this threshold.</div>'; return; }
+  const sorted = sortAnRecallRows(_anRecallRows, _anRecallSort.key, _anRecallSort.dir);
+  const arrow  = key => _anRecallSort.key === key ? (_anRecallSort.dir === 'asc' ? ' ▲' : ' ▼') : '';
+  const th     = (key, label) => `<th class="an-sortable" onclick="setAnRecallSort('${key}')">${label}${arrow(key)}</th>`;
   el.innerHTML = `
     <table class="consump-table">
-      <thead><tr><th>Donor</th><th>Blood Group</th><th>Last Donation</th><th>Days Inactive</th><th>Lifetime Donations</th><th>Phone</th><th>Email</th></tr></thead>
-      <tbody>${rows.slice(0, 100).map(d => `
+      <thead><tr>
+        ${th('name', 'Donor')}${th('group', 'Blood Group')}${th('days', 'Days Inactive')}${th('freq', 'Donation Frequency')}${th('phone', 'Phone Availability')}${th('sms', 'SMS Consent')}${th('email', 'Email Consent')}
+      </tr></thead>
+      <tbody>${sorted.slice(0, 150).map(d => `
         <tr>
           <td><strong>${d.DonorName || '—'}</strong><br><span style="color:var(--text-soft);font-size:10.5px;">#${d.DonorNumber ?? ''}</span></td>
           <td>${d.BloodGroup || '—'}</td>
-          <td>${String(d.LastDonationDate || '').slice(0, 10)}</td>
           <td>${d.DaysSinceDonation}</td>
-          <td>${d.LifetimeDonations}</td>
-          <td>${d.DES_MOBILEPHONE || '—'}</td>
-          <td>${d.DES_EMAIL || '—'}</td>
+          <td>${d.DonationFrequencyDays != null ? `every ${d.DonationFrequencyDays}d` : '—'}</td>
+          <td>${yesNoBadge(d.PhoneAvailable, 'Available', 'Missing')}</td>
+          <td>${yesNoBadge(d.SmsConsent, 'Consented', 'No consent')}</td>
+          <td>${yesNoBadge(d.EmailConsent, 'Consented', 'No consent')}</td>
         </tr>`).join('')}
       </tbody>
-    </table>${rows.length > 100 ? `<div class="rt-empty">Showing 100 of ${rows.length} donors.</div>` : ''}`;
+    </table>${sorted.length > 150 ? `<div class="rt-empty">Showing 150 of ${sorted.length} donors.</div>` : ''}`;
 }
 
 // ═══════════════════════════════════════════════════════
@@ -6881,14 +7499,10 @@ async function downloadMonthlyPdf() {
 // ═══════════════════════════════════════════════════════
 // CHAT
 // ═══════════════════════════════════════════════════════
-const CHAT_DEPTS = [
-  'BLOOD BANK','CARDIOLOGY','CCU + ICU','CORONA 3300-3500','CORONA 3400',
-  'CSU','DELIVERY','DIALYSIS','ENDOSCOPY','ER','ER CORONA','HAEMATOLOGY',
-  'ICU 2 CORONA','ICU 3','ICU CORONA','INTERNAL MEDICINE 1','MHU',
-  'NICU CORONA','NICU-PICU','NURSERY','OBS','ODC','ONCO ADULT',
-  'ONCO PEDIATRIC','OPERATING THEATRE','OR','PEDIATRIC','RECOVERY',
-  'SURGERY 1','WTTC'
-];
+// Populated from GET /api/departments in initChat() — was a hardcoded list
+// duplicating the Add/Edit User modal's; both now read from the same
+// admin-managed Departments table (see Settings → Departments).
+let CHAT_DEPTS = [];
 
 let _chatSocket       = null;
 let _chatActiveDept   = null;
@@ -7020,8 +7634,17 @@ async function initChat() {
   if (!_chatMyDept) _chatMyDept = _parseDeptFromToken();
   if (!_chatSocket) _connectChatSocket();
 
-  if (_chatSidebarBuilt) return;
-  _chatSidebarBuilt = true;
+  // Re-fetch and rebuild the department list every time Chat is opened —
+  // not just once per session — so a department added/renamed in Settings
+  // shows up here without needing a full page reload. Unread counts and
+  // online status live in _chatUnread/_onlineDepts (not the DOM), so
+  // they're just re-applied to the fresh HTML rather than lost.
+  try {
+    const res = await apiFetch(`${API}/api/departments`);
+    const depts = res ? await res.json() : [];
+    if (Array.isArray(depts) && depts.length) CHAT_DEPTS = depts.map(d => d.name);
+  } catch { /* keep whatever CHAT_DEPTS already had, if anything */ }
+  if (!CHAT_DEPTS.length) CHAT_DEPTS = ['BLOOD BANK'];
 
   const isBloodBank  = _chatMyDept === 'BLOOD BANK';
   const visibleDepts = isBloodBank
@@ -7037,8 +7660,13 @@ async function initChat() {
         <span class="chat-offline-dot" id="chatDot_${CSS.escape(d)}"></span>
       </div>
     </div>`).join('');
+  visibleDepts.forEach(d => { _updateUnreadBadge(d); _updateOnlineDot(d, _onlineDepts.has(d)); });
 
-  // Fetch current online depts
+  if (_chatSidebarBuilt) return;
+  _chatSidebarBuilt = true;
+
+  // Snapshot of who's online right now — first visit only, socket events
+  // (_updateOnlineDot via the presence channel) keep it live after this.
   try {
     const res = await apiFetch(`${API}/chat/online`);
     if (res) {

@@ -1488,4 +1488,131 @@ function generateMonthlyReportPdf(data) {
   });
 }
 
-module.exports = { generateDocx, generatePdf, generateHandoverPdf, generateMonthlyReportPdf };
+// ════════════════════════════════════════════════════════════════
+// CATEGORY CHARTS EXPORT — PDF + DOCX
+// Takes chart canvases captured client-side (as PNG buffers) and lays
+// them out as a branded report, one chart per section.
+// ════════════════════════════════════════════════════════════════
+function generateChartsPdf(meta, charts) {
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+    const doc = new PDFDocument({ margin: 0, size: 'A4', autoFirstPage: true });
+    doc.on('data', c => chunks.push(c));
+    doc.on('end',  () => resolve(Buffer.concat(chunks)));
+    doc.on('error', reject);
+
+    const DK = '#0D1B2A';
+    const ML = 36;
+    const W  = doc.page.width - ML * 2;   // 523
+    const PH = doc.page.height;           // 841
+    let y = 0;
+
+    function sBar(label, bY) {
+      doc.rect(ML, bY, W, 16).fillColor(DK).fill();
+      doc.font('Helvetica-Bold').fontSize(9).fillColor('#FFF')
+         .text(label, ML + 6, bY + 4, { width: W - 12, lineBreak: false });
+      return bY + 16;
+    }
+
+    // ── HEADER ──
+    const hH = 68;
+    doc.rect(0, 0, doc.page.width, hH).fillColor(DK).fill();
+    if (LOGO_BUF) { try { doc.image(LOGO_BUF, ML, 12, { width: 44, height: 44 }); } catch(e){} }
+    const lx = LOGO_BUF ? ML + 52 : ML;
+    doc.font('Helvetica-Bold').fontSize(13).fillColor('#FFF')
+       .text('Al Rassoul Al-Aazam Hospital', lx, 12, { lineBreak: false });
+    doc.font('Helvetica').fontSize(8).fillColor('#8AABBB')
+       .text('Blood Bank · SBB — Charts Report', lx, 29, { lineBreak: false });
+    doc.font('Helvetica-Bold').fontSize(11).fillColor('#FFF')
+       .text(meta.categoryLabel || 'Category', ML, 13, { width: W, align: 'right', lineBreak: false });
+    doc.font('Helvetica').fontSize(7.5).fillColor('#7EB8D0')
+       .text(`Generated: ${meta.generatedAt || ''}`, ML, 30, { width: W, align: 'right', lineBreak: false });
+    if (meta.dateFrom || meta.dateTo) {
+      doc.font('Helvetica').fontSize(7.5).fillColor('#7EB8D0')
+         .text(`Range: ${meta.dateFrom || 'earliest'} → ${meta.dateTo || 'latest'}`, ML, 42, { width: W, align: 'right', lineBreak: false });
+    }
+    y = hH + 14;
+
+    charts.forEach(chart => {
+      const aspect = chart.width && chart.height ? chart.height / chart.width : 0.5;
+      const imgW = W;
+      const imgH = Math.min(imgW * aspect, PH - 140);
+      const need = 16 + imgH + 18;
+      if (y + need > PH - 30) { doc.addPage(); y = 30; }
+      y = sBar(chart.title || 'Chart', y);
+      y += 6;
+      try { doc.image(chart.buffer, ML, y, { fit: [imgW, imgH], align: 'center' }); } catch(e) {}
+      y += imgH + 18;
+    });
+
+    if (!charts.length) {
+      doc.font('Helvetica').fontSize(10).fillColor('#666').text('No charts were available to export.', ML, y + 10);
+    }
+
+    doc.end();
+  });
+}
+
+async function generateChartsDocx(meta, charts) {
+  const NAVY  = '0D1B2A';
+  const WHITE = 'FFFFFF';
+  const children = [];
+
+  const logoImgRuns = LOGO_BUF ? [new ImageRun({ data: LOGO_BUF, transformation: { width: 50, height: 50 }, type: 'png' })] : [];
+  children.push(new Table({
+    width: { size: 9360, type: WidthType.DXA },
+    columnWidths: [900, 8460],
+    rows: [new TableRow({ children: [
+      new TableCell({
+        borders: { top:{style:BorderStyle.NONE,size:0}, bottom:{style:BorderStyle.NONE,size:0}, left:{style:BorderStyle.NONE,size:0}, right:{style:BorderStyle.NONE,size:0} },
+        shading: { fill: NAVY, type: ShadingType.CLEAR },
+        margins: { top: 80, bottom: 80, left: 80, right: 60 },
+        verticalAlign: VerticalAlign.CENTER,
+        children: [new Paragraph({ alignment: AlignmentType.CENTER, children: logoImgRuns })]
+      }),
+      new TableCell({
+        borders: { top:{style:BorderStyle.NONE,size:0}, bottom:{style:BorderStyle.NONE,size:0}, left:{style:BorderStyle.NONE,size:0}, right:{style:BorderStyle.NONE,size:0} },
+        shading: { fill: NAVY, type: ShadingType.CLEAR },
+        margins: { top: 80, bottom: 40, left: 120, right: 80 },
+        verticalAlign: VerticalAlign.CENTER,
+        children: [
+          new Paragraph({ children: [new TextRun({ text: `${meta.categoryLabel || 'Category'} — Charts Report`, bold: true, size: 26, font: 'Arial', color: WHITE })] }),
+          new Paragraph({ spacing: { before: 40 }, children: [new TextRun({ text: 'Al Rassoul Al-Aazam Hospital — Blood Bank · SBB', size: 17, font: 'Arial', color: '8AABBB' })] }),
+        ]
+      }),
+    ]})]
+  }));
+  children.push(new Paragraph({ spacing: { before: 80, after: 160 }, children: [
+    new TextRun({ text: `Generated: ${meta.generatedAt || ''}`, size: 16, font: 'Arial', color: '666666' }),
+    ...(meta.dateFrom || meta.dateTo ? [new TextRun({ text: `   ·   Range: ${meta.dateFrom || 'earliest'} → ${meta.dateTo || 'latest'}`, size: 16, font: 'Arial', color: '666666' })] : []),
+  ]}));
+
+  const MAX_W = 660; // px, ≈ content width at 96dpi
+  charts.forEach(chart => {
+    const aspect = chart.width && chart.height ? chart.height / chart.width : 0.5;
+    const w = MAX_W;
+    const h = Math.round(w * aspect);
+    children.push(new Paragraph({ spacing: { before: 160, after: 80 }, children: [
+      new TextRun({ text: chart.title || 'Chart', bold: true, size: 22, font: 'Arial', color: NAVY })
+    ]}));
+    children.push(new Paragraph({
+      children: [new ImageRun({ data: chart.buffer, transformation: { width: w, height: h }, type: 'png' })]
+    }));
+  });
+
+  if (!charts.length) {
+    children.push(new Paragraph({ children: [new TextRun({ text: 'No charts were available to export.', size: 20, font: 'Arial', color: '666666' })] }));
+  }
+
+  const doc = new Document({
+    sections: [{
+      properties: {
+        page: { size: { width: 11906, height: 16838 }, margin: { top: 720, right: 720, bottom: 720, left: 720 } }
+      },
+      children
+    }]
+  });
+  return await Packer.toBuffer(doc);
+}
+
+module.exports = { generateDocx, generatePdf, generateHandoverPdf, generateMonthlyReportPdf, generateChartsPdf, generateChartsDocx };
