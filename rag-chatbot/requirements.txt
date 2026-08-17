@@ -1,0 +1,8 @@
+pandas
+openpyxl
+chromadb
+ollama
+flask
+requests
+PyJWT
+python-dotenv

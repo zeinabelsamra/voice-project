@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Blood Bank RAG Chatbot</title>
+<style>
+  :root { color-scheme: light dark; }
+  body {
+    margin: 0;
+    font-family: -apple-system, Segoe UI, Roboto, sans-serif;
+    background: #0f1115;
+    color: #e6e6e6;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+  }
+  header {
+    padding: 14px 20px;
+    border-bottom: 1px solid #232631;
+    font-weight: 600;
+    font-size: 15px;
+  }
+  header span { color: #8b8f9a; font-weight: 400; font-size: 13px; }
+  #chat {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .msg { max-width: 70%; padding: 10px 14px; border-radius: 10px; line-height: 1.45; white-space: pre-wrap; }
+  .user { align-self: flex-end; background: #2b5cff; color: white; }
+  .bot { align-self: flex-start; background: #1c1f27; border: 1px solid #262a35; }
+  .bot.loading { color: #8b8f9a; font-style: italic; }
+  .badge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 8px;
+    border-radius: 999px;
+    background: #3a2a10;
+    color: #f0b429;
+    border: 1px solid #5a3d14;
+    margin-bottom: 6px;
+  }
+  form {
+    display: flex;
+    gap: 10px;
+    padding: 16px 20px;
+    border-top: 1px solid #232631;
+  }
+  input {
+    flex: 1;
+    padding: 12px 14px;
+    border-radius: 8px;
+    border: 1px solid #2b2f3a;
+    background: #1c1f27;
+    color: #e6e6e6;
+    font-size: 14px;
+  }
+  input:focus { outline: 2px solid #2b5cff; }
+  button {
+    padding: 12px 18px;
+    border-radius: 8px;
+    border: none;
+    background: #2b5cff;
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+</style>
+</head>
+<body>
+  <header>Blood Bank RAG Chatbot <span>&mdash; local &amp; offline (phi3:mini)</span></header>
+  <div id="chat"></div>
+  <form id="form">
+    <input id="question" type="text" placeholder="Ask about donors, requests, transfusions, wasted units..." autocomplete="off" />
+    <button id="send" type="submit">Send</button>
+  </form>
+
+<script>
+  const chatEl = document.getElementById('chat');
+  const formEl = document.getElementById('form');
+  const inputEl = document.getElementById('question');
+  const sendBtn = document.getElementById('send');
+
+  function addMessage(text, cls) {
+    const div = document.createElement('div');
+    div.className = 'msg ' + cls;
+    div.textContent = text;
+    chatEl.appendChild(div);
+    chatEl.scrollTop = chatEl.scrollHeight;
+    return div;
+  }
+
+  // exact_fact set (truthy) means the answer was computed directly from the
+  // data (patient lookup / count / breakdown) -- not verified means it came
+  // from the local LLM instead, which has no guarantee of being correct
+  // (see rag-chatbot's chat.py: ask() only skips the LLM when exact_fact is
+  // set). Surfacing that distinction here so an unverified answer doesn't
+  // get mistaken for a grounded one just because it reads confidently.
+  function renderBotAnswer(el, answer, verified) {
+    el.textContent = '';
+    if (!verified) {
+      const badge = document.createElement('div');
+      badge.className = 'badge';
+      badge.textContent = '⚠️ Not verified against records -- AI-generated, double-check before relying on it';
+      el.appendChild(badge);
+    }
+    const textEl = document.createElement('div');
+    textEl.textContent = answer;
+    el.appendChild(textEl);
+  }
+
+  let history = [];
+  // Which patient/donor the backend last resolved a lookup to. Kept
+  // separately from `history` (which is trimmed to the last few exchanges
+  // below to keep prompts small) so a follow-up like "the donor above" or
+  // "last 5 records" still resolves correctly even many turns after the
+  // patient was first named, instead of silently falling back to an
+  // unrelated answer once the naming turn has scrolled out of `history`.
+  let patientContext = null;
+
+  formEl.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const question = inputEl.value.trim();
+    if (!question) return;
+    addMessage(question, 'user');
+    inputEl.value = '';
+    sendBtn.disabled = true;
+    const loadingEl = addMessage('Thinking...', 'bot loading');
+
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question, history, patientContext })
+      });
+      const data = await res.json();
+      loadingEl.classList.remove('loading');
+      if (data.answer) {
+        renderBotAnswer(loadingEl, data.answer, !!data.exact_fact);
+        history.push({ role: 'user', content: question }, { role: 'assistant', content: data.answer });
+        history = history.slice(-6);
+        patientContext = data.patientContext || patientContext;
+      } else {
+        loadingEl.textContent = data.error || 'No response.';
+      }
+    } catch (err) {
+      loadingEl.classList.remove('loading');
+      loadingEl.textContent = 'Error: could not reach the server.';
+    } finally {
+      sendBtn.disabled = false;
+      inputEl.focus();
+    }
+  });
+</script>
+</body>
+</html>
