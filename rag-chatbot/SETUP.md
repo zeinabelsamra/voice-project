@@ -12,9 +12,12 @@ Two layers of setup, and it matters which one you're missing:
 - **Layer 2 (chatbot-specific):** Ollama + its models + this folder's own
   Python environment.
 
-Only Layer 2's first three steps need an internet connection. Once those
-are done, everything else — including actually using the chatbot — runs
-fully offline.
+Steps marked 🌐 below need an internet connection (once). Everything else,
+including actually using the chatbot afterward, runs fully offline.
+
+These instructions assume Windows (matches how this was built/tested). On
+macOS/Linux, replace `venv\Scripts\python.exe` with `venv/bin/python` and
+`venv\Scripts\pip` with `venv/bin/pip`.
 
 ---
 
@@ -29,31 +32,34 @@ fully offline.
      database the chatbot's data actually comes from)
    - `JWT_SECRET` (any machine running node-backend needs this — the
      chatbot mints its own short-lived login token using this same secret)
-2. From `node-backend/`: `npm install`, then `node server.js`. It should
-   print `Blood Bank server running on http://localhost:3000`.
 
-If this step can't be completed (no DB access, no `.env`), **nothing below
-will work** — this isn't a chatbot-specific limitation.
+   Having the file isn't enough on its own -- the SQL Server(s) it points
+   to also have to be reachable **over the network** from this laptop
+   (uses SQL login auth via the `mssql`/`tedious` driver, not Windows
+   Integrated Auth, so no extra ODBC driver install is needed, but it does
+   need a real network path to the server -- a VPN, hospital LAN, etc.).
+2. 🌐 From `node-backend/`: `npm install`, then `node server.js`. It
+   should print `Blood Bank server running on http://localhost:3000`.
+
+If this step can't be completed (no DB access, no `.env`, no network path
+to the SQL Server), **nothing below will work** — this isn't a
+chatbot-specific limitation.
 
 ## Layer 2 — the chatbot itself
 
-### Steps that need internet (do these once, ideally before going offline)
-
-1. **Install Ollama**: https://ollama.com/download
-2. **Pull the two models it uses** (~3GB total):
+1. 🌐 **Install Ollama**: https://ollama.com/download
+2. 🌐 **Pull the two models it uses** (~3GB total):
    ```
    ollama pull nomic-embed-text
    ollama pull phi3:mini
    ```
-3. **Set up the Python environment**, from `rag-chatbot/`:
+3. 🌐 **Set up the Python environment**, from `rag-chatbot/`:
    ```
    python -m venv venv
    venv\Scripts\pip install -r requirements.txt
    ```
-
-### Steps that are fully offline (need node-backend running, no internet)
-
-4. **Pull the data snapshot and build the local index**:
+4. **Pull the data snapshot and build the local index** (needs
+   node-backend running from Layer 1, but no internet):
    ```
    venv\Scripts\python.exe refresh_data.py
    ```
