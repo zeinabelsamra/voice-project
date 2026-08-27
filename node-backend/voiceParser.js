@@ -772,23 +772,36 @@ function parseWithRules(transcript, formType) {
     if (n && n.trim().length >= 2) result.received_by = titleCase(n);
   }
 
-  // ── TYPE OF BLOOD (delivery only) ───────────────────────────────
+  // ── COMPONENTS ISSUED (delivery only) ────────────────────────────
+  // Mirrors the transfusion side's number+component parsing above, but
+  // fills the delivery form's structured Components Issued units
+  // (d_fpc_units, ...) instead of the old free-text "type of blood" field.
   if (isDelivery) {
-    const isPacked = /pack\s+cells?|packed\s+cells?|\bpieces?\b/i.test(t);
-    if (isPacked)                            result.blood_type_requested = 'Packed Cells';
-    else if (/\bffp\b|plasma/i.test(t))     result.blood_type_requested = 'FFP';
-    else if (/platelet/i.test(t))           result.blood_type_requested = 'Platelets';
+    m = t.match(/\b(one|two|three|four|five|six|seven|eight|nine|ten)[,\s]+(?:units?[,\s]+(?:of\s+)?)?(?:pack\s+cells?|packed\s+cells?|filtered|prc|fpc|pieces?|red\s+cells?)/i);
+    if (m) result.d_fpc_units = WORD_NUM[m[1].toLowerCase()] || 1;
+    if (!result.d_fpc_units) {
+      m = t.match(/(\d+)[,\s]+(?:units?[,\s]+)?(?:of\s+)?(?:pack|packed|filtered|prc|fpc|pieces?)/i)
+        || t.match(/(?:pack|packed|filtered|prc|fpc|pieces?)[^,\d]{0,15}(\d+)/i);
+      if (m) result.d_fpc_units = parseInt(m[1]);
+      else if (/pack\s+cells?|packed\s+cells?|\bpieces?\b/i.test(t)) result.d_fpc_units = 1;
+    }
 
-    // type_of_blood: digit or word number + packed cells / pieces
-    m = t.match(/(\d+)\s*(?:p\.?c\.?|packed\s+cells?|pieces?)/i);
-    if (m) {
-      result.type_of_blood = `${m[1]} P.C`;
-    } else {
-      m = t.match(/\b(one|two|three|four|five|six|seven|eight|nine|ten)\s+(?:p\.?c\.?|packed\s+cells?|pieces?)/i);
-      if (m)            result.type_of_blood = `${WORD_NUM[m[1].toLowerCase()]} P.C`;
-      else if (isPacked) result.type_of_blood = 'Packed Cells';
-      else if (/\bffp\b|fresh\s+frozen/i.test(t)) result.type_of_blood = 'FFP';
-      else if (/platelet/i.test(t))               result.type_of_blood = 'Platelets';
+    m = t.match(/\b(one|two|three|four|five|six|seven|eight|nine|ten)[,\s]+(?:units?[,\s]+(?:of\s+)?)?(?:ffp|plasma|fresh\s+frozen)/i);
+    if (m) result.d_ffp_units = WORD_NUM[m[1].toLowerCase()] || 1;
+    if (!result.d_ffp_units) {
+      m = t.match(/(\d+)[,\s]+(?:units?[,\s]+)?(?:of\s+)?(?:ffp|plasma)/i)
+        || t.match(/(?:ffp|plasma)[^,\d]{0,15}(\d+)/i);
+      if (m) result.d_ffp_units = parseInt(m[1]);
+      else if (/\bffp\b|fresh\s+frozen/i.test(t)) result.d_ffp_units = 1;
+    }
+
+    m = t.match(/\b(one|two|three|four|five|six|seven|eight|nine|ten)[,\s]+(?:units?[,\s]+(?:of\s+)?)?(?:platelet|plt)/i);
+    if (m) result.d_plt_units = WORD_NUM[m[1].toLowerCase()] || 1;
+    if (!result.d_plt_units) {
+      m = t.match(/(\d+)[,\s]+(?:units?[,\s]+)?(?:of\s+)?(?:platelet|plt)/i)
+        || t.match(/(?:platelet|plt)[^,\d]{0,15}(\d+)/i);
+      if (m) result.d_plt_units = parseInt(m[1]);
+      else if (/platelet/i.test(t)) result.d_plt_units = 1;
     }
   }
 

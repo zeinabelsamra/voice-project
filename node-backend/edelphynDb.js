@@ -26,7 +26,18 @@ function buildConfig() {
 async function getEdelphynPool() {
   if (!pool) {
     try {
-      pool = await new sql.ConnectionPool(buildConfig()).connect();
+      const newPool = new sql.ConnectionPool(buildConfig());
+      // Without this, a pool that goes stale (socket dropped by a firewall/
+      // VPN/sleep-wake while idle, SQL Server restart, etc.) is still
+      // truthy here and keeps getting handed out — every query against it
+      // then just hangs until the 15s request timeout. Reacting to 'error'
+      // by dropping the cached pool means the next getEdelphynPool() call
+      // reconnects instead of reusing the dead one.
+      newPool.on("error", (err) => {
+        console.error("❌ eDelphyn pool error, will reconnect on next request:", err.message);
+        if (pool === newPool) pool = null;
+      });
+      pool = await newPool.connect();
       console.log("✅ Connected to eDelphyn");
     } catch (err) {
       pool = null;

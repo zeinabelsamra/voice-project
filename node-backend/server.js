@@ -89,6 +89,13 @@ const onlineDepts = new Map(); // dept -> socket count
 io.on('connection', async (socket) => {
   const dept = socket.user.department || 'BLOOD BANK';
   socket.join(dept);
+  // Admins additionally join a role-wide room so they can be notified of
+  // things no single department chat room covers — e.g. new transfusion
+  // requests (see POST /forms/save).
+  if (socket.user.role === 'admin') socket.join('admins');
+  // Same idea for staff (nurses) — alerted when the blood bank sends a
+  // delivery, regardless of which department they're logged in under.
+  if (socket.user.role === 'staff') socket.join('staff');
 
   // Online presence
   onlineDepts.set(dept, (onlineDepts.get(dept) || 0) + 1);
@@ -214,6 +221,114 @@ async function initDB() {
         ALTER TABLE TransfusionRequests ADD saved_by NVARCHAR(100) NULL;
       IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='BloodDeliveries' AND COLUMN_NAME='saved_by')
         ALTER TABLE BloodDeliveries ADD saved_by NVARCHAR(100) NULL;
+    `);
+
+    // ── Migrate: physician/life-saving signature columns ───────────
+    // These hold a base64 PNG data URL captured from the draw-to-sign
+    // canvas (easily several KB), so they need NVARCHAR(MAX), not a short
+    // text column. The ALTER COLUMN lines widen anyone who already has
+    // these columns from an earlier NVARCHAR(200) version of this migration.
+    await pool.request().query(`
+      IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='TransfusionRequests' AND COLUMN_NAME='physician_signature')
+        ALTER TABLE TransfusionRequests ADD physician_signature NVARCHAR(MAX) NULL;
+      IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='TransfusionRequests' AND COLUMN_NAME='life_saving_signature')
+        ALTER TABLE TransfusionRequests ADD life_saving_signature NVARCHAR(MAX) NULL;
+      IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='BloodDeliveries' AND COLUMN_NAME='life_saving_signature')
+        ALTER TABLE BloodDeliveries ADD life_saving_signature NVARCHAR(MAX) NULL;
+      IF EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='TransfusionRequests' AND COLUMN_NAME='physician_signature' AND CHARACTER_MAXIMUM_LENGTH <> -1)
+        ALTER TABLE TransfusionRequests ALTER COLUMN physician_signature NVARCHAR(MAX) NULL;
+      IF EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='TransfusionRequests' AND COLUMN_NAME='life_saving_signature' AND CHARACTER_MAXIMUM_LENGTH <> -1)
+        ALTER TABLE TransfusionRequests ALTER COLUMN life_saving_signature NVARCHAR(MAX) NULL;
+      IF EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='BloodDeliveries' AND COLUMN_NAME='life_saving_signature' AND CHARACTER_MAXIMUM_LENGTH <> -1)
+        ALTER TABLE BloodDeliveries ALTER COLUMN life_saving_signature NVARCHAR(MAX) NULL;
+    `);
+
+    // ── Migrate: signature lock columns ─────────────────────────────
+    // Once a record carries any signature, it records who (which logged-in
+    // account) put it there. From then on, only that same account may
+    // update or delete the record — enforced in /forms/update/:id and
+    // /history/:id, with no admin override. Set once and never overwritten
+    // (see the COALESCE in /forms/update/:id), so it's a permanent record
+    // of the original signer even if the record is edited further by them.
+    await pool.request().query(`
+      IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='TransfusionRequests' AND COLUMN_NAME='signed_by_user_id')
+        ALTER TABLE TransfusionRequests ADD signed_by_user_id INT NULL;
+      IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='TransfusionRequests' AND COLUMN_NAME='signed_by_name')
+        ALTER TABLE TransfusionRequests ADD signed_by_name NVARCHAR(100) NULL;
+      IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='TransfusionRequests' AND COLUMN_NAME='signed_at')
+        ALTER TABLE TransfusionRequests ADD signed_at DATETIME NULL;
+      IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='BloodDeliveries' AND COLUMN_NAME='signed_by_user_id')
+        ALTER TABLE BloodDeliveries ADD signed_by_user_id INT NULL;
+      IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='BloodDeliveries' AND COLUMN_NAME='signed_by_name')
+        ALTER TABLE BloodDeliveries ADD signed_by_name NVARCHAR(100) NULL;
+      IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='BloodDeliveries' AND COLUMN_NAME='signed_at')
+        ALTER TABLE BloodDeliveries ADD signed_at DATETIME NULL;
+    `);
+
+    // ── Migrate: Notifications (persisted alert list for admins) ───
+    // A new transfusion request writes one row here (see POST /forms/save)
+    // in addition to the live socket push, so an admin who wasn't logged in
+    // at the time still sees it in the bell list next time they open the
+    // app. NotificationReads tracks per-admin read state, since more than
+    // one admin account can exist and each should get their own unread
+    // count rather than one shared "seen" flag.
+    await pool.request().query(`
+      IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='Notifications')
+        CREATE TABLE Notifications (
+          notification_id INT IDENTITY(1,1) PRIMARY KEY,
+          type            NVARCHAR(50)  NOT NULL,
+          request_id      INT           NULL,
+          patient_name    NVARCHAR(200) NULL,
+          file_number     NVARCHAR(100) NULL,
+          blood_group     NVARCHAR(10)  NULL,
+          rh_factor       NVARCHAR(10)  NULL,
+          room            NVARCHAR(100) NULL,
+          physician       NVARCHAR(200) NULL,
+          life_saving     BIT           NOT NULL DEFAULT 0,
+          saved_by        NVARCHAR(100) NULL,
+          created_at      DATETIME      DEFAULT GETDATE()
+        );
+      IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME='NotificationReads')
+        CREATE TABLE NotificationReads (
+          notification_id INT NOT NULL,
+          user_id         INT NOT NULL,
+          read_at         DATETIME DEFAULT GETDATE(),
+          PRIMARY KEY (notification_id, user_id)
+        );
+    `);
+
+    // ── Migrate: Irradiated RBC + extra Blood Components rows ──────
+    // irr_units/irr_type are a first-class component type, same as
+    // fpc/ffp/plt. components_json holds any additional rows added via the
+    // "+" button beyond each type's first row (the first row of each type
+    // still lives in its own flat column, unchanged) — see renderTCompTable
+    // in index.html.
+    await pool.request().query(`
+      IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='TransfusionRequests' AND COLUMN_NAME='irr_units')
+        ALTER TABLE TransfusionRequests ADD irr_units INT NULL;
+      IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='TransfusionRequests' AND COLUMN_NAME='irr_type')
+        ALTER TABLE TransfusionRequests ADD irr_type NVARCHAR(20) NULL;
+      IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='TransfusionRequests' AND COLUMN_NAME='components_json')
+        ALTER TABLE TransfusionRequests ADD components_json NVARCHAR(MAX) NULL;
+    `);
+
+    // ── Migrate: "Components Issued" on the delivery form ───────────
+    // Same "+ add another row" concept as the transfusion table, but for
+    // "For Blood Bank Use Only" on the Delivery form — just a component +
+    // Nº Units, no urgency. Each type's first row lives in its own flat
+    // column; components_json holds any extra rows (see renderDCompTable
+    // in index.html).
+    await pool.request().query(`
+      IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='BloodDeliveries' AND COLUMN_NAME='fpc_units')
+        ALTER TABLE BloodDeliveries ADD fpc_units INT NULL;
+      IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='BloodDeliveries' AND COLUMN_NAME='ffp_units')
+        ALTER TABLE BloodDeliveries ADD ffp_units INT NULL;
+      IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='BloodDeliveries' AND COLUMN_NAME='plt_units')
+        ALTER TABLE BloodDeliveries ADD plt_units INT NULL;
+      IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='BloodDeliveries' AND COLUMN_NAME='irr_units')
+        ALTER TABLE BloodDeliveries ADD irr_units INT NULL;
+      IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='BloodDeliveries' AND COLUMN_NAME='components_json')
+        ALTER TABLE BloodDeliveries ADD components_json NVARCHAR(MAX) NULL;
     `);
 
     // ── Migrate: Users table ──────────────────────────────────────
@@ -796,6 +911,28 @@ app.post("/upload/batch", requireAuth, upload.single("audio"), async (req, res) 
   }
 });
 
+// A record with any drawn signature on it locks to whichever logged-in
+// account saved it — from then on nobody else (not even an admin) can
+// update or delete it. See /forms/update/:id and /history/:id.
+function hasSignature(fields, formType) {
+  if (formType === "transfusion") return !!(fields.physician_signature || fields.ls_signature_t);
+  return !!fields.ls_signature_d;
+}
+
+// Returns { locked: true, signedByName } when this record is signed and the
+// requesting account isn't the one who signed it — callers must refuse the
+// write in that case, with no role-based exception (admins included).
+async function checkSignatureLock(pool, formType, id, userId) {
+  const table = formType === "transfusion" ? "TransfusionRequests" : "BloodDeliveries";
+  const idCol = formType === "transfusion" ? "request_id" : "delivery_id";
+  const result = await pool.request()
+    .input("id", sql.Int, id)
+    .query(`SELECT signed_by_user_id, signed_by_name FROM ${table} WHERE ${idCol} = @id`);
+  const row = result.recordset[0];
+  if (!row || row.signed_by_user_id == null || row.signed_by_user_id === userId) return { locked: false };
+  return { locked: true, signedByName: row.signed_by_name };
+}
+
 // ════════════════════════════════════════════════════════════════
 // POST /forms/save
 // ════════════════════════════════════════════════════════════════
@@ -803,6 +940,9 @@ app.post("/forms/save", requireAuth, async (req, res) => {
   if (!dbReady) return res.status(503).json({ error: "Database not connected. Check db.js configuration." });
 
   const { form_type, ...fields } = req.body;
+  const signed          = hasSignature(fields, form_type);
+  const signedByUserId  = signed ? (req.user?.userId   || null) : null;
+  const signedByName    = signed ? (req.user?.fullName || null) : null;
 
   try {
     const pool = await getPool();
@@ -823,6 +963,9 @@ app.post("/forms/save", requireAuth, async (req, res) => {
         .input("ffp_type",                  sql.NVarChar, fields.ffp_type || null)
         .input("plt_units",                 sql.Int,      parseInt(fields.plt_units) || null)
         .input("plt_type",                  sql.NVarChar, fields.plt_type || null)
+        .input("irr_units",                 sql.Int,      parseInt(fields.irr_units) || null)
+        .input("irr_type",                  sql.NVarChar, fields.irr_type || null)
+        .input("components_json",           sql.NVarChar, fields.components_json || null)
         .input("blood_unit_1",              sql.NVarChar, fields.blood_unit_1 || null)
         .input("blood_unit_2",              sql.NVarChar, fields.blood_unit_2 || null)
         .input("blood_unit_3",              sql.NVarChar, fields.blood_unit_3 || null)
@@ -835,35 +978,87 @@ app.post("/forms/save", requireAuth, async (req, res) => {
         .input("prev_transfusion_place",    sql.NVarChar, fields.prev_transfusion_place || null)
         .input("prev_transfusion_reaction", sql.NVarChar, fields.prev_transfusion_reaction || null)
         .input("physician",                 sql.NVarChar, fields.physician || null)
+        .input("physician_signature",       sql.NVarChar, fields.physician_signature || null)
         .input("phlebotomist",              sql.NVarChar, fields.phlebotomist || null)
         .input("life_saving",               sql.Bit,      fields.life_saving_t ? 1 : 0)
         .input("life_saving_physician",     sql.NVarChar, fields.ls_physician_t || null)
+        .input("life_saving_signature",     sql.NVarChar, fields.ls_signature_t || null)
         .input("life_saving_time",          sql.NVarChar, fields.ls_time_t || null)
         .input("saved_by",                  sql.NVarChar, req.user?.fullName || null)
+        .input("signed_by_user_id",         sql.Int,      signedByUserId)
+        .input("signed_by_name",            sql.NVarChar, signedByName)
         .query(`INSERT INTO TransfusionRequests (
           request_date, request_time, room, patient_name, file_number,
           blood_group, rh_factor, diagnosis,
           fpc_units, fpc_type, ffp_units, ffp_type, plt_units, plt_type,
+          irr_units, irr_type, components_json,
           blood_unit_1, blood_unit_2, blood_unit_3, blood_unit_4,
           blood_unit_5, blood_unit_6, blood_unit_7, blood_unit_8,
           previous_transfusion, prev_transfusion_place, prev_transfusion_reaction,
-          physician, phlebotomist,
-          life_saving, life_saving_physician, life_saving_time,
-          saved_by
+          physician, physician_signature, phlebotomist,
+          life_saving, life_saving_physician, life_saving_signature, life_saving_time,
+          saved_by, signed_by_user_id, signed_by_name, signed_at
         ) OUTPUT INSERTED.request_id
         VALUES (
           @request_date, @request_time, @room, @patient_name, @file_number,
           @blood_group, @rh_factor, @diagnosis,
           @fpc_units, @fpc_type, @ffp_units, @ffp_type, @plt_units, @plt_type,
+          @irr_units, @irr_type, @components_json,
           @blood_unit_1, @blood_unit_2, @blood_unit_3, @blood_unit_4,
           @blood_unit_5, @blood_unit_6, @blood_unit_7, @blood_unit_8,
           @previous_transfusion, @prev_transfusion_place, @prev_transfusion_reaction,
-          @physician, @phlebotomist,
-          @life_saving, @life_saving_physician, @life_saving_time,
-          @saved_by
+          @physician, @physician_signature, @phlebotomist,
+          @life_saving, @life_saving_physician, @life_saving_signature, @life_saving_time,
+          @saved_by, @signed_by_user_id, @signed_by_name, ${signedByUserId ? 'GETDATE()' : 'NULL'}
         )`);
 
-      return res.json({ success: true, id: result.recordset[0].request_id });
+      const newId = result.recordset[0].request_id;
+
+      // Persist the alert (so an admin who's offline right now still sees
+      // it in the bell list on next login), then push it live to whoever's
+      // connected. The insert is best-effort — a hiccup here must never
+      // fail the save itself, which already succeeded above.
+      let notifRow = null;
+      try {
+        const notifResult = await pool.request()
+          .input('type',         sql.NVarChar, 'new_transfusion_request')
+          .input('request_id',   sql.Int,      newId)
+          .input('patient_name', sql.NVarChar, fields.patient_name || null)
+          .input('file_number',  sql.NVarChar, fields.file_number || null)
+          .input('blood_group',  sql.NVarChar, fields.blood_group || null)
+          .input('rh_factor',    sql.NVarChar, fields.rh_factor || null)
+          .input('room',         sql.NVarChar, fields.room || null)
+          .input('physician',    sql.NVarChar, fields.physician || null)
+          .input('life_saving',  sql.Bit,      fields.life_saving_t ? 1 : 0)
+          .input('saved_by',     sql.NVarChar, req.user?.fullName || null)
+          .query(`INSERT INTO Notifications (
+            type, request_id, patient_name, file_number, blood_group, rh_factor,
+            room, physician, life_saving, saved_by
+          ) OUTPUT INSERTED.notification_id, CONVERT(VARCHAR(19), INSERTED.created_at, 120) AS created_at
+          VALUES (@type, @request_id, @patient_name, @file_number, @blood_group, @rh_factor,
+            @room, @physician, @life_saving, @saved_by)`);
+        notifRow = notifResult.recordset[0];
+      } catch (notifErr) {
+        console.error('[notifications] failed to persist new_transfusion_request:', notifErr.message);
+      }
+
+      // Real-time alert to every connected admin — works from any page,
+      // same mechanism as department chat (see io.on('connection') above).
+      io.to('admins').emit('new_transfusion_request', {
+        notification_id: notifRow?.notification_id || null,
+        id: newId,
+        patient_name: fields.patient_name || 'Unknown patient',
+        file_number:  fields.file_number  || '',
+        blood_group:  fields.blood_group  || '',
+        rh_factor:    fields.rh_factor    || '',
+        room:         fields.room         || '',
+        physician:    fields.physician    || '',
+        life_saving:  !!fields.life_saving_t,
+        saved_by:     req.user?.fullName  || 'Unknown',
+        created_at:   notifRow?.created_at || new Date().toISOString(),
+      });
+
+      return res.json({ success: true, id: newId });
 
     } else if (form_type === "delivery") {
       const result = await pool.request()
@@ -876,6 +1071,11 @@ app.post("/forms/save", requireAuth, async (req, res) => {
         .input("type_of_blood_requested",     sql.NVarChar, fields.blood_type_requested || null)
         .input("blood_unit_numbers",          sql.NVarChar, fields.blood_unit_numbers || null)
         .input("type_of_blood",               sql.NVarChar, fields.type_of_blood || null)
+        .input("fpc_units",                   sql.Int,      parseInt(fields.d_fpc_units) || null)
+        .input("ffp_units",                   sql.Int,      parseInt(fields.d_ffp_units) || null)
+        .input("plt_units",                   sql.Int,      parseInt(fields.d_plt_units) || null)
+        .input("irr_units",                   sql.Int,      parseInt(fields.d_irr_units) || null)
+        .input("components_json",             sql.NVarChar, fields.d_components_json || null)
         .input("blood_unit_group",            sql.NVarChar, fields.blood_unit_group || null)
         .input("patient_blood_group_delivery",sql.NVarChar, fields.patient_bg_delivery || null)
         .input("technician_name",             sql.NVarChar, fields.technician || null)
@@ -895,38 +1095,163 @@ app.post("/forms/save", requireAuth, async (req, res) => {
         .input("nurse_unit_time",             sql.NVarChar, fields.nurse_time || null)
         .input("life_saving",                 sql.Bit,      fields.life_saving_d ? 1 : 0)
         .input("life_saving_physician",       sql.NVarChar, fields.ls_physician_d || null)
+        .input("life_saving_signature",       sql.NVarChar, fields.ls_signature_d || null)
         .input("life_saving_time",            sql.NVarChar, fields.ls_time_d || null)
         .input("saved_by",                    sql.NVarChar, req.user?.fullName || null)
+        .input("signed_by_user_id",           sql.Int,      signedByUserId)
+        .input("signed_by_name",              sql.NVarChar, signedByName)
         .query(`INSERT INTO BloodDeliveries (
           patient_name, file_number, patient_blood_group, patient_rh, room,
           known_allergies, type_of_blood_requested, blood_unit_numbers,
-          type_of_blood, blood_unit_group, patient_blood_group_delivery,
+          type_of_blood, fpc_units, ffp_units, plt_units, irr_units, components_json,
+          blood_unit_group, patient_blood_group_delivery,
           technician_name, orderly_name, nurse_name,
           delivery_date, delivery_time,
           leakage, gases, volume, expiry_date, temperature_c,
           received_by, nurse_unit_received_by, nurse_unit_name, nurse_unit_date, nurse_unit_time,
-          life_saving, life_saving_physician, life_saving_time,
-          saved_by
+          life_saving, life_saving_physician, life_saving_signature, life_saving_time,
+          saved_by, signed_by_user_id, signed_by_name, signed_at
         ) OUTPUT INSERTED.delivery_id
         VALUES (
           @patient_name, @file_number, @patient_blood_group, @patient_rh, @room,
           @known_allergies, @type_of_blood_requested, @blood_unit_numbers,
-          @type_of_blood, @blood_unit_group, @patient_blood_group_delivery,
+          @type_of_blood, @fpc_units, @ffp_units, @plt_units, @irr_units, @components_json,
+          @blood_unit_group, @patient_blood_group_delivery,
           @technician_name, @orderly_name, @nurse_name,
           @delivery_date, @delivery_time,
           @leakage, @gases, @volume, @expiry_date, @temperature_c,
           @received_by, @nurse_unit_received_by, @nurse_unit_name, @nurse_unit_date, @nurse_unit_time,
-          @life_saving, @life_saving_physician, @life_saving_time,
-          @saved_by
+          @life_saving, @life_saving_physician, @life_saving_signature, @life_saving_time,
+          @saved_by, @signed_by_user_id, @signed_by_name, ${signedByUserId ? 'GETDATE()' : 'NULL'}
         )`);
 
-      return res.json({ success: true, id: result.recordset[0].delivery_id });
+      const newDeliveryId = result.recordset[0].delivery_id;
+
+      // Same pattern as the new-transfusion-request alert above: persist
+      // (so a nurse who's offline right now still sees it in the bell list
+      // next login), then push it live to whoever's connected. Best-effort —
+      // never fails the save itself, which already succeeded above.
+      let deliveryNotifRow = null;
+      try {
+        const notifResult = await pool.request()
+          .input('type',         sql.NVarChar, 'new_delivery')
+          .input('request_id',   sql.Int,      newDeliveryId)
+          .input('patient_name', sql.NVarChar, fields.d_patient_name || null)
+          .input('file_number',  sql.NVarChar, fields.d_file_number || null)
+          .input('blood_group',  sql.NVarChar, fields.d_blood_group || null)
+          .input('rh_factor',    sql.NVarChar, fields.d_rh || null)
+          .input('room',         sql.NVarChar, fields.d_room || null)
+          .input('life_saving',  sql.Bit,      fields.life_saving_d ? 1 : 0)
+          .input('saved_by',     sql.NVarChar, req.user?.fullName || null)
+          .query(`INSERT INTO Notifications (
+            type, request_id, patient_name, file_number, blood_group, rh_factor,
+            room, life_saving, saved_by
+          ) OUTPUT INSERTED.notification_id, CONVERT(VARCHAR(19), INSERTED.created_at, 120) AS created_at
+          VALUES (@type, @request_id, @patient_name, @file_number, @blood_group, @rh_factor,
+            @room, @life_saving, @saved_by)`);
+        deliveryNotifRow = notifResult.recordset[0];
+      } catch (notifErr) {
+        console.error('[notifications] failed to persist new_delivery:', notifErr.message);
+      }
+
+      // Real-time alert to every connected staff (nurse) account — works
+      // from any page, same mechanism as the admin alert above.
+      io.to('staff').emit('new_delivery', {
+        notification_id: deliveryNotifRow?.notification_id || null,
+        id: newDeliveryId,
+        patient_name: fields.d_patient_name || 'Unknown patient',
+        file_number:  fields.d_file_number  || '',
+        blood_group:  fields.d_blood_group  || '',
+        rh_factor:    fields.d_rh           || '',
+        room:         fields.d_room         || '',
+        life_saving:  !!fields.life_saving_d,
+        saved_by:     req.user?.fullName    || 'Unknown',
+        created_at:   deliveryNotifRow?.created_at || new Date().toISOString(),
+      });
+
+      return res.json({ success: true, id: newDeliveryId });
     }
 
     res.status(400).json({ error: "Invalid form_type" });
 
   } catch (err) {
     console.error("Save error:", err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ════════════════════════════════════════════════════════════════
+// NOTIFICATIONS — persisted alert list backing the bell icon, shared by
+// both roles: admins see 'new_transfusion_request' alerts (a nurse/tech
+// just requested blood), staff see 'new_delivery' alerts (the blood bank
+// just sent a delivery). Each role only ever queries its own type, so the
+// two feeds never mix. Read state is tracked per account in
+// NotificationReads, so each user gets their own unread count instead of
+// one shared "seen" flag.
+// ════════════════════════════════════════════════════════════════
+function notificationTypeForRole(role) {
+  return role === 'admin' ? 'new_transfusion_request' : 'new_delivery';
+}
+
+app.get("/notifications", requireAuth, async (req, res) => {
+  if (!dbReady) return res.json({ notifications: [], unread_count: 0 });
+  try {
+    const pool   = await getPool();
+    const result = await pool.request()
+      .input("uid",  sql.Int,      req.user.userId)
+      .input("type", sql.NVarChar, notificationTypeForRole(req.user.role))
+      .query(`
+        SELECT TOP 50
+          n.notification_id, n.type, n.request_id, n.patient_name, n.file_number,
+          n.blood_group, n.rh_factor, n.room, n.physician, n.life_saving, n.saved_by,
+          CONVERT(VARCHAR(19), n.created_at, 120) AS created_at,
+          CASE WHEN r.user_id IS NULL THEN 0 ELSE 1 END AS is_read
+        FROM Notifications n
+        LEFT JOIN NotificationReads r ON r.notification_id = n.notification_id AND r.user_id = @uid
+        WHERE n.type = @type
+        ORDER BY n.created_at DESC
+      `);
+    const notifications = result.recordset.map(n => ({ ...n, is_read: !!n.is_read }));
+    const unread_count  = notifications.filter(n => !n.is_read).length;
+    res.json({ notifications, unread_count });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post("/notifications/:id/read", requireAuth, async (req, res) => {
+  if (!dbReady) return res.json({ success: false });
+  try {
+    const pool = await getPool();
+    await pool.request()
+      .input("nid", sql.Int, req.params.id)
+      .input("uid", sql.Int, req.user.userId)
+      .query(`
+        IF NOT EXISTS (SELECT 1 FROM NotificationReads WHERE notification_id=@nid AND user_id=@uid)
+          INSERT INTO NotificationReads (notification_id, user_id) VALUES (@nid, @uid);
+      `);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post("/notifications/read-all", requireAuth, async (req, res) => {
+  if (!dbReady) return res.json({ success: false });
+  try {
+    const pool = await getPool();
+    await pool.request()
+      .input("uid",  sql.Int,      req.user.userId)
+      .input("type", sql.NVarChar, notificationTypeForRole(req.user.role))
+      .query(`
+        INSERT INTO NotificationReads (notification_id, user_id)
+        SELECT n.notification_id, @uid
+        FROM Notifications n
+        WHERE n.type = @type
+          AND NOT EXISTS (SELECT 1 FROM NotificationReads r WHERE r.notification_id = n.notification_id AND r.user_id = @uid)
+      `);
+    res.json({ success: true });
+  } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
@@ -945,13 +1270,15 @@ app.get("/history", requireAuth, async (req, res) => {
         'transfusion' AS form_type,
         patient_name, diagnosis, blood_group, rh_factor, file_number, room,
         fpc_units, fpc_type, ffp_units, ffp_type, plt_units, plt_type,
+        irr_units, irr_type, components_json,
         blood_unit_1, blood_unit_2, blood_unit_3, blood_unit_4,
         blood_unit_5, blood_unit_6, blood_unit_7, blood_unit_8,
         previous_transfusion, prev_transfusion_place, prev_transfusion_reaction,
-        physician, phlebotomist,
+        physician, physician_signature, phlebotomist,
         request_date, request_time,
-        life_saving, life_saving_physician, life_saving_time,
-        saved_by,
+        life_saving, life_saving_physician, life_saving_signature, life_saving_time,
+        saved_by, signed_by_user_id, signed_by_name,
+        CONVERT(VARCHAR(19), signed_at, 120) AS signed_at,
         CONVERT(VARCHAR(19), created_at, 120) AS created_at
       FROM TransfusionRequests
       ORDER BY created_at DESC
@@ -969,6 +1296,7 @@ app.get("/history", requireAuth, async (req, res) => {
         type_of_blood_requested,
         blood_unit_numbers,
         type_of_blood,
+        fpc_units, ffp_units, plt_units, irr_units, components_json,
         blood_unit_group,
         patient_blood_group_delivery,
         technician_name         AS technician,
@@ -980,8 +1308,9 @@ app.get("/history", requireAuth, async (req, res) => {
         received_by,
         nurse_unit_received_by, nurse_unit_name,
         nurse_unit_date, nurse_unit_time,
-        life_saving, life_saving_physician, life_saving_time,
-        saved_by,
+        life_saving, life_saving_physician, life_saving_signature, life_saving_time,
+        saved_by, signed_by_user_id, signed_by_name,
+        CONVERT(VARCHAR(19), signed_at, 120) AS signed_at,
         CONVERT(VARCHAR(19), created_at, 120) AS created_at
       FROM BloodDeliveries
       ORDER BY created_at DESC
@@ -1007,6 +1336,10 @@ app.delete("/history/:id", requireAdmin, async (req, res) => {
   const { form_type } = req.query;
   try {
     const pool = await getPool();
+    const lock = await checkSignatureLock(pool, form_type, id, req.user.userId);
+    if (lock.locked) {
+      return res.status(403).json({ error: `This record was signed by ${lock.signedByName || 'another user'} — only they can delete it.` });
+    }
     if (form_type === "transfusion")
       await pool.request().input("id", sql.Int, id).query("DELETE FROM TransfusionRequests WHERE request_id = @id");
     else if (form_type === "delivery")
@@ -1024,9 +1357,17 @@ app.put("/forms/update/:id", requireAuth, async (req, res) => {
   if (!dbReady) return res.status(503).json({ error: "Database not connected." });
   const { id } = req.params;
   const { form_type, ...fields } = req.body;
+  const signed          = hasSignature(fields, form_type);
+  const signedByUserId  = signed ? (req.user?.userId   || null) : null;
+  const signedByName    = signed ? (req.user?.fullName || null) : null;
 
   try {
     const pool = await getPool();
+
+    const lock = await checkSignatureLock(pool, form_type, id, req.user.userId);
+    if (lock.locked) {
+      return res.status(403).json({ error: `This record was signed by ${lock.signedByName || 'another user'} — only they can edit it.` });
+    }
 
     if (form_type === "transfusion") {
       await pool.request()
@@ -1045,6 +1386,9 @@ app.put("/forms/update/:id", requireAuth, async (req, res) => {
         .input("ffp_type",                   sql.NVarChar, fields.ffp_type || null)
         .input("plt_units",                  sql.Int,      parseInt(fields.plt_units) || null)
         .input("plt_type",                   sql.NVarChar, fields.plt_type || null)
+        .input("irr_units",                  sql.Int,      parseInt(fields.irr_units) || null)
+        .input("irr_type",                   sql.NVarChar, fields.irr_type || null)
+        .input("components_json",            sql.NVarChar, fields.components_json || null)
         .input("blood_unit_1",               sql.NVarChar, fields.blood_unit_1 || null)
         .input("blood_unit_2",               sql.NVarChar, fields.blood_unit_2 || null)
         .input("blood_unit_3",               sql.NVarChar, fields.blood_unit_3 || null)
@@ -1057,10 +1401,14 @@ app.put("/forms/update/:id", requireAuth, async (req, res) => {
         .input("prev_transfusion_place",     sql.NVarChar, fields.prev_transfusion_place || null)
         .input("prev_transfusion_reaction",  sql.NVarChar, fields.prev_transfusion_reaction || null)
         .input("physician",                  sql.NVarChar, fields.physician || null)
+        .input("physician_signature",        sql.NVarChar, fields.physician_signature || null)
         .input("phlebotomist",               sql.NVarChar, fields.phlebotomist || null)
         .input("life_saving",                sql.Bit,      fields.life_saving_t ? 1 : 0)
         .input("life_saving_physician",      sql.NVarChar, fields.ls_physician_t || null)
+        .input("life_saving_signature",      sql.NVarChar, fields.ls_signature_t || null)
         .input("life_saving_time",           sql.NVarChar, fields.ls_time_t || null)
+        .input("signed_by_user_id",          sql.Int,      signedByUserId)
+        .input("signed_by_name",             sql.NVarChar, signedByName)
         .query(`UPDATE TransfusionRequests SET
           request_date=@request_date, request_time=@request_time, room=@room,
           patient_name=@patient_name, file_number=@file_number,
@@ -1068,6 +1416,7 @@ app.put("/forms/update/:id", requireAuth, async (req, res) => {
           fpc_units=@fpc_units, fpc_type=@fpc_type,
           ffp_units=@ffp_units, ffp_type=@ffp_type,
           plt_units=@plt_units, plt_type=@plt_type,
+          irr_units=@irr_units, irr_type=@irr_type, components_json=@components_json,
           blood_unit_1=@blood_unit_1, blood_unit_2=@blood_unit_2,
           blood_unit_3=@blood_unit_3, blood_unit_4=@blood_unit_4,
           blood_unit_5=@blood_unit_5, blood_unit_6=@blood_unit_6,
@@ -1075,10 +1424,14 @@ app.put("/forms/update/:id", requireAuth, async (req, res) => {
           previous_transfusion=@previous_transfusion,
           prev_transfusion_place=@prev_transfusion_place,
           prev_transfusion_reaction=@prev_transfusion_reaction,
-          physician=@physician, phlebotomist=@phlebotomist,
+          physician=@physician, physician_signature=@physician_signature, phlebotomist=@phlebotomist,
           life_saving=@life_saving,
           life_saving_physician=@life_saving_physician,
-          life_saving_time=@life_saving_time
+          life_saving_signature=@life_saving_signature,
+          life_saving_time=@life_saving_time,
+          signed_by_user_id=COALESCE(signed_by_user_id, @signed_by_user_id),
+          signed_by_name=COALESCE(signed_by_name, @signed_by_name),
+          signed_at=COALESCE(signed_at, ${signedByUserId ? 'GETDATE()' : 'NULL'})
         WHERE request_id=@id`);
 
       return res.json({ success: true });
@@ -1095,6 +1448,11 @@ app.put("/forms/update/:id", requireAuth, async (req, res) => {
         .input("type_of_blood_requested",     sql.NVarChar, fields.blood_type_requested || null)
         .input("blood_unit_numbers",          sql.NVarChar, fields.blood_unit_numbers || null)
         .input("type_of_blood",               sql.NVarChar, fields.type_of_blood || null)
+        .input("fpc_units",                   sql.Int,      parseInt(fields.d_fpc_units) || null)
+        .input("ffp_units",                   sql.Int,      parseInt(fields.d_ffp_units) || null)
+        .input("plt_units",                   sql.Int,      parseInt(fields.d_plt_units) || null)
+        .input("irr_units",                   sql.Int,      parseInt(fields.d_irr_units) || null)
+        .input("components_json",             sql.NVarChar, fields.d_components_json || null)
         .input("blood_unit_group",            sql.NVarChar, fields.blood_unit_group || null)
         .input("patient_blood_group_delivery",sql.NVarChar, fields.patient_bg_delivery || null)
         .input("technician_name",             sql.NVarChar, fields.technician || null)
@@ -1114,7 +1472,10 @@ app.put("/forms/update/:id", requireAuth, async (req, res) => {
         .input("nurse_unit_time",             sql.NVarChar, fields.nurse_time || null)
         .input("life_saving",                 sql.Bit,      fields.life_saving_d ? 1 : 0)
         .input("life_saving_physician",       sql.NVarChar, fields.ls_physician_d || null)
+        .input("life_saving_signature",       sql.NVarChar, fields.ls_signature_d || null)
         .input("life_saving_time",            sql.NVarChar, fields.ls_time_d || null)
+        .input("signed_by_user_id",           sql.Int,      signedByUserId)
+        .input("signed_by_name",              sql.NVarChar, signedByName)
         .query(`UPDATE BloodDeliveries SET
           patient_name=@patient_name, file_number=@file_number,
           patient_blood_group=@patient_blood_group, patient_rh=@patient_rh, room=@room,
@@ -1122,6 +1483,8 @@ app.put("/forms/update/:id", requireAuth, async (req, res) => {
           type_of_blood_requested=@type_of_blood_requested,
           blood_unit_numbers=@blood_unit_numbers,
           type_of_blood=@type_of_blood,
+          fpc_units=@fpc_units, ffp_units=@ffp_units, plt_units=@plt_units, irr_units=@irr_units,
+          components_json=@components_json,
           blood_unit_group=@blood_unit_group,
           patient_blood_group_delivery=@patient_blood_group_delivery,
           technician_name=@technician_name, orderly_name=@orderly_name, nurse_name=@nurse_name,
@@ -1135,7 +1498,11 @@ app.put("/forms/update/:id", requireAuth, async (req, res) => {
           nurse_unit_time=@nurse_unit_time,
           life_saving=@life_saving,
           life_saving_physician=@life_saving_physician,
-          life_saving_time=@life_saving_time
+          life_saving_signature=@life_saving_signature,
+          life_saving_time=@life_saving_time,
+          signed_by_user_id=COALESCE(signed_by_user_id, @signed_by_user_id),
+          signed_by_name=COALESCE(signed_by_name, @signed_by_name),
+          signed_at=COALESCE(signed_at, ${signedByUserId ? 'GETDATE()' : 'NULL'})
         WHERE delivery_id=@id`);
 
       return res.json({ success: true });
@@ -1377,6 +1744,7 @@ app.get('/patient/history', requireAuth, async (req, res) => {
         SELECT request_id AS id, patient_name, file_number,
           blood_group, rh_factor, room, diagnosis,
           fpc_units, fpc_type, ffp_units, ffp_type, plt_units, plt_type,
+          irr_units, irr_type,
           physician, life_saving, prev_transfusion_reaction,
           saved_by,
           CONVERT(VARCHAR(10), created_at, 23)  AS date,
@@ -1390,7 +1758,7 @@ app.get('/patient/history', requireAuth, async (req, res) => {
       .query(`
         SELECT delivery_id AS id, patient_name, file_number,
           patient_blood_group AS blood_group, patient_rh AS rh_factor, room,
-          type_of_blood_requested, type_of_blood, blood_unit_group,
+          fpc_units, ffp_units, plt_units, irr_units, components_json, blood_unit_group,
           technician_name, life_saving, known_allergies,
           saved_by,
           CONVERT(VARCHAR(10), created_at, 23)  AS date,
@@ -1442,8 +1810,26 @@ app.get('/patient/history', requireAuth, async (req, res) => {
 // ════════════════════════════════════════════════════════════════
 // GET /dashboard/wastage
 // Compares ordered units (TransfusionRequests) vs delivered units
-// (BloodDeliveries.type_of_blood) for the same patient/file number.
+// (BloodDeliveries) for the same file number, component by component
+// (Packed Cells / FFP / Platelets / Irradiated RBC). Both sides are the
+// structured Nº Units fields — the first row of each type lives in its own
+// flat column (fpc_units, ...), any extra rows added via "+" travel in
+// components_json — so componentTotal() below adds both together.
 // ════════════════════════════════════════════════════════════════
+const WASTAGE_COMPONENT_LABELS = { fpc: 'Packed Cells', ffp: 'FFP', plt: 'Platelets', irr: 'Irradiated RBC' };
+
+function componentTotal(row, key) {
+  let total = parseInt(row[`${key}_units`]) || 0;
+  if (row.components_json) {
+    try {
+      JSON.parse(row.components_json).forEach(c => {
+        if (c.key === key) total += parseInt(c.units) || 0;
+      });
+    } catch (e) { /* ignore bad JSON */ }
+  }
+  return total;
+}
+
 app.get('/dashboard/wastage', requireAuth, async (req, res) => {
   if (!dbReady) return res.json({ error: 'db_not_ready' });
   try {
@@ -1452,73 +1838,64 @@ app.get('/dashboard/wastage', requireAuth, async (req, res) => {
     const deliveries = await pool.request().query(`
       SELECT delivery_id, patient_name, file_number,
         CONVERT(NVARCHAR, delivery_date, 23) AS date,
-        type_of_blood, type_of_blood_requested, created_at
+        fpc_units, ffp_units, plt_units, irr_units, components_json, created_at
       FROM BloodDeliveries
-      WHERE type_of_blood IS NOT NULL AND LEN(LTRIM(RTRIM(type_of_blood))) > 0
-        AND file_number IS NOT NULL AND LEN(LTRIM(RTRIM(file_number))) > 0
+      WHERE file_number IS NOT NULL AND LEN(LTRIM(RTRIM(file_number))) > 0
         AND created_at >= DATEADD(day, -90, GETDATE())
+        AND (fpc_units IS NOT NULL OR ffp_units IS NOT NULL OR plt_units IS NOT NULL OR irr_units IS NOT NULL
+             OR (components_json IS NOT NULL AND LEN(components_json) > 2))
       ORDER BY created_at DESC
     `);
 
     const transfusions = await pool.request().query(`
-      SELECT request_id, file_number, fpc_units, ffp_units, plt_units, created_at
+      SELECT request_id, file_number, fpc_units, ffp_units, plt_units, irr_units, components_json, created_at
       FROM TransfusionRequests
-      WHERE (fpc_units IS NOT NULL OR ffp_units IS NOT NULL OR plt_units IS NOT NULL)
+      WHERE (fpc_units IS NOT NULL OR ffp_units IS NOT NULL OR plt_units IS NOT NULL OR irr_units IS NOT NULL
+             OR (components_json IS NOT NULL AND LEN(components_json) > 2))
         AND file_number IS NOT NULL AND LEN(LTRIM(RTRIM(file_number))) > 0
         AND created_at >= DATEADD(day, -90, GETDATE())
     `);
 
     const cases = [];
     let totalOrdered = 0, totalUsed = 0;
-    let prcWasted = 0, ffpWasted = 0, pltWasted = 0;
+    let prcWasted = 0, ffpWasted = 0, pltWasted = 0, irrWasted = 0;
 
     console.log(`[wastage] deliveries found: ${deliveries.recordset.length}, transfusions found: ${transfusions.recordset.length}`);
     for (const d of deliveries.recordset) {
-      // Extract number from anywhere in the field: "2 FFP", "FFP 3", "3 units FFP" all work
-      const numMatch = (d.type_of_blood || '').match(/\d+/);
-      const usedQty  = numMatch ? parseInt(numMatch[0]) : 0;
-      if (usedQty === 0) { console.log(`[wastage] SKIP file=${d.file_number} type_of_blood="${d.type_of_blood}" — no number found`); continue; }
-
       const match = transfusions.recordset.find(t =>
         t.file_number && t.file_number.trim() === d.file_number.trim()
       );
       if (!match) { console.log(`[wastage] SKIP file=${d.file_number} — no matching transfusion request for this file number`); continue; }
 
-      // Use type_of_blood_requested to detect component type (avoids false "PC" match inside type_of_blood qty field)
-      const reqText  = (d.type_of_blood_requested || '').toLowerCase();
-      const typeText = reqText + ' ' + (d.type_of_blood || '').toLowerCase();
-      let ordered = 0, component = 'Blood';
-      if (/ffp|plasma|fresh/i.test(reqText)) {
-        ordered = match.ffp_units || 0; component = 'FFP';          ffpWasted += Math.max(0, ordered - usedQty);
-      } else if (/platelet|plt/i.test(reqText)) {
-        ordered = match.plt_units || 0; component = 'Platelets';    pltWasted += Math.max(0, ordered - usedQty);
-      } else if (/pack|prc|p\.?c/i.test(reqText)) {
-        ordered = match.fpc_units || 0; component = 'Packed Cells'; prcWasted += Math.max(0, ordered - usedQty);
-      } else {
-        // fallback: check the full combined text
-        if (/ffp|plasma|fresh/i.test(typeText))       { ordered = match.ffp_units || 0; component = 'FFP';          ffpWasted += Math.max(0, ordered - usedQty); }
-        else if (/platelet|plt/i.test(typeText))      { ordered = match.plt_units || 0; component = 'Platelets';    pltWasted += Math.max(0, ordered - usedQty); }
-        else if (/pack|prc|p\.?c/i.test(typeText))   { ordered = match.fpc_units || 0; component = 'Packed Cells'; prcWasted += Math.max(0, ordered - usedQty); }
-        else { ordered = (match.fpc_units || 0) + (match.ffp_units || 0) + (match.plt_units || 0); component = d.type_of_blood_requested || 'Blood'; }
-      }
-      console.log(`[wastage] file=${d.file_number} reqText="${reqText}" usedQty=${usedQty} ordered=${ordered} component=${component} fpc=${match.fpc_units} ffp=${match.ffp_units} plt=${match.plt_units}`);
-      if (ordered === 0) { console.log(`[wastage] SKIP file=${d.file_number} — ordered=0 (transfusion request has no units for this component)`); continue; }
+      for (const key of Object.keys(WASTAGE_COMPONENT_LABELS)) {
+        const ordered = componentTotal(match, key);
+        if (ordered === 0) continue; // nothing requested for this component
 
-      const wasted = Math.max(0, ordered - usedQty);
-      totalOrdered += ordered;
-      totalUsed    += usedQty;
-      cases.push({
-        patient_name: d.patient_name, file_number: d.file_number,
-        date: d.date, component, ordered, used: usedQty, wasted,
-      });
+        const usedQty = componentTotal(d, key);
+        const wasted  = Math.max(0, ordered - usedQty);
+        const component = WASTAGE_COMPONENT_LABELS[key];
+
+        if (key === 'fpc') prcWasted += wasted;
+        else if (key === 'ffp') ffpWasted += wasted;
+        else if (key === 'plt') pltWasted += wasted;
+        else if (key === 'irr') irrWasted += wasted;
+
+        console.log(`[wastage] file=${d.file_number} component=${component} ordered=${ordered} used=${usedQty} wasted=${wasted}`);
+        totalOrdered += ordered;
+        totalUsed    += usedQty;
+        cases.push({
+          patient_name: d.patient_name, file_number: d.file_number,
+          date: d.date, component, ordered, used: usedQty, wasted,
+        });
+      }
     }
 
     cases.sort((a, b) => b.wasted - a.wasted);
-    const totalWasted = prcWasted + ffpWasted + pltWasted;
+    const totalWasted = prcWasted + ffpWasted + pltWasted + irrWasted;
     const wastageRate = totalOrdered > 0 ? Math.round((totalWasted / totalOrdered) * 100) : 0;
 
     res.json({
-      summary: { totalOrdered, totalUsed, totalWasted, wastageRate, prcWasted, ffpWasted, pltWasted },
+      summary: { totalOrdered, totalUsed, totalWasted, wastageRate, prcWasted, ffpWasted, pltWasted, irrWasted },
       cases: cases.slice(0, 30),
     });
   } catch (err) {
@@ -1678,26 +2055,61 @@ async function getMonthlyReportData(monthStr) {
         SUM(CASE WHEN is_urgent=1 AND bb_diff<=45 THEN 1 ELSE 0 END) AS urgent_within
       FROM (
         SELECT
-          CASE WHEN t.life_saving=1 OR d.life_saving=1 THEN 1 ELSE 0 END AS is_ls,
-          CASE WHEN t.fpc_type='Stat' OR t.ffp_type='Stat' OR t.plt_type='Stat' THEN 1 ELSE 0 END AS is_urgent,
+          -- "Emergent (<15 min)" on the components table is its own urgency
+          -- tier separate from the Life Saving Cases checkbox, but shares
+          -- the same 15-minute target, so it counts toward is_ls here too.
+          -- Rows added via "+" (see renderTCompTable in index.html) carry
+          -- their own urgency in components_json rather than a flat column —
+          -- OPENJSON checks those too, so an urgency set only on an extra
+          -- row isn't invisible to this classification.
+          CASE WHEN t.life_saving=1 OR d.life_saving=1
+                 OR t.fpc_type='Emergent (<15 min)' OR t.ffp_type='Emergent (<15 min)'
+                 OR t.plt_type='Emergent (<15 min)' OR t.irr_type='Emergent (<15 min)'
+                 OR (t.components_json IS NOT NULL AND EXISTS (
+                       SELECT 1 FROM OPENJSON(t.components_json) WITH (ctype NVARCHAR(50) '$.type')
+                       WHERE ctype = 'Emergent (<15 min)'
+                     ))
+               THEN 1 ELSE 0 END AS is_ls,
+          CASE WHEN t.fpc_type='Stat' OR t.ffp_type='Stat' OR t.plt_type='Stat' OR t.irr_type='Stat'
+                 OR (t.components_json IS NOT NULL AND EXISTS (
+                       SELECT 1 FROM OPENJSON(t.components_json) WITH (ctype NVARCHAR(50) '$.type')
+                       WHERE ctype = 'Stat'
+                     ))
+               THEN 1 ELSE 0 END AS is_urgent,
           DATEDIFF(minute,
-            CAST(CONVERT(VARCHAR(10),t.request_date,23)+' '+CONVERT(VARCHAR(8),t.request_time,108) AS DATETIME),
+            CAST(CONVERT(VARCHAR(10),er.eff_date,23)+' '+CONVERT(VARCHAR(8),er.eff_time,108) AS DATETIME),
             CAST(CONVERT(VARCHAR(10),d.delivery_date,23)+' '+CONVERT(VARCHAR(8),d.delivery_time,108) AS DATETIME)
           ) AS bb_diff,
           DATEDIFF(minute,
-            CAST(CONVERT(VARCHAR(10),t.request_date,23)+' '+CONVERT(VARCHAR(8),t.request_time,108) AS DATETIME),
+            CAST(CONVERT(VARCHAR(10),er.eff_date,23)+' '+CONVERT(VARCHAR(8),er.eff_time,108) AS DATETIME),
             CAST(CONVERT(VARCHAR(10),d.nurse_unit_date,23)+' '+CONVERT(VARCHAR(8),d.nurse_unit_time,108) AS DATETIME)
           ) AS nurse_diff
         FROM TransfusionRequests t
+        CROSS APPLY (
+          -- Request Date/Time isn't a required field, so fall back to when
+          -- the record was actually saved rather than dropping it here.
+          SELECT
+            COALESCE(t.request_date, CAST(t.created_at AS DATE)) AS eff_date,
+            COALESCE(t.request_time, CAST(t.created_at AS TIME)) AS eff_time
+        ) er
         OUTER APPLY (
           SELECT TOP 1 delivery_date, delivery_time, life_saving, nurse_unit_date, nurse_unit_time
-          FROM BloodDeliveries bd
-          WHERE bd.file_number = t.file_number AND bd.file_number IS NOT NULL AND bd.file_number <> ''
-            AND (bd.delivery_date > t.request_date OR (bd.delivery_date = t.request_date AND bd.delivery_time >= t.request_time))
-          ORDER BY bd.delivery_date ASC, bd.delivery_time ASC
+          FROM (
+            SELECT
+              bd.delivery_id,
+              COALESCE(bd.delivery_date, CAST(bd.created_at AS DATE)) AS delivery_date,
+              COALESCE(bd.delivery_time, CAST(bd.created_at AS TIME)) AS delivery_time,
+              bd.life_saving,
+              COALESCE(bd.nurse_unit_date, CASE WHEN bd.nurse_unit_time IS NOT NULL THEN CAST(bd.created_at AS DATE) END) AS nurse_unit_date,
+              COALESCE(bd.nurse_unit_time, CASE WHEN bd.nurse_unit_date IS NOT NULL THEN CAST(bd.created_at AS TIME) END) AS nurse_unit_time
+            FROM BloodDeliveries bd
+            WHERE bd.file_number = t.file_number AND bd.file_number IS NOT NULL AND bd.file_number <> ''
+          ) bdx
+          WHERE bdx.delivery_date > er.eff_date
+             OR (bdx.delivery_date = er.eff_date AND bdx.delivery_time >= er.eff_time)
+          ORDER BY bdx.delivery_date ASC, bdx.delivery_time ASC
         ) d
         WHERE t.created_at >= CAST(@f AS DATETIME) AND t.created_at <= CAST(@t AS DATETIME)
-          AND t.request_date IS NOT NULL AND t.request_time IS NOT NULL
           AND t.file_number IS NOT NULL AND t.file_number <> ''
           AND d.delivery_date IS NOT NULL AND d.delivery_time IS NOT NULL
       ) rt WHERE bb_diff BETWEEN 0 AND 480`),
@@ -1809,6 +2221,12 @@ app.post('/report/monthly/pdf', requireAuth, async (req, res) => {
 // For each transfusion request, finds the nearest delivery by the
 // same file_number and calculates the elapsed minutes.
 // Case rules: life_saving → target 15 min; Stat component → 45 min
+//
+// Request Date/Time and Delivery Date/Time are NOT required fields on
+// either form, so they're often left blank. Rather than silently dropping
+// those records from this whole compliance report, we fall back to the
+// row's own created_at (always set, that's when it was actually saved) as
+// the effective timestamp on both sides.
 // ════════════════════════════════════════════════════════════════
 app.get('/response-times', requireAuth, async (req, res) => {
   if (!dbReady) return res.json([]);
@@ -1819,10 +2237,10 @@ app.get('/response-times', requireAuth, async (req, res) => {
         t.request_id,
         t.patient_name,
         t.file_number,
-        CONVERT(VARCHAR(10), t.request_date, 23)                AS request_date,
-        CONVERT(VARCHAR(8),  t.request_time,  108)              AS request_time,
+        CONVERT(VARCHAR(10), er.eff_date, 23)                    AS request_date,
+        CONVERT(VARCHAR(8),  er.eff_time,  108)                  AS request_time,
         CAST(t.life_saving AS INT)                               AS t_life_saving,
-        t.fpc_type, t.ffp_type, t.plt_type,
+        t.fpc_type, t.ffp_type, t.plt_type, t.irr_type, t.components_json,
         d.delivery_id,
         CONVERT(VARCHAR(10), d.delivery_date,    23)             AS delivery_date,
         CONVERT(VARCHAR(8),  d.delivery_time,   108)             AS delivery_time,
@@ -1831,51 +2249,77 @@ app.get('/response-times', requireAuth, async (req, res) => {
         CONVERT(VARCHAR(8),  d.nurse_unit_time, 108)             AS nurse_unit_time,
         -- Blood bank delivery elapsed (request → BB dispatches)
         CASE
-          WHEN t.request_date IS NOT NULL AND t.request_time IS NOT NULL
-               AND d.delivery_date IS NOT NULL AND d.delivery_time IS NOT NULL
+          WHEN d.delivery_date IS NOT NULL AND d.delivery_time IS NOT NULL
           THEN DATEDIFF(minute,
-            CAST(CONVERT(VARCHAR(10), t.request_date, 23) + ' ' + CONVERT(VARCHAR(8), t.request_time, 108) AS DATETIME),
+            CAST(CONVERT(VARCHAR(10), er.eff_date, 23) + ' ' + CONVERT(VARCHAR(8), er.eff_time, 108) AS DATETIME),
             CAST(CONVERT(VARCHAR(10), d.delivery_date, 23) + ' ' + CONVERT(VARCHAR(8), d.delivery_time, 108) AS DATETIME)
           )
           ELSE NULL
         END AS bb_diff_minutes,
         -- Nurse receipt elapsed (request → nurse signs for blood)
         CASE
-          WHEN t.request_date IS NOT NULL AND t.request_time IS NOT NULL
-               AND d.nurse_unit_date IS NOT NULL AND d.nurse_unit_time IS NOT NULL
+          WHEN d.nurse_unit_date IS NOT NULL AND d.nurse_unit_time IS NOT NULL
           THEN DATEDIFF(minute,
-            CAST(CONVERT(VARCHAR(10), t.request_date, 23) + ' ' + CONVERT(VARCHAR(8), t.request_time, 108) AS DATETIME),
+            CAST(CONVERT(VARCHAR(10), er.eff_date, 23) + ' ' + CONVERT(VARCHAR(8), er.eff_time, 108) AS DATETIME),
             CAST(CONVERT(VARCHAR(10), d.nurse_unit_date, 23) + ' ' + CONVERT(VARCHAR(8), d.nurse_unit_time, 108) AS DATETIME)
           )
           ELSE NULL
         END AS nurse_diff_minutes,
         CONVERT(VARCHAR(19), t.created_at, 120)                  AS created_at
       FROM TransfusionRequests t
+      CROSS APPLY (
+        SELECT
+          COALESCE(t.request_date, CAST(t.created_at AS DATE)) AS eff_date,
+          COALESCE(t.request_time, CAST(t.created_at AS TIME)) AS eff_time
+      ) er
       OUTER APPLY (
-        SELECT TOP 1
-          delivery_id, delivery_date, delivery_time, life_saving,
-          nurse_unit_date, nurse_unit_time
-        FROM BloodDeliveries bd
-        WHERE bd.file_number = t.file_number
-          AND bd.file_number IS NOT NULL AND bd.file_number <> ''
-          AND (
-            bd.delivery_date > t.request_date
-            OR (bd.delivery_date = t.request_date AND bd.delivery_time >= t.request_time)
-          )
-        ORDER BY bd.delivery_date ASC, bd.delivery_time ASC
+        SELECT TOP 1 delivery_id, delivery_date, delivery_time, life_saving, nurse_unit_date, nurse_unit_time
+        FROM (
+          SELECT
+            bd.delivery_id,
+            COALESCE(bd.delivery_date, CAST(bd.created_at AS DATE)) AS delivery_date,
+            COALESCE(bd.delivery_time, CAST(bd.created_at AS TIME)) AS delivery_time,
+            bd.life_saving,
+            -- Nurse date/time are two separate optional fields — someone can
+            -- fill in the time and forget the date (or vice versa). Only fill
+            -- the missing half when the other half was actually entered; if
+            -- neither was, leave both NULL rather than inventing a nurse
+            -- receipt event that never happened.
+            COALESCE(bd.nurse_unit_date, CASE WHEN bd.nurse_unit_time IS NOT NULL THEN CAST(bd.created_at AS DATE) END) AS nurse_unit_date,
+            COALESCE(bd.nurse_unit_time, CASE WHEN bd.nurse_unit_date IS NOT NULL THEN CAST(bd.created_at AS TIME) END) AS nurse_unit_time
+          FROM BloodDeliveries bd
+          WHERE bd.file_number = t.file_number AND bd.file_number IS NOT NULL AND bd.file_number <> ''
+        ) bdx
+        WHERE bdx.delivery_date > er.eff_date
+           OR (bdx.delivery_date = er.eff_date AND bdx.delivery_time >= er.eff_time)
+        ORDER BY bdx.delivery_date ASC, bdx.delivery_time ASC
       ) d
-      WHERE t.request_date IS NOT NULL AND t.request_time IS NOT NULL
-        AND t.file_number IS NOT NULL AND t.file_number <> ''
+      WHERE t.file_number IS NOT NULL AND t.file_number <> ''
       ORDER BY t.created_at DESC
     `);
 
     const rows = result.recordset.map(r => {
-      const isLifeSaving = r.t_life_saving === 1 || r.d_life_saving === 1;
-      const isStat       = [r.fpc_type, r.ffp_type, r.plt_type].some(t => t === 'Stat');
+      const types = [r.fpc_type, r.ffp_type, r.plt_type, r.irr_type];
+      // Rows added via "+" beyond each component's first (see renderTCompTable
+      // in index.html) carry their own urgency too, but live in components_json
+      // rather than a flat column — without reading it here, an urgency set
+      // only on an extra row (not the first row of that component) was
+      // invisible to this classification and the case silently read as routine.
+      if (r.components_json) {
+        try { JSON.parse(r.components_json).forEach(c => { if (c.type) types.push(c.type); }); }
+        catch (e) { /* ignore bad JSON */ }
+      }
+      const isLifeSaving  = r.t_life_saving === 1 || r.d_life_saving === 1;
+      // "Emergent (<15 min)" is its own urgency tier on the components table,
+      // separate from the Life Saving Cases checkbox, but carries the same
+      // 15-minute target — without this it fell through to "routine" and
+      // got hidden by the urgent/life-saving filter below.
+      const isEmergent    = types.some(t => t === 'Emergent (<15 min)');
+      const isStat        = types.some(t => t === 'Stat');
       let caseType      = 'routine';
       let targetMinutes = null;
-      if (isLifeSaving)      { caseType = 'life_saving'; targetMinutes = 15; }
-      else if (isStat)       { caseType = 'urgent';      targetMinutes = 45; }
+      if (isLifeSaving || isEmergent) { caseType = 'life_saving'; targetMinutes = 15; }
+      else if (isStat)                { caseType = 'urgent';      targetMinutes = 45; }
       const bbWithin    = targetMinutes !== null && r.bb_diff_minutes    !== null
         ? r.bb_diff_minutes    <= targetMinutes : null;
       const nurseWithin = targetMinutes !== null && r.nurse_diff_minutes !== null
@@ -1944,7 +2388,7 @@ app.get('/handover', requireAuth, async (req, res) => {
       .input('to',   sql.NVarChar, toDT)
       .query(`
         SELECT delivery_id, patient_name, file_number, patient_blood_group, patient_rh,
-          room, type_of_blood_requested, type_of_blood, technician_name,
+          room, fpc_units, ffp_units, plt_units, irr_units, components_json, technician_name,
           life_saving, life_saving_physician, life_saving_time,
           saved_by, CONVERT(VARCHAR(5), created_at, 108) AS time_saved
         FROM BloodDeliveries
@@ -2040,12 +2484,14 @@ app.get('/history/search', requireAuth, async (req, res) => {
           patient_name, diagnosis, blood_group, rh_factor,
           file_number, room, fpc_units, fpc_type,
           ffp_units, ffp_type, plt_units, plt_type,
+          irr_units, irr_type, components_json,
           blood_unit_1, blood_unit_2, blood_unit_3, blood_unit_4,
           blood_unit_5, blood_unit_6, blood_unit_7, blood_unit_8,
           previous_transfusion, prev_transfusion_place, prev_transfusion_reaction,
-          physician, phlebotomist, request_date, request_time,
-          life_saving, life_saving_physician, life_saving_time,
-          saved_by,
+          physician, physician_signature, phlebotomist, request_date, request_time,
+          life_saving, life_saving_physician, life_saving_signature, life_saving_time,
+          saved_by, signed_by_user_id, signed_by_name,
+          CONVERT(VARCHAR(19), signed_at, 120) AS signed_at,
           CONVERT(VARCHAR(19), created_at, 120) AS created_at
         FROM TransfusionRequests
         WHERE (
@@ -2073,6 +2519,7 @@ app.get('/history/search', requireAuth, async (req, res) => {
           type_of_blood_requested,
           blood_unit_numbers,
           type_of_blood,
+          fpc_units, ffp_units, plt_units, irr_units, components_json,
           blood_unit_group,
           patient_blood_group_delivery,
           technician_name  AS technician,
@@ -2084,8 +2531,9 @@ app.get('/history/search', requireAuth, async (req, res) => {
           received_by,
           nurse_unit_received_by, nurse_unit_name,
           nurse_unit_date, nurse_unit_time,
-          life_saving, life_saving_physician, life_saving_time,
-          saved_by,
+          life_saving, life_saving_physician, life_saving_signature, life_saving_time,
+          saved_by, signed_by_user_id, signed_by_name,
+          CONVERT(VARCHAR(19), signed_at, 120) AS signed_at,
           CONVERT(VARCHAR(19), created_at, 120) AS created_at
         FROM BloodDeliveries
         WHERE (

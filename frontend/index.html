@@ -131,6 +131,24 @@
     .mode-badge.rules{color:var(--gold);border-color:rgba(232,184,75,.3);background:var(--gold-dim);}
     .mode-dot{width:6px;height:6px;border-radius:50%;background:currentColor;}
 
+    /* ── NOTIFICATION BELL (admin only) ── */
+    .notif-bell-wrap{position:relative;}
+    .notif-bell-btn{position:relative;background:var(--navy-mid);border:1px solid var(--border-dark);color:#5A7A99;width:34px;height:34px;border-radius:50%;font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;}
+    .notif-bell-btn:hover{color:var(--gold);border-color:rgba(232,184,75,.3);}
+    .notif-badge{position:absolute;top:-4px;right:-4px;background:var(--blood);color:#fff;font-size:10px;font-weight:700;min-width:16px;height:16px;border-radius:8px;display:flex;align-items:center;justify-content:center;padding:0 3px;border:2px solid var(--navy);}
+    .notif-panel{position:absolute;top:44px;right:0;width:340px;max-height:420px;overflow-y:auto;background:var(--navy-light);border:1px solid var(--border-dark);border-radius:var(--radius);box-shadow:var(--shadow-lg);z-index:1000;}
+    .notif-panel-head{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#8AABBB;border-bottom:1px solid var(--border-dark);position:sticky;top:0;background:var(--navy-light);}
+    .notif-panel-refresh{background:none;border:none;color:#8AABBB;cursor:pointer;font-size:13px;}
+    .notif-panel-list{padding:6px;}
+    .notif-item{padding:9px 10px;border-radius:var(--radius-sm);cursor:pointer;transition:background .15s;margin-bottom:2px;}
+    .notif-item:hover{background:var(--navy-mid);}
+    .notif-item.unread{background:rgba(232,184,75,.08);}
+    .notif-item-title{font-size:12.5px;font-weight:700;color:#fff;}
+    .notif-item-title .unread-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--gold);margin-right:6px;}
+    .notif-item-sub{font-size:11px;color:#8AABBB;margin-top:2px;}
+    .notif-item-time{font-size:10px;color:#5A7A99;margin-top:4px;}
+    .notif-empty{padding:24px 14px;text-align:center;font-size:12px;color:#5A7A99;}
+
     /* ── VOICE BAR ── */
     .voice-bar{background:var(--white);border-bottom:1px solid var(--border);padding:12px 28px;display:flex;align-items:center;gap:12px;position:sticky;top:60px;z-index:90;box-shadow:var(--shadow-sm);}
     .seg-tabs{display:flex;background:var(--mist);border-radius:var(--radius-sm);padding:3px;gap:2px;}
@@ -196,6 +214,7 @@
     .row{display:grid;gap:10px;margin-bottom:10px;}
     .row-2{grid-template-columns:1fr 1fr;}
     .row-3{grid-template-columns:1fr 1fr 1fr;}
+    .row-4{grid-template-columns:1fr 1fr 1fr 1fr;}
     .row-1{grid-template-columns:1fr;}
     .fg{display:flex;flex-direction:column;gap:4px;}
     .fl{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--text-soft);}
@@ -204,6 +223,16 @@
     select.fi{cursor:pointer;}
     .fi.voice-hit{animation:voiceHit .5s ease;border-color:var(--green)!important;background:var(--green-light)!important;}
     @keyframes voiceHit{0%{background:#B7F0D2;transform:scale(1.02)}100%{background:var(--green-light);transform:scale(1)}}
+
+    /* ── SIGNATURE PAD ── */
+    .sig-pad-wrap{position:relative;border:1.5px solid var(--border);border-radius:var(--radius-sm);background:var(--white);overflow:hidden;transition:border-color .18s;}
+    .sig-pad-wrap:focus-within{border-color:var(--blood);}
+    .sig-pad{display:block;width:100%;height:70px;cursor:crosshair;touch-action:none;}
+    .sig-pad-hint{position:absolute;left:9px;top:50%;transform:translateY(-50%);font-size:10.5px;color:var(--text-soft);opacity:.5;pointer-events:none;}
+    .sig-pad-wrap.has-content .sig-pad-hint{display:none;}
+    .sig-clear-btn{position:absolute;top:3px;right:3px;width:18px;height:18px;border:none;background:var(--mist);color:var(--text-soft);border-radius:50%;font-size:10px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;}
+    .sig-clear-btn:hover{background:var(--border);color:var(--text);}
+    .sig-pad-wrap.voice-hit{animation:voiceHit .5s ease;border-color:var(--green)!important;}
 
     /* ── COMPONENTS TABLE ── */
     .comp-table{width:100%;border-collapse:collapse;font-size:12px;margin-bottom:2px;}
@@ -293,6 +322,10 @@
     }
     .fcard.view-mode input[type="checkbox"],
     .fcard.view-mode input[type="radio"] { pointer-events:none;opacity:0.7; }
+    .fcard.view-mode .sig-pad-wrap { pointer-events:none;background:#f7f9fc;border-color:#e8ecf1;opacity:0.85; }
+    .fcard.view-mode .sig-clear-btn { display:none; }
+    .fcard.view-mode .comp-add-btn,
+    .fcard.view-mode .comp-rem-btn { display:none; }
     .edit-bar{display:none;padding:10px 20px;background:linear-gradient(135deg,#fef3e2,#fff8ee);border-top:1px solid #f5a623;align-items:center;justify-content:space-between;gap:10px;}
     .edit-bar.show{display:flex;}
     .edit-bar-info{font-size:12px;color:#8B5E1A;font-weight:500;}
@@ -869,6 +902,7 @@
     .wastage-chip.prc  {background:#fef9e7;border-color:#fde68a;}
     .wastage-chip.ffp  {background:#eaf4fb;border-color:#aed6f1;}
     .wastage-chip.plt  {background:#e8f5ee;border-color:#a8d5b8;}
+    .wastage-chip.irr  {background:#f3eafb;border-color:#d2b8e8;}
     .wastage-chip.rate {background:var(--mist);border-color:var(--border);}
     .wc-num{font-size:26px;font-weight:800;color:var(--navy);line-height:1.1;}
     .wastage-chip.total .wc-num{color:#c0392b;}
@@ -1276,6 +1310,20 @@
       <div class="mode-dot"></div>
       <span id="modeText">📋 Rule-Based</span>
     </div>
+    <div class="notif-bell-wrap" id="notifBellWrap" style="display:none">
+      <button class="notif-bell-btn" id="notifBellBtn" onclick="toggleNotifPanel()" title="Notifications">
+        🔔<span class="notif-badge" id="notifBadge" style="display:none">0</span>
+      </button>
+      <div class="notif-panel" id="notifPanel" style="display:none">
+        <div class="notif-panel-head">
+          <span id="notifPanelTitle">Notifications</span>
+          <button class="notif-panel-refresh" onclick="event.stopPropagation();loadNotifications()" title="Refresh">🔄</button>
+        </div>
+        <div class="notif-panel-list" id="notifPanelList">
+          <div class="notif-empty">No notifications yet.</div>
+        </div>
+      </div>
+    </div>
     <div class="user-bar" id="userBar" style="display:none">
       <span class="user-bar-name" id="userBarName"></span>
       <span class="user-bar-role" id="userBarRole"></span>
@@ -1448,49 +1496,22 @@
         <div class="sec-label">Blood Components Requested</div>
         <table class="comp-table">
           <thead>
-            <tr><th>Component</th><th>Nº Units</th><th>Pre-Operative 24 hrs &nbsp;/&nbsp; Routine &nbsp;/&nbsp; Stat (45 min)</th><th style="width:34px">✓</th></tr>
+            <tr><th>Component</th><th>Nº Units</th><th>Pre-Operative 24 hrs &nbsp;/&nbsp; Routine &nbsp;/&nbsp; Stat (45 min) &nbsp;/&nbsp; Emergent (&lt;15 min)</th><th style="width:34px">✓</th><th class="comp-btn-cell"></th></tr>
           </thead>
+          <!-- Filtered Packed Cells / F.F.P / Platelets / Irradiated RBC — rendered by
+               renderTCompTable() from tComponents, so each can have extra rows added
+               via the + button (same concept as the External Delivery components table). -->
+          <tbody id="tCompBody"></tbody>
           <tbody>
-            <tr>
-              <td class="comp-name">Filtered Packed Cells</td>
-              <td><input type="number" min="0" id="t_fpc_units" placeholder="0"/></td>
-              <td><select id="t_fpc_type"><option value="">—</option><option>Pre-Op 24hrs</option><option>Routine</option><option>Stat</option></select></td>
-              <td><input type="checkbox" id="t_fpc_check" style="width:14px;height:14px;accent-color:var(--blood)"/></td>
-            </tr>
-            <tr>
-              <td class="comp-name">F.F.P</td>
-              <td><input type="number" min="0" id="t_ffp_units" placeholder="0"/></td>
-              <td><select id="t_ffp_type"><option value="">—</option><option>Pre-Op 24hrs</option><option>Routine</option><option>Stat</option></select></td>
-              <td><input type="checkbox" id="t_ffp_check" style="width:14px;height:14px;accent-color:var(--blood)"/></td>
-            </tr>
-            <tr>
-              <td class="comp-name">Platelets</td>
-              <td><input type="number" min="0" id="t_plt_units" placeholder="0"/></td>
-              <td><select id="t_plt_type"><option value="">—</option><option>Pre-Op 24hrs</option><option>Routine</option><option>Stat</option></select></td>
-              <td><input type="checkbox" id="t_plt_check" style="width:14px;height:14px;accent-color:var(--blood)"/></td>
-            </tr>
             <tr>
               <td><input type="text" id="t_others" placeholder="Other component…"/></td>
               <td><input type="number" min="0" id="t_others_units" placeholder="0"/></td>
-              <td><select id="t_others_type"><option value="">—</option><option>Pre-Op 24hrs</option><option>Routine</option><option>Stat</option></select></td>
+              <td><select id="t_others_type"><option value="">—</option><option>Pre-Op 24hrs</option><option>Routine</option><option>Stat</option><option>Emergent (&lt;15 min)</option></select></td>
               <td><input type="checkbox" id="t_others_check" style="width:14px;height:14px;accent-color:var(--blood)"/></td>
+              <td class="comp-btn-cell"></td>
             </tr>
           </tbody>
         </table>
-
-        <div class="form-section-block bb-block">
-          <div class="sec-label">Only for Blood Bank — Compatible Blood Units</div>
-          <div class="unit-grid">
-            <div class="unit-cell"><div class="unit-num">1</div><input class="fi" type="text" id="t_unit_1" placeholder="Unit #"/></div>
-            <div class="unit-cell"><div class="unit-num">2</div><input class="fi" type="text" id="t_unit_2" placeholder="Unit #"/></div>
-            <div class="unit-cell"><div class="unit-num">3</div><input class="fi" type="text" id="t_unit_3" placeholder="Unit #"/></div>
-            <div class="unit-cell"><div class="unit-num">4</div><input class="fi" type="text" id="t_unit_4" placeholder="Unit #"/></div>
-            <div class="unit-cell"><div class="unit-num">5</div><input class="fi" type="text" id="t_unit_5" placeholder="Unit #"/></div>
-            <div class="unit-cell"><div class="unit-num">6</div><input class="fi" type="text" id="t_unit_6" placeholder="Unit #"/></div>
-            <div class="unit-cell"><div class="unit-num">7</div><input class="fi" type="text" id="t_unit_7" placeholder="Unit #"/></div>
-            <div class="unit-cell"><div class="unit-num">8</div><input class="fi" type="text" id="t_unit_8" placeholder="Unit #"/></div>
-          </div>
-        </div>
 
         <div class="form-section-block physician-block">
           <div class="sec-label">Only For Physicians — Patient History</div>
@@ -1509,9 +1530,17 @@
             <div class="fg"><label class="fl">Previous Transfusion Reaction</label>
               <input class="fi" type="text" id="t_prev_reaction" placeholder="Describe reaction if any"/></div>
           </div>
-          <div class="row row-1">
+          <div class="row row-2">
             <div class="fg"><label class="fl">Physician<span class="req-star">*</span></label>
               <input class="fi" type="text" id="t_physician" placeholder="Dr. Name"/></div>
+            <div class="fg"><label class="fl">Signature</label>
+              <div class="sig-pad-wrap" id="t_physician_signature_wrap">
+                <span class="sig-pad-hint">Sign here</span>
+                <canvas class="sig-pad" id="t_physician_signature_pad" width="300" height="90"></canvas>
+                <button type="button" class="sig-clear-btn" title="Clear signature" onclick="clearSignaturePad('t_physician_signature')">✕</button>
+              </div>
+              <input type="hidden" id="t_physician_signature"/>
+            </div>
           </div>
         </div>
 
@@ -1526,7 +1555,7 @@
         <div class="form-section-block lifesaving-block">
           <div class="sec-label">Life Saving Cases</div>
           <div class="form-note">For delivery of blood units without cross-matching, please sign below:</div>
-          <div class="row row-3">
+          <div class="row row-4">
             <div class="fg">
               <label class="fl">Life Saving Case</label>
               <div class="check-row">
@@ -1535,8 +1564,30 @@
             </div>
             <div class="fg"><label class="fl">Physician's Name</label>
               <input class="fi" type="text" id="t_ls_physician" placeholder="Dr. Name"/></div>
+            <div class="fg"><label class="fl">Signature</label>
+              <div class="sig-pad-wrap" id="t_ls_signature_wrap">
+                <span class="sig-pad-hint">Sign here</span>
+                <canvas class="sig-pad" id="t_ls_signature_pad" width="300" height="90"></canvas>
+                <button type="button" class="sig-clear-btn" title="Clear signature" onclick="clearSignaturePad('t_ls_signature')">✕</button>
+              </div>
+              <input type="hidden" id="t_ls_signature"/>
+            </div>
             <div class="fg"><label class="fl">Time</label>
               <input class="fi" type="time" id="t_ls_time"/></div>
+          </div>
+        </div>
+
+        <div class="form-section-block bb-block">
+          <div class="sec-label">Only for Blood Bank — Compatible Blood Units</div>
+          <div class="unit-grid">
+            <div class="unit-cell"><div class="unit-num">1</div><input class="fi" type="text" id="t_unit_1" placeholder="Unit #"/></div>
+            <div class="unit-cell"><div class="unit-num">2</div><input class="fi" type="text" id="t_unit_2" placeholder="Unit #"/></div>
+            <div class="unit-cell"><div class="unit-num">3</div><input class="fi" type="text" id="t_unit_3" placeholder="Unit #"/></div>
+            <div class="unit-cell"><div class="unit-num">4</div><input class="fi" type="text" id="t_unit_4" placeholder="Unit #"/></div>
+            <div class="unit-cell"><div class="unit-num">5</div><input class="fi" type="text" id="t_unit_5" placeholder="Unit #"/></div>
+            <div class="unit-cell"><div class="unit-num">6</div><input class="fi" type="text" id="t_unit_6" placeholder="Unit #"/></div>
+            <div class="unit-cell"><div class="unit-num">7</div><input class="fi" type="text" id="t_unit_7" placeholder="Unit #"/></div>
+            <div class="unit-cell"><div class="unit-num">8</div><input class="fi" type="text" id="t_unit_8" placeholder="Unit #"/></div>
           </div>
         </div>
 
@@ -1545,7 +1596,7 @@
 
       </div>
       <div class="edit-bar" id="t_editBar">
-        <div class="edit-bar-info">📋 Viewing record for <strong id="t_editName">—</strong> · Click <b>Edit</b> to modify</div>
+        <div class="edit-bar-info">📋 Viewing record for <strong id="t_editName">—</strong> · <span id="t_editHint">Click <b>Edit</b> to modify</span></div>
         <div class="btn-row">
           <button class="btn-edit" id="t_editBtn" onclick="toggleEditMode('t')">✏️ Edit</button>
           <button class="btn-clear" onclick="exitViewMode('t')">✕ Close</button>
@@ -1622,21 +1673,28 @@
             <input class="fi" type="text" id="d_room" placeholder="e.g. 1009A"/></div>
         </div>
 
-        <div class="row row-2">
-          <div class="fg"><label class="fl">Type of Blood Requested<span class="req-star">*</span></label>
-            <input class="fi" type="text" id="d_blood_type_requested" placeholder="e.g. Packed Cells"/></div>
+        <div class="row row-1">
           <div class="fg"><label class="fl">Nurse's Name<span class="req-star">*</span></label>
             <input class="fi" type="text" id="d_nurse" placeholder="Name"/></div>
         </div>
 
         <div class="form-section-block bb-block">
           <div class="sec-label">For Blood Bank Use Only</div>
-          <div class="row row-2">
+          <div class="row row-1">
             <div class="fg"><label class="fl">Blood Unit N°<span class="req-star">*</span></label>
               <input class="fi" type="text" id="d_blood_unit_numbers" placeholder="e.g. 2601231/2601663"/></div>
-            <div class="fg"><label class="fl">Type of Blood</label>
-              <input class="fi" type="text" id="d_type_of_blood" placeholder="e.g. 2 P.C"/></div>
           </div>
+
+          <label class="fl" style="display:block;margin:2px 0 6px">Components Issued</label>
+          <table class="comp-table" style="margin-bottom:14px">
+            <thead>
+              <tr><th>Component</th><th>Nº Units</th><th class="comp-btn-cell"></th></tr>
+            </thead>
+            <!-- Same "+ add another row" concept as the transfusion form's Blood
+                 Components table — see renderDCompTable/dComponents in index.html. -->
+            <tbody id="dCompBody"></tbody>
+          </table>
+
           <div class="row row-1">
             <div class="fg"><label class="fl">Blood Unit Group (Done Before Delivery)</label>
               <select class="fi" id="d_blood_unit_group">
@@ -1721,7 +1779,7 @@
         <div class="form-section-block lifesaving-block">
           <div class="sec-label">Life Saving Cases</div>
           <div class="form-note">For delivery of blood units without cross-matching, please sign below:</div>
-          <div class="row row-3">
+          <div class="row row-4">
             <div class="fg">
               <label class="fl">Life Saving Case</label>
               <div class="check-row">
@@ -1730,6 +1788,14 @@
             </div>
             <div class="fg"><label class="fl">Physician's Name</label>
               <input class="fi" type="text" id="d_ls_physician" placeholder="Dr. Name"/></div>
+            <div class="fg"><label class="fl">Signature</label>
+              <div class="sig-pad-wrap" id="d_ls_signature_wrap">
+                <span class="sig-pad-hint">Sign here</span>
+                <canvas class="sig-pad" id="d_ls_signature_pad" width="300" height="90"></canvas>
+                <button type="button" class="sig-clear-btn" title="Clear signature" onclick="clearSignaturePad('d_ls_signature')">✕</button>
+              </div>
+              <input type="hidden" id="d_ls_signature"/>
+            </div>
             <div class="fg"><label class="fl">Time</label>
               <input class="fi" type="time" id="d_ls_time"/></div>
           </div>
@@ -1738,7 +1804,7 @@
 
       </div>
       <div class="edit-bar" id="d_editBar">
-        <div class="edit-bar-info">📋 Viewing record for <strong id="d_editName">—</strong> · Click <b>Edit</b> to modify</div>
+        <div class="edit-bar-info">📋 Viewing record for <strong id="d_editName">—</strong> · <span id="d_editHint">Click <b>Edit</b> to modify</span></div>
         <div class="btn-row">
           <button class="btn-edit" id="d_editBtn" onclick="toggleEditMode('d')">✏️ Edit</button>
           <button class="btn-clear" onclick="exitViewMode('d')">✕ Close</button>
@@ -2496,6 +2562,10 @@ function doLogout() {
   document.getElementById('userBar').style.display = 'none';
   document.getElementById('tabAdmin').style.display  = 'none';
   document.getElementById('tabExtDel').style.display = 'none';
+  document.getElementById('notifBellWrap').style.display = 'none';
+  document.getElementById('notifPanel').style.display    = 'none';
+  _notifications = [];
+  _notifUnreadCount = 0;
 }
 
 function onLoginSuccess() {
@@ -2518,6 +2588,13 @@ function onLoginSuccess() {
   });
   loadHistory();
   checkMode();
+  // Notification bell — admins see new transfusion requests saved while
+  // they weren't logged in, staff (nurses) see new deliveries the blood
+  // bank sent (see loadNotifications / GET /notifications, which scopes
+  // by role server-side).
+  document.getElementById('notifBellWrap').style.display = '';
+  document.getElementById('notifPanelTitle').textContent = isAdmin ? 'Transfusion Requests' : 'Deliveries';
+  loadNotifications();
   // Connect chat socket immediately so notifications work from any page
   _connectChatSocket();
   // Ask for browser notification permission
@@ -2947,6 +3024,17 @@ function collectFormData(formType) {
     else if (map.type === 'radio') data[key] = el.checked ? el.value : '';
     else data[key] = el.value;
   });
+  // Extra Blood Components rows (added via +) beyond each type's first row —
+  // omitted entirely when there are none, so isFormEmpty() isn't fooled by
+  // an always-present "[]" string.
+  if (formType === 'transfusion') {
+    const extraComponents = collectExtraTComponents();
+    if (extraComponents.length) data.components_json = JSON.stringify(extraComponents);
+  }
+  if (formType === 'delivery') {
+    const extraComponents = collectExtraDComponents();
+    if (extraComponents.length) data.d_components_json = JSON.stringify(extraComponents);
+  }
   return data;
 }
 
@@ -3004,6 +3092,11 @@ function restoreDraft(formType) {
     const prefix = formType === 'transfusion' ? 't' : 'd';
     clearForm(prefix);
     setForm(formType);
+    // Rebuild any extra Blood Components rows first, so the FIELD_MAP loop
+    // below fills the freshly-rendered first-row inputs (t_fpc_units, ...)
+    // instead of ones about to be wiped by a later render.
+    if (formType === 'transfusion' && draft.components_json)   applyTComponentsFromJson(draft.components_json);
+    if (formType === 'delivery'    && draft.d_components_json) applyDComponentsFromJson(draft.d_components_json);
     Object.entries(FIELD_MAP).forEach(([key, map]) => {
       if (map.form !== formType) return;
       const el  = document.getElementById(map.id);
@@ -3012,6 +3105,7 @@ function restoreDraft(formType) {
       if (map.type === 'checkbox') el.checked = !!val;
       else if (val) { el.value = String(val); el.classList.add('voice-hit'); setTimeout(() => el.classList.remove('voice-hit'), 1000); }
     });
+    refreshAllSignaturePads(); // repaint any restored signature strokes from their hidden inputs
     const banner = document.getElementById(prefix + '_draftBanner');
     if (banner) banner.classList.remove('show');
     const ind = document.getElementById(prefix + '_draftIndicator');
@@ -3167,7 +3261,7 @@ async function stopRec() {
             ['d_patient_name','d_file_number','d_blood_group','d_rh','d_room',
              'delivery_time','delivery_date','leakage','gases','temperature',
              'volume','technician','orderly','nurse','received_by',
-             'blood_type_requested','blood_unit_numbers','allergy_details'].includes(k)
+             'd_fpc_units','d_ffp_units','d_plt_units','blood_unit_numbers','allergy_details'].includes(k)
           );
           const detectedForm = hasDeliveryFields ? 'delivery' : 'transfusion';
           fillFields(data.fields, activeForm === 'both' ? detectedForm : activeForm);
@@ -3225,12 +3319,15 @@ function clearForm(arg) {
   else if (arg === 'delivery') prefix = 'd';
   else prefix = arg;
 
+  if (prefix === 't') { tComponents = defaultTComponents(); renderTCompTable(); } // drop any extra component rows
+  if (prefix === 'd') { dComponents = defaultDComponents(); renderDCompTable(); } // drop any extra component rows
   document.querySelectorAll(`[id^="${prefix}_"]`).forEach(el => {
     if (el.type === 'checkbox' || el.type === 'radio') el.checked = false;
     else el.value = '';
     el.classList.remove('voice-hit');
     el.classList.remove('needs-verify');
   });
+  refreshAllSignaturePads(); // clears the drawn strokes to match the now-empty hidden inputs
   if (prefix === 't') { tCount = 0; document.getElementById('t_count').textContent = 0; }
   else                { dCount = 0; document.getElementById('d_count').textContent = 0; }
   updateVerifyCount(prefix);
@@ -3285,6 +3382,8 @@ const FIELD_MAP = {
   ffp_type:                 { id:'t_ffp_type',            form:'transfusion' },
   plt_units:                { id:'t_plt_units',           form:'transfusion' },
   plt_type:                 { id:'t_plt_type',            form:'transfusion' },
+  irr_units:                { id:'t_irr_units',           form:'transfusion' },
+  irr_type:                 { id:'t_irr_type',            form:'transfusion' },
   blood_unit_1:             { id:'t_unit_1',              form:'transfusion' },
   blood_unit_2:             { id:'t_unit_2',              form:'transfusion' },
   blood_unit_3:             { id:'t_unit_3',              form:'transfusion' },
@@ -3297,9 +3396,11 @@ const FIELD_MAP = {
   prev_transfusion_place:   { id:'t_prev_place',          form:'transfusion' },
   prev_transfusion_reaction:{ id:'t_prev_reaction',       form:'transfusion' },
   physician:                { id:'t_physician',           form:'transfusion' },
+  physician_signature:      { id:'t_physician_signature', form:'transfusion' },
   phlebotomist:             { id:'t_phlebotomist',        form:'transfusion' },
   life_saving_t:            { id:'t_life_saving',         form:'transfusion', type:'checkbox' },
   ls_physician_t:           { id:'t_ls_physician',        form:'transfusion' },
+  ls_signature_t:           { id:'t_ls_signature',        form:'transfusion' },
   ls_time_t:                { id:'t_ls_time',             form:'transfusion' },
   d_patient_name:           { id:'d_patient_name',        form:'delivery' },
   d_file_number:            { id:'d_file_number',         form:'delivery' },
@@ -3311,9 +3412,11 @@ const FIELD_MAP = {
   risk_fall:                { id:'d_risk_fall',           form:'delivery', type:'checkbox' },
   allergy_label:            { id:'d_allergy_label',       form:'delivery', type:'checkbox' },
   allergy_details:          { id:'d_allergy_details',     form:'delivery' },
-  blood_type_requested:     { id:'d_blood_type_requested',form:'delivery' },
   blood_unit_numbers:       { id:'d_blood_unit_numbers',  form:'delivery' },
-  type_of_blood:            { id:'d_type_of_blood',       form:'delivery' },
+  d_fpc_units:              { id:'d_fpc_units',           form:'delivery' },
+  d_ffp_units:              { id:'d_ffp_units',           form:'delivery' },
+  d_plt_units:              { id:'d_plt_units',           form:'delivery' },
+  d_irr_units:              { id:'d_irr_units',           form:'delivery' },
   blood_unit_group:         { id:'d_blood_unit_group',    form:'delivery' },
   patient_bg_delivery:      { id:'d_patient_bg_delivery', form:'delivery' },
   technician:               { id:'d_technician',          form:'delivery' },
@@ -3333,8 +3436,314 @@ const FIELD_MAP = {
   nurse_time:               { id:'d_nurse_time',          form:'delivery' },
   life_saving_d:            { id:'d_life_saving',         form:'delivery', type:'checkbox' },
   ls_physician_d:           { id:'d_ls_physician',        form:'delivery' },
+  ls_signature_d:           { id:'d_ls_signature',        form:'delivery' },
   ls_time_d:                { id:'d_ls_time',             form:'delivery' },
 };
+
+// ═══════════════════════════════════════════════════════
+// BLOOD COMPONENTS (transfusion) — same "+ add another row" concept as the
+// External Delivery components table (see extComponents/renderExtCompTable
+// below), applied to Filtered Packed Cells / F.F.P / Platelets / Irradiated
+// RBC. Each type's FIRST row keeps the original fixed ids (t_fpc_units,
+// t_fpc_type, t_fpc_check, ...) so voice-fill and FIELD_MAP keep working
+// completely unchanged; rows added via "+" have no id and are carried in
+// components_json instead (see collectExtraTComponents / saveForm).
+// "Others" is a separate, always-single, static row — untouched by this.
+// ═══════════════════════════════════════════════════════
+const T_COMP_FIXED     = { fpc:'Filtered Packed Cells', ffp:'F.F.P', plt:'Platelets', irr:'Irradiated RBC' };
+const T_COMP_TYPE_OPTS = ['', 'Pre-Op 24hrs', 'Routine', 'Stat', 'Emergent (<15 min)'];
+
+function defaultTComponents() {
+  return Object.keys(T_COMP_FIXED).map(key => ({ key, units:'', type:'', checked:false }));
+}
+let tComponents = defaultTComponents();
+
+function syncTComp(idx, field, value) {
+  if (tComponents[idx]) tComponents[idx][field] = value;
+}
+
+function addTCompRow(key) {
+  let lastIdx = -1;
+  tComponents.forEach((c, i) => { if (c.key === key) lastIdx = i; });
+  if (lastIdx === -1) return;
+  tComponents.splice(lastIdx + 1, 0, { key, units:'', type:'', checked:false });
+  renderTCompTable();
+}
+
+function removeTCompRow(idx) {
+  tComponents.splice(idx, 1);
+  renderTCompTable();
+}
+
+function renderTCompTable() {
+  const tbody = document.getElementById('tCompBody');
+  if (!tbody) return;
+  const lastOfKey = {};
+  tComponents.forEach((c, i) => { lastOfKey[c.key] = i; });
+  const seenKeys = {};
+  tbody.innerHTML = tComponents.map((c, idx) => {
+    const isFirst = !seenKeys[c.key]; seenKeys[c.key] = true;
+    const isLast  = lastOfKey[c.key] === idx;
+    const label   = T_COMP_FIXED[c.key] || '';
+    // Only the first row of each key keeps the fixed id — see header note above.
+    const unitsAttr = isFirst ? ` id="t_${c.key}_units"` : '';
+    const typeAttr  = isFirst ? ` id="t_${c.key}_type"`  : '';
+    const checkAttr = isFirst ? ` id="t_${c.key}_check"` : '';
+    const nameCell  = `<td class="comp-name"${isFirst ? '' : ' style="color:var(--text-soft);font-style:italic;font-size:11px"'}>${label}</td>`;
+    const typeOpts  = T_COMP_TYPE_OPTS.map(o => `<option value="${escHtml(o)}"${o === c.type ? ' selected' : ''}>${escHtml(o) || '—'}</option>`).join('');
+    const addBtn    = isLast   ? `<button type="button" class="comp-add-btn" onclick="addTCompRow('${c.key}')" title="Add another ${escHtml(label)} row">+</button>` : '';
+    const remBtn    = !isFirst ? `<button type="button" class="comp-rem-btn" onclick="removeTCompRow(${idx})" title="Remove row">−</button>` : '';
+    return `<tr>
+      ${nameCell}
+      <td><input type="number" min="0"${unitsAttr} value="${escHtml(c.units)}" oninput="syncTComp(${idx},'units',this.value)" placeholder="0"/></td>
+      <td><select${typeAttr} onchange="syncTComp(${idx},'type',this.value)">${typeOpts}</select></td>
+      <td><input type="checkbox"${checkAttr} ${c.checked ? 'checked' : ''} style="width:14px;height:14px;accent-color:var(--blood)" onchange="syncTComp(${idx},'checked',this.checked)"/></td>
+      <td class="comp-btn-cell">${addBtn}${remBtn}</td>
+    </tr>`;
+  }).join('');
+}
+
+// Extra (index > 1) rows per key — the first row of each key is already
+// captured by the legacy fpc_units/fpc_type-style FIELD_MAP fields, so only
+// what's beyond that needs to travel separately as components_json.
+function collectExtraTComponents() {
+  const seen  = new Set();
+  const extra = [];
+  tComponents.forEach(c => {
+    if (!seen.has(c.key)) { seen.add(c.key); return; }
+    extra.push({ key: c.key, units: c.units || '', type: c.type || '', checked: !!c.checked });
+  });
+  return extra;
+}
+
+// Rebuilds the full tComponents array (one row per key, plus any saved
+// extras spliced back into place) from a components_json string/array —
+// used when loading a saved record or restoring a draft.
+function rebuildTComponentsWithExtras(extras) {
+  const base = defaultTComponents();
+  (Array.isArray(extras) ? extras : []).forEach(extra => {
+    if (!extra || !T_COMP_FIXED[extra.key]) return;
+    let lastIdx = -1;
+    base.forEach((c, i) => { if (c.key === extra.key) lastIdx = i; });
+    if (lastIdx === -1) return;
+    base.splice(lastIdx + 1, 0, { key: extra.key, units: extra.units || '', type: extra.type || '', checked: !!extra.checked });
+  });
+  return base;
+}
+
+function applyTComponentsFromJson(jsonStr) {
+  let extras = [];
+  try { extras = jsonStr ? JSON.parse(jsonStr) : []; } catch { extras = []; }
+  tComponents = rebuildTComponentsWithExtras(extras);
+  renderTCompTable();
+}
+
+document.addEventListener('DOMContentLoaded', () => renderTCompTable());
+
+// ═══════════════════════════════════════════════════════
+// COMPONENTS ISSUED (delivery) — same "+ add another row" concept as the
+// transfusion table above, but simpler: just a component name and Nº
+// Units, no urgency/checkbox (this section just records what was actually
+// issued). Each type's first row keeps a fixed id (d_fpc_units, ...) so it
+// flows through FIELD_MAP/collectFormData like any other delivery field;
+// rows added via "+" have no id and travel as d_components_json instead.
+// ═══════════════════════════════════════════════════════
+const D_COMP_FIXED = { fpc:'Filtered RBC', ffp:'FFP', plt:'Platelets', irr:'Irradiated RBC' };
+
+// Short "2 Filtered RBC, 1 FFP" summary of a saved delivery record's
+// Components Issued, replacing the old free-text "Type of Blood" display
+// (that field was removed — components are now structured units).
+function deliveryComponentSummary(r) {
+  if (!r) return '';
+  const parts = [];
+  ['fpc', 'ffp', 'plt', 'irr'].forEach(key => {
+    const n = parseInt(r[`${key}_units`]) || 0;
+    if (n > 0) parts.push(`${n} ${D_COMP_FIXED[key]}`);
+  });
+  if (r.components_json) {
+    try {
+      JSON.parse(r.components_json).forEach(c => {
+        const n = parseInt(c.units) || 0;
+        if (n > 0) parts.push(`${n} ${D_COMP_FIXED[c.key] || c.key}`);
+      });
+    } catch { /* ignore bad JSON */ }
+  }
+  return parts.join(', ');
+}
+
+function defaultDComponents() {
+  return Object.keys(D_COMP_FIXED).map(key => ({ key, units:'' }));
+}
+let dComponents = defaultDComponents();
+
+function syncDComp(idx, field, value) {
+  if (dComponents[idx]) dComponents[idx][field] = value;
+}
+
+function addDCompRow(key) {
+  let lastIdx = -1;
+  dComponents.forEach((c, i) => { if (c.key === key) lastIdx = i; });
+  if (lastIdx === -1) return;
+  dComponents.splice(lastIdx + 1, 0, { key, units:'' });
+  renderDCompTable();
+}
+
+function removeDCompRow(idx) {
+  dComponents.splice(idx, 1);
+  renderDCompTable();
+}
+
+function renderDCompTable() {
+  const tbody = document.getElementById('dCompBody');
+  if (!tbody) return;
+  const lastOfKey = {};
+  dComponents.forEach((c, i) => { lastOfKey[c.key] = i; });
+  const seenKeys = {};
+  tbody.innerHTML = dComponents.map((c, idx) => {
+    const isFirst = !seenKeys[c.key]; seenKeys[c.key] = true;
+    const isLast  = lastOfKey[c.key] === idx;
+    const label   = D_COMP_FIXED[c.key] || '';
+    const unitsAttr = isFirst ? ` id="d_${c.key}_units"` : '';
+    const nameCell  = `<td class="comp-name"${isFirst ? '' : ' style="color:var(--text-soft);font-style:italic;font-size:11px"'}>${label}</td>`;
+    const addBtn    = isLast   ? `<button type="button" class="comp-add-btn" onclick="addDCompRow('${c.key}')" title="Add another ${escHtml(label)} row">+</button>` : '';
+    const remBtn    = !isFirst ? `<button type="button" class="comp-rem-btn" onclick="removeDCompRow(${idx})" title="Remove row">−</button>` : '';
+    return `<tr>
+      ${nameCell}
+      <td><input type="number" min="0"${unitsAttr} value="${escHtml(c.units)}" oninput="syncDComp(${idx},'units',this.value)" placeholder="0"/></td>
+      <td class="comp-btn-cell">${addBtn}${remBtn}</td>
+    </tr>`;
+  }).join('');
+}
+
+// Extra (beyond each type's first) rows — the first row of each key is
+// already captured by its own d_fpc_units-style FIELD_MAP field.
+function collectExtraDComponents() {
+  const seen  = new Set();
+  const extra = [];
+  dComponents.forEach(c => {
+    if (!seen.has(c.key)) { seen.add(c.key); return; }
+    extra.push({ key: c.key, units: c.units || '' });
+  });
+  return extra;
+}
+
+function rebuildDComponentsWithExtras(extras) {
+  const base = defaultDComponents();
+  (Array.isArray(extras) ? extras : []).forEach(extra => {
+    if (!extra || !D_COMP_FIXED[extra.key]) return;
+    let lastIdx = -1;
+    base.forEach((c, i) => { if (c.key === extra.key) lastIdx = i; });
+    if (lastIdx === -1) return;
+    base.splice(lastIdx + 1, 0, { key: extra.key, units: extra.units || '' });
+  });
+  return base;
+}
+
+function applyDComponentsFromJson(jsonStr) {
+  let extras = [];
+  try { extras = jsonStr ? JSON.parse(jsonStr) : []; } catch { extras = []; }
+  dComponents = rebuildDComponentsWithExtras(extras);
+  renderDCompTable();
+}
+
+document.addEventListener('DOMContentLoaded', () => renderDCompTable());
+
+// ═══════════════════════════════════════════════════════
+// SIGNATURE PADS — draw-to-sign canvases next to each physician field.
+// The canvas is purely visual; the drawing is captured as a PNG data URL
+// into a same-id hidden <input>, so it flows through collectFormData/
+// saveForm/FIELD_MAP exactly like any other text field.
+// ═══════════════════════════════════════════════════════
+const SIGNATURE_FIELD_IDS = ['t_physician_signature', 't_ls_signature', 'd_ls_signature'];
+
+function setupSignaturePad(id) {
+  const canvas = document.getElementById(id + '_pad');
+  const input  = document.getElementById(id);
+  if (!canvas || !input) return;
+
+  const ctx = canvas.getContext('2d');
+  ctx.lineWidth   = 1.8;
+  ctx.lineCap     = 'round';
+  ctx.lineJoin    = 'round';
+  ctx.strokeStyle = '#1a1a1a';
+
+  const wrap = canvas.closest('.sig-pad-wrap');
+  let drawing = false;
+  let last = null;
+
+  function pos(e) {
+    const rect = canvas.getBoundingClientRect();
+    const p = e.touches ? e.touches[0] : e;
+    // Canvas's internal pixel size (attrs) can differ from its CSS-rendered
+    // size, so map client coords into canvas-pixel space.
+    return {
+      x: (p.clientX - rect.left) * (canvas.width  / rect.width),
+      y: (p.clientY - rect.top)  * (canvas.height / rect.height),
+    };
+  }
+  function start(e) { e.preventDefault(); drawing = true; last = pos(e); }
+  function move(e) {
+    if (!drawing) return;
+    e.preventDefault();
+    const p = pos(e);
+    ctx.beginPath();
+    ctx.moveTo(last.x, last.y);
+    ctx.lineTo(p.x, p.y);
+    ctx.stroke();
+    last = p;
+    if (wrap) wrap.classList.add('has-content');
+  }
+  function end() {
+    if (!drawing) return;
+    drawing = false;
+    input.value = canvas.toDataURL('image/png');
+  }
+
+  canvas.addEventListener('mousedown', start);
+  canvas.addEventListener('mousemove', move);
+  window.addEventListener('mouseup', end);
+  canvas.addEventListener('touchstart', start, { passive: false });
+  canvas.addEventListener('touchmove',  move,  { passive: false });
+  canvas.addEventListener('touchend', end);
+
+  refreshSignaturePad(id);
+}
+
+function initSignaturePads() { SIGNATURE_FIELD_IDS.forEach(setupSignaturePad); }
+
+function clearSignaturePad(id) {
+  const canvas = document.getElementById(id + '_pad');
+  const input  = document.getElementById(id);
+  if (!canvas || !input) return;
+  canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+  input.value = '';
+  const wrap = canvas.closest('.sig-pad-wrap');
+  if (wrap) wrap.classList.remove('has-content');
+}
+
+// Redraws a pad's canvas from whatever PNG data URL its hidden input
+// currently holds — used after the input is set programmatically (loading
+// a saved record, restoring a draft) since setting .value doesn't paint it.
+function refreshSignaturePad(id) {
+  const canvas = document.getElementById(id + '_pad');
+  const input  = document.getElementById(id);
+  if (!canvas || !input) return;
+  const ctx  = canvas.getContext('2d');
+  const wrap = canvas.closest('.sig-pad-wrap');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  if (input.value) {
+    const img = new Image();
+    img.onload = () => ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+    img.src = input.value;
+    if (wrap) wrap.classList.add('has-content');
+  } else if (wrap) {
+    wrap.classList.remove('has-content');
+  }
+}
+
+function refreshAllSignaturePads() { SIGNATURE_FIELD_IDS.forEach(refreshSignaturePad); }
+
+document.addEventListener('DOMContentLoaded', initSignaturePads);
 
 // ═══════════════════════════════════════════════════════
 // FILL FIELDS
@@ -3818,15 +4227,16 @@ function renderWastageDashboard(cases) {
   const tableEl   = document.getElementById('wastageTableWrap');
 
   // Recalculate summary from filtered cases
-  let totalOrdered = 0, totalUsed = 0, prcWasted = 0, ffpWasted = 0, pltWasted = 0;
+  let totalOrdered = 0, totalUsed = 0, prcWasted = 0, ffpWasted = 0, pltWasted = 0, irrWasted = 0;
   cases.forEach(c => {
     totalOrdered += c.ordered;
     totalUsed    += c.used;
     if (c.component === 'Packed Cells') prcWasted += c.wasted;
     else if (c.component === 'FFP')     ffpWasted += c.wasted;
     else if (c.component === 'Platelets') pltWasted += c.wasted;
+    else if (c.component === 'Irradiated RBC') irrWasted += c.wasted;
   });
-  const totalWasted  = prcWasted + ffpWasted + pltWasted;
+  const totalWasted  = prcWasted + ffpWasted + pltWasted + irrWasted;
   const wastageRate  = totalOrdered > 0 ? Math.round((totalWasted / totalOrdered) * 100) : 0;
 
   summaryEl.innerHTML = `
@@ -3850,6 +4260,10 @@ function renderWastageDashboard(cases) {
       <div class="wastage-chip plt">
         <div class="wc-num">${pltWasted}</div>
         <div class="wc-label">Platelets Wasted</div>
+      </div>
+      <div class="wastage-chip irr">
+        <div class="wc-num">${irrWasted}</div>
+        <div class="wc-label">Irradiated RBC Wasted</div>
       </div>
     </div>`;
 
@@ -4052,7 +4466,6 @@ const REQUIRED_FIELDS = {
     { id: 'd_blood_group',          label: 'Blood Group' },
     { id: 'd_rh',                   label: 'RH Factor' },
     { id: 'd_room',                 label: 'Room / Ward' },
-    { id: 'd_blood_type_requested', label: 'Type of Blood Requested' },
     { id: 'd_nurse',                label: "Nurse's Name" },
     { id: 'd_blood_unit_numbers',   label: 'Blood Unit Numbers' },
     { id: 'd_technician',           label: 'Technician' },
@@ -4282,7 +4695,7 @@ async function loadPatientHistory(fileNumber) {
               <div class="ph-item-date">${r.date}</div>
             </div>
             <div class="ph-item-info">
-              <div class="ph-item-comps"><span class="ph-comp-tag">${e(r.type_of_blood || r.type_of_blood_requested) || '—'}</span>${lsTag}</div>
+              <div class="ph-item-comps"><span class="ph-comp-tag">${e(deliveryComponentSummary(r)) || '—'}</span>${lsTag}</div>
               <div class="ph-item-meta">Room: ${e(r.room) || '—'} · Tech: ${e(r.technician_name) || '—'}</div>
               ${r.blood_unit_group ? `<div class="ph-item-meta">Unit group: ${e(r.blood_unit_group)}</div>` : ''}
             </div>
@@ -4347,6 +4760,14 @@ async function saveForm(formType) {
     if (map.type === 'checkbox') data[key] = el.checked;
     else data[key] = el.value;
   });
+  if (formType === 'transfusion') {
+    const extraComponents = collectExtraTComponents();
+    data.components_json = extraComponents.length ? JSON.stringify(extraComponents) : null;
+  }
+  if (formType === 'delivery') {
+    const extraComponents = collectExtraDComponents();
+    data.d_components_json = extraComponents.length ? JSON.stringify(extraComponents) : null;
+  }
 
   // Expiry date check for delivery forms
   if (formType === 'delivery' && data.expiry_date) {
@@ -4458,6 +4879,14 @@ async function exportForm(formType, fileType) {
     if (map.type === 'checkbox') data[key] = el.checked;
     else data[key] = el.value;
   });
+  if (formType === 'transfusion') {
+    const extraComponents = collectExtraTComponents();
+    if (extraComponents.length) data.components_json = JSON.stringify(extraComponents);
+  }
+  if (formType === 'delivery') {
+    const extraComponents = collectExtraDComponents();
+    if (extraComponents.length) data.d_components_json = JSON.stringify(extraComponents);
+  }
 
   setStatus('processing', '⏳ Generating ' + fileType.toUpperCase() + '…');
 
@@ -4576,7 +5005,8 @@ async function doSearch() {
           ${r.blood_group  ? `<div class="hcard-row">🩸 ${r.blood_group}${r.rh_factor ? ' ' + r.rh_factor : ''}</div>` : ''}
           ${r.room         ? `<div class="hcard-row">🚪 Room ${r.room}</div>` : ''}
           ${r.saved_by     ? `<div class="hcard-row" style="font-size:11px;color:#888;margin-top:4px">👤 Saved by: ${r.saved_by}</div>` : ''}
-          ${currentUser?.role === 'admin' ? `<button class="btn-del delete-btn" onclick="event.stopPropagation();deleteRecord(${r.id},'${r.form_type}')">🗑 Delete</button>` : ''}
+          ${r.signed_by_user_id ? `<div class="hcard-row" style="font-size:11px;color:#8a6d00;margin-top:2px">🔒 Signed by ${hl(r.signed_by_name) || 'someone'} — locked</div>` : ''}
+          ${currentUser?.role === 'admin' && (!r.signed_by_user_id || r.signed_by_user_id === currentUser.userId) ? `<button class="btn-del delete-btn" onclick="event.stopPropagation();deleteRecord(${r.id},'${r.form_type}')">🗑 Delete</button>` : ''}
         </div>`;
     }).join('');
 
@@ -4600,6 +5030,10 @@ function loadRecordIntoForm(idx) {
   clearForm(prefix);
 
   if (formType === 'transfusion') {
+    // Rebuild any extra Blood Components rows BEFORE fillFromRecord, so it
+    // fills the freshly-rendered first-row inputs (t_fpc_units, t_irr_units,
+    // ...) rather than ones a later render would wipe out.
+    applyTComponentsFromJson(r.components_json);
     fillFromRecord('t', {
       request_date: r.request_date ? r.request_date.split('T')[0] : '',
       request_time: r.request_time || '',
@@ -4615,6 +5049,8 @@ function loadRecordIntoForm(idx) {
       ffp_type: r.ffp_type || '',
       plt_units: r.plt_units || '',
       plt_type: r.plt_type || '',
+      irr_units: r.irr_units || '',
+      irr_type: r.irr_type || '',
       unit_1: r.blood_unit_1 || '',
       unit_2: r.blood_unit_2 || '',
       unit_3: r.blood_unit_3 || '',
@@ -4624,6 +5060,7 @@ function loadRecordIntoForm(idx) {
       unit_7: r.blood_unit_7 || '',
       unit_8: r.blood_unit_8 || '',
       physician: r.physician || '',
+      physician_signature: r.physician_signature || '',
       phlebotomist: r.phlebotomist || '',
     });
     if (r.previous_transfusion) document.getElementById('t_prev_yes').checked = true;
@@ -4632,8 +5069,13 @@ function loadRecordIntoForm(idx) {
     if (r.prev_transfusion_reaction) setVal('t_prev_reaction', r.prev_transfusion_reaction);
     if (r.life_saving)               document.getElementById('t_life_saving').checked = true;
     if (r.life_saving_physician)     setVal('t_ls_physician',  r.life_saving_physician);
+    if (r.life_saving_signature)     setVal('t_ls_signature',  r.life_saving_signature);
     if (r.life_saving_time)          setVal('t_ls_time',       r.life_saving_time);
   } else {
+    // Rebuild any extra Components Issued rows BEFORE fillFromRecord, so it
+    // fills the freshly-rendered first-row inputs (d_fpc_units, ...) rather
+    // than ones a later render would wipe out.
+    applyDComponentsFromJson(r.components_json);
     fillFromRecord('d', {
       patient_name: r.patient_name || '',
       file_number: r.file_number || '',
@@ -4641,9 +5083,11 @@ function loadRecordIntoForm(idx) {
       rh: r.rh_factor || '',
       room: r.room || '',
       allergy_details: r.allergy_details || '',
-      blood_type_requested: r.type_of_blood_requested || '',
       blood_unit_numbers: r.blood_unit_numbers || '',
-      type_of_blood: r.type_of_blood || '',
+      fpc_units: r.fpc_units || '',
+      ffp_units: r.ffp_units || '',
+      plt_units: r.plt_units || '',
+      irr_units: r.irr_units || '',
       blood_unit_group: r.blood_unit_group || '',
       patient_bg_delivery: r.patient_blood_group_delivery || '',
       technician: r.technician || '',
@@ -4664,10 +5108,16 @@ function loadRecordIntoForm(idx) {
     });
     if (r.life_saving)           document.getElementById('d_life_saving').checked = true;
     if (r.life_saving_physician) setVal('d_ls_physician', r.life_saving_physician);
+    if (r.life_saving_signature) setVal('d_ls_signature', r.life_saving_signature);
     if (r.life_saving_time)      setVal('d_ls_time',      r.life_saving_time);
   }
+  refreshAllSignaturePads(); // paint the loaded record's signatures onto their canvases
 
-  currentEditRecord = { id: r.id, form_type: r.form_type };
+  currentEditRecord = {
+    id: r.id, form_type: r.form_type,
+    signed_by_user_id: r.signed_by_user_id || null,
+    signed_by_name:    r.signed_by_name || null,
+  };
   enterViewMode(prefix, r.patient_name || 'Unknown');
   document.getElementById(formType === 'transfusion' ? 'cardTransfusion' : 'cardDelivery')
     .scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -4694,6 +5144,13 @@ function fillFromRecord(prefix, data) {
 // ═══════════════════════════════════════════════════════
 // VIEW / EDIT MODE
 // ═══════════════════════════════════════════════════════
+// True once a record carries a signature belonging to someone other than
+// the logged-in user — the server enforces this for real (even against an
+// admin); this just keeps the UI from offering an Edit that would 403.
+function isRecordLockedForCurrentUser() {
+  return !!(currentEditRecord?.signed_by_user_id && currentEditRecord.signed_by_user_id !== currentUser?.userId);
+}
+
 function enterViewMode(prefix, patientName) {
   const card = document.getElementById(prefix === 't' ? 'cardTransfusion' : 'cardDelivery');
   card.classList.add('view-mode');
@@ -4701,14 +5158,26 @@ function enterViewMode(prefix, patientName) {
   editModeActive[prefix] = false;
   document.getElementById(prefix + '_editBar').classList.add('show');
   document.getElementById(prefix + '_editName').textContent = patientName;
-  const editBtn = document.getElementById(prefix + '_editBtn');
+  const editBtn  = document.getElementById(prefix + '_editBtn');
+  const editHint = document.getElementById(prefix + '_editHint');
+  const locked   = isRecordLockedForCurrentUser();
   editBtn.textContent = '✏️ Edit';
   editBtn.classList.remove('editing');
+  editBtn.style.display = locked ? 'none' : '';
+  if (editHint) {
+    editHint.innerHTML = locked
+      ? `🔒 Signed by <b>${currentEditRecord.signed_by_name || 'another user'}</b> — only they can edit`
+      : 'Click <b>Edit</b> to modify';
+  }
   document.getElementById(prefix + '_saveBtn').disabled = true;
   document.getElementById(prefix + '_saveBtn').style.opacity = '0.4';
 }
 
 function toggleEditMode(prefix) {
+  if (isRecordLockedForCurrentUser()) {
+    alert(`🔒 This record was signed by ${currentEditRecord.signed_by_name || 'another user'} — only they can edit it.`);
+    return;
+  }
   const card    = document.getElementById(prefix === 't' ? 'cardTransfusion' : 'cardDelivery');
   const editBtn = document.getElementById(prefix + '_editBtn');
   const saveBtn = document.getElementById(prefix + '_saveBtn');
@@ -4750,7 +5219,17 @@ function exitViewMode(prefix) {
 
 async function deleteRecord(id, formType) {
   if (!confirm('Delete this record?')) return;
-  await apiFetch(`${API}/history/${id}?form_type=${formType}`, { method: 'DELETE' });
+  try {
+    const res    = await apiFetch(`${API}/history/${id}?form_type=${formType}`, { method: 'DELETE' });
+    const result = res && await res.json();
+    if (!result || !result.success) {
+      alert('❌ ' + (result?.error || 'Delete failed'));
+      return;
+    }
+  } catch {
+    alert('❌ Cannot reach server');
+    return;
+  }
   document.getElementById(`hc-${id}-${formType}`)?.remove();
   // Update stats
   historyRecords = historyRecords.filter(r => !(r.id === id && r.form_type === formType));
@@ -6282,7 +6761,7 @@ async function loadHandover() {
           <td>${e(r.file_number) || '—'}</td>
           <td>${e((r.patient_blood_group||'') + rh) || '—'}</td>
           <td>${e(r.room) || '—'}</td>
-          <td>${e(r.type_of_blood || r.type_of_blood_requested) || '—'}</td>
+          <td>${e(deliveryComponentSummary(r)) || '—'}</td>
           <td>${e(r.technician_name) || '—'}</td>
           <td>${e(r.time_saved) || '—'}</td>
         </tr>`;
@@ -7572,6 +8051,59 @@ function _connectChatSocket() {
       }
     }
   });
+
+  // New transfusion request — server only emits this to sockets in the
+  // 'admins' room (see io.on('connection') in server.js), so any logged-in
+  // admin gets it from whatever page they're on, same as chat.
+  _chatSocket.on('new_transfusion_request', data => {
+    _showTransfusionRequestNotification(data);
+    // Also fold it into the persisted bell list so it shows up there too
+    // without needing a manual refresh.
+    if (data.notification_id) {
+      _notifications.unshift({
+        notification_id: data.notification_id,
+        request_id:      data.id,
+        patient_name:    data.patient_name,
+        file_number:     data.file_number,
+        blood_group:     data.blood_group,
+        rh_factor:       data.rh_factor,
+        room:            data.room,
+        physician:       data.physician,
+        life_saving:     data.life_saving,
+        saved_by:        data.saved_by,
+        created_at:      data.created_at,
+        is_read:         false,
+      });
+      _notifUnreadCount++;
+      renderNotifBadge();
+      renderNotifPanel();
+    }
+  });
+
+  // New delivery sent — server only emits this to sockets in the 'staff'
+  // room (see io.on('connection') in server.js), so any logged-in nurse
+  // gets it from whatever page they're on.
+  _chatSocket.on('new_delivery', data => {
+    _showDeliveryNotification(data);
+    if (data.notification_id) {
+      _notifications.unshift({
+        notification_id: data.notification_id,
+        request_id:      data.id,
+        patient_name:    data.patient_name,
+        file_number:     data.file_number,
+        blood_group:     data.blood_group,
+        rh_factor:       data.rh_factor,
+        room:            data.room,
+        life_saving:     data.life_saving,
+        saved_by:        data.saved_by,
+        created_at:      data.created_at,
+        is_read:         false,
+      });
+      _notifUnreadCount++;
+      renderNotifBadge();
+      renderNotifPanel();
+    }
+  });
 }
 
 // Called when user navigates to Chat page — builds sidebar UI
@@ -7759,6 +8291,274 @@ function _showChatNotification(fromDept, fromName, message, urgent) {
   // Auto-dismiss after 8 seconds
   setTimeout(() => { if (banner.parentNode) banner.remove(); }, 8000);
 }
+
+// ── Notification: new transfusion request (admins only — see server.js) ──
+function _showTransfusionRequestNotification(data) {
+  const existingId = 'txnotif_' + data.id;
+  const existing = document.getElementById(existingId);
+  if (existing) existing.remove();
+
+  const urgent = !!data.life_saving;
+  const bg      = data.blood_group ? data.blood_group + (data.rh_factor === 'Pos' ? '+' : data.rh_factor === 'Neg' ? '-' : '') : '';
+  const summary = [data.file_number, bg, data.room ? 'Room ' + data.room : ''].filter(Boolean).join(' · ');
+  const accentColor = urgent ? '#e74c3c' : '#f39c12';
+
+  const banner = document.createElement('div');
+  banner.id = existingId;
+  banner.style.cssText = [
+    'position:fixed','top:62px','left:50%','transform:translateX(-50%)',
+    `background:${urgent ? '#7b1010' : '#0D1B2A'}`, 'color:#fff',
+    'padding:14px 22px 14px 18px',
+    'border-radius:10px','z-index:999999',
+    'box-shadow:0 6px 28px rgba(0,0,0,.45)',
+    'cursor:pointer','text-align:center',
+    `border-left:5px solid ${accentColor}`,
+    'min-width:320px','max-width:480px',
+    'font-family:inherit','line-height:1.4',
+    'animation:chatNotifIn .25s ease'
+  ].join(';');
+  banner.innerHTML = `
+    <div style="font-size:13px;font-weight:800;margin-bottom:4px">
+      ${urgent ? '🚨 LIFE SAVING — ' : '🩸 '}New Transfusion Request — <span style="color:${accentColor}">${e(data.patient_name)}</span>
+    </div>
+    <div style="font-size:12px;opacity:.85">${e(summary)}${data.physician ? ' · Dr. ' + e(data.physician.replace(/^Dr\.?\s*/i, '')) : ''}</div>
+    <div style="font-size:10px;opacity:.5;margin-top:6px">Saved by ${e(data.saved_by)} · Click to open</div>`;
+  banner.onclick = () => {
+    banner.remove();
+    showPage('forms');
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput && data.file_number) {
+      searchInput.value = data.file_number;
+      onSearchInput();
+    }
+    document.getElementById('historyGrid')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+  document.body.appendChild(banner);
+
+  // Notification sound — same beep pattern as chat, pitched to feel distinct
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const freqs = urgent ? [660, 880, 660, 880] : [660, 880];
+    freqs.forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.frequency.value = freq;
+      osc.type = 'sine';
+      const t = ctx.currentTime + i * 0.18;
+      gain.gain.setValueAtTime(urgent ? 0.4 : 0.25, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+      osc.start(t); osc.stop(t + 0.18);
+    });
+  } catch {}
+
+  // Browser notification (works even when the tab is in the background)
+  if ('Notification' in window && Notification.permission === 'granted') {
+    const n = new Notification((urgent ? '🚨 Life saving — ' : '🩸 ') + 'New Transfusion Request', {
+      body: `${data.patient_name}${summary ? ' — ' + summary : ''}`,
+      icon: '/logo.png',
+      tag: existingId,
+    });
+    n.onclick = () => { window.focus(); banner.click(); n.close(); };
+    setTimeout(() => n.close(), 8000);
+  }
+
+  setTimeout(() => { if (banner.parentNode) banner.remove(); }, 8000);
+}
+
+// ── Notification: new delivery sent (staff/nurses only — see server.js) ──
+function _showDeliveryNotification(data) {
+  const existingId = 'delnotif_' + data.id;
+  const existing = document.getElementById(existingId);
+  if (existing) existing.remove();
+
+  const urgent = !!data.life_saving;
+  const bg      = data.blood_group ? data.blood_group + (data.rh_factor === 'Pos' ? '+' : data.rh_factor === 'Neg' ? '-' : '') : '';
+  const summary = [data.file_number, bg, data.room ? 'Room ' + data.room : ''].filter(Boolean).join(' · ');
+  const accentColor = urgent ? '#e74c3c' : '#1a7f4b';
+
+  const banner = document.createElement('div');
+  banner.id = existingId;
+  banner.style.cssText = [
+    'position:fixed','top:62px','left:50%','transform:translateX(-50%)',
+    `background:${urgent ? '#7b1010' : '#0D1B2A'}`, 'color:#fff',
+    'padding:14px 22px 14px 18px',
+    'border-radius:10px','z-index:999999',
+    'box-shadow:0 6px 28px rgba(0,0,0,.45)',
+    'cursor:pointer','text-align:center',
+    `border-left:5px solid ${accentColor}`,
+    'min-width:320px','max-width:480px',
+    'font-family:inherit','line-height:1.4',
+    'animation:chatNotifIn .25s ease'
+  ].join(';');
+  banner.innerHTML = `
+    <div style="font-size:13px;font-weight:800;margin-bottom:4px">
+      ${urgent ? '🚨 LIFE SAVING — ' : '🚚 '}Delivery Sent — <span style="color:${accentColor}">${e(data.patient_name)}</span>
+    </div>
+    <div style="font-size:12px;opacity:.85">${e(summary)}</div>
+    <div style="font-size:10px;opacity:.5;margin-top:6px">Sent by ${e(data.saved_by)} · Click to open</div>`;
+  banner.onclick = () => {
+    banner.remove();
+    showPage('forms');
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput && data.file_number) {
+      searchInput.value = data.file_number;
+      onSearchInput();
+    }
+    document.getElementById('historyGrid')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+  document.body.appendChild(banner);
+
+  // Notification sound — same beep pattern as chat, pitched to feel distinct
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const freqs = urgent ? [660, 880, 660, 880] : [660, 880];
+    freqs.forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.frequency.value = freq;
+      osc.type = 'sine';
+      const t = ctx.currentTime + i * 0.18;
+      gain.gain.setValueAtTime(urgent ? 0.4 : 0.25, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
+      osc.start(t); osc.stop(t + 0.18);
+    });
+  } catch {}
+
+  // Browser notification (works even when the tab is in the background)
+  if ('Notification' in window && Notification.permission === 'granted') {
+    const n = new Notification((urgent ? '🚨 Life saving — ' : '🚚 ') + 'Delivery Sent', {
+      body: `${data.patient_name}${summary ? ' — ' + summary : ''}`,
+      icon: '/logo.png',
+      tag: existingId,
+    });
+    n.onclick = () => { window.focus(); banner.click(); n.close(); };
+    setTimeout(() => n.close(), 8000);
+  }
+
+  setTimeout(() => { if (banner.parentNode) banner.remove(); }, 8000);
+}
+
+// ═══════════════════════════════════════════════════════
+// NOTIFICATIONS (admin) — persisted list of new transfusion requests, so an
+// admin who wasn't online when one came in still sees it on next login.
+// The live toast above (_showTransfusionRequestNotification) covers the
+// "admin is online right now" case; this covers "admin opens the app later".
+// ═══════════════════════════════════════════════════════
+let _notifications     = [];
+let _notifUnreadCount  = 0;
+
+function timeAgo(dateStr) {
+  const then = new Date(String(dateStr).replace(' ', 'T'));
+  const diffSec = Math.max(0, Math.floor((Date.now() - then.getTime()) / 1000));
+  if (diffSec < 60) return 'just now';
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return diffMin + 'm ago';
+  const diffHr = Math.floor(diffMin / 60);
+  if (diffHr < 24) return diffHr + 'h ago';
+  const diffDay = Math.floor(diffHr / 24);
+  if (diffDay < 7) return diffDay + 'd ago';
+  return then.toLocaleDateString('en-GB');
+}
+
+async function loadNotifications() {
+  if (!currentUser) return;
+  try {
+    const res  = await apiFetch(`${API}/notifications`);
+    const data = res ? await res.json() : null;
+    if (!data) return;
+    _notifications    = data.notifications || [];
+    _notifUnreadCount = data.unread_count || 0;
+    renderNotifBadge();
+    renderNotifPanel();
+  } catch { /* offline — bell just keeps its last known state */ }
+}
+
+function renderNotifBadge() {
+  const badge = document.getElementById('notifBadge');
+  if (!badge) return;
+  if (_notifUnreadCount > 0) {
+    badge.textContent = _notifUnreadCount > 99 ? '99+' : _notifUnreadCount;
+    badge.style.display = '';
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+function renderNotifPanel() {
+  const list = document.getElementById('notifPanelList');
+  if (!list) return;
+  if (_notifications.length === 0) {
+    list.innerHTML = '<div class="notif-empty">No notifications yet.</div>';
+    return;
+  }
+  list.innerHTML = _notifications.map((n, idx) => {
+    const bg      = n.blood_group ? n.blood_group + (n.rh_factor === 'Pos' ? '+' : n.rh_factor === 'Neg' ? '-' : '') : '';
+    const summary = [n.file_number, bg, n.room ? 'Room ' + n.room : ''].filter(Boolean).join(' · ');
+    const doc     = n.physician ? ' · Dr. ' + e(String(n.physician).replace(/^Dr\.?\s*/i, '')) : '';
+    return `
+      <div class="notif-item ${n.is_read ? '' : 'unread'}" data-idx="${idx}">
+        <div class="notif-item-title">${n.is_read ? '' : '<span class="unread-dot"></span>'}${n.life_saving ? '🚨 ' : '🩸 '}${e(n.patient_name || 'Unknown patient')}</div>
+        <div class="notif-item-sub">${e(summary)}${doc}</div>
+        <div class="notif-item-time">${e(timeAgo(n.created_at))}</div>
+      </div>`;
+  }).join('');
+  list.querySelectorAll('.notif-item').forEach(el => {
+    el.addEventListener('click', () => openNotifItem(_notifications[+el.dataset.idx]));
+  });
+}
+
+function openNotifItem(n) {
+  toggleNotifPanel(false);
+  markNotifRead(n.notification_id);
+  showPage('forms');
+  const searchInput = document.getElementById('searchInput');
+  if (searchInput && n.file_number) {
+    searchInput.value = n.file_number;
+    onSearchInput();
+  }
+  document.getElementById('historyGrid')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+async function markNotifRead(id) {
+  if (!id) return;
+  const item = _notifications.find(n => n.notification_id === id);
+  if (item && !item.is_read) {
+    item.is_read = true;
+    _notifUnreadCount = Math.max(0, _notifUnreadCount - 1);
+    renderNotifBadge();
+    renderNotifPanel();
+  }
+  try { await apiFetch(`${API}/notifications/${id}/read`, { method: 'POST' }); } catch {}
+}
+
+async function markAllNotifsRead() {
+  if (_notifUnreadCount === 0) return;
+  _notifications.forEach(n => { n.is_read = true; });
+  _notifUnreadCount = 0;
+  renderNotifBadge();
+  renderNotifPanel();
+  try { await apiFetch(`${API}/notifications/read-all`, { method: 'POST' }); } catch {}
+}
+
+function toggleNotifPanel(forceOpen) {
+  const panel = document.getElementById('notifPanel');
+  if (!panel) return;
+  const willOpen = forceOpen !== undefined ? forceOpen : panel.style.display === 'none';
+  panel.style.display = willOpen ? '' : 'none';
+  if (willOpen) markAllNotifsRead();
+}
+
+// Close the panel on an outside click (bell button itself is inside the
+// wrap, so this never fights with toggleNotifPanel's own open/close).
+document.addEventListener('click', (evt) => {
+  const wrap = document.getElementById('notifBellWrap');
+  if (wrap && wrap.style.display !== 'none' && !wrap.contains(evt.target)) {
+    const panel = document.getElementById('notifPanel');
+    if (panel) panel.style.display = 'none';
+  }
+});
 
 function openChatThread(dept) {
   _chatActiveDept = dept;

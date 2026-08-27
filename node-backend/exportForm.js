@@ -12,6 +12,39 @@ const LOGO_PATH = path.join(__dirname, 'logo.png');
 let   LOGO_BUF  = null;
 try { LOGO_BUF = fs.readFileSync(LOGO_PATH); } catch(e) { /* logo not found — skip */ }
 
+// Component keys used by the transfusion form's "+ add another row" table
+// (see renderTCompTable in index.html) — shared by the PDF and DOCX export
+// of extra rows beyond each type's first (which stays in its own flat
+// fpc_units/fpc_type-style field).
+const COMP_LABELS = { fpc: 'Filtered Packed Cells', ffp: 'F.F.P', plt: 'Platelets', irr: 'Irradiated RBC' };
+
+// Same idea for the delivery form's simpler "Components Issued" table (see
+// renderDCompTable in index.html) — different labels (matches External
+// Delivery's naming) since it's a distinct section of a distinct form.
+const D_COMP_LABELS = { fpc: 'Filtered RBC', ffp: 'FFP', plt: 'Platelets', irr: 'Irradiated RBC' };
+
+// Short "2 Filtered RBC, 1 FFP" summary of a delivery record's Components
+// Issued — used wherever a report needs to show what was delivered without
+// the old free-text "Type of Blood" field (removed; components are now
+// structured units). Mirrors deliveryComponentSummary() in index.html.
+function deliveryComponentSummary(r) {
+  if (!r) return '';
+  const parts = [];
+  ['fpc', 'ffp', 'plt', 'irr'].forEach(key => {
+    const n = parseInt(r[`${key}_units`]) || 0;
+    if (n > 0) parts.push(`${n} ${D_COMP_LABELS[key]}`);
+  });
+  if (r.components_json) {
+    try {
+      JSON.parse(r.components_json).forEach(c => {
+        const n = parseInt(c.units) || 0;
+        if (n > 0) parts.push(`${n} ${D_COMP_LABELS[c.key] || c.key}`);
+      });
+    } catch (e) { /* ignore bad JSON */ }
+  }
+  return parts.join(', ');
+}
+
 // ════════════════════════════════════════════════════════════════
 // PDF EXPORT — draws forms matching BB-19F-04 and BB-19F-23
 // ════════════════════════════════════════════════════════════════
@@ -73,6 +106,21 @@ function generatePdf(formType, fields) {
       t(label + ':', x + 3, cY + (h - 8) / 2, { b: true, sz: 7.5, w: totalW - 6 });
     }
 
+    // A labelled cell whose value is a drawn signature (base64 PNG data URL
+    // from the signature-pad canvas) instead of text. Falls back to a blank
+    // labelled box when there's no signature or the data is unreadable.
+    function sigCell(label, dataUrl, x, cY, totalW, labelW, h = 16) {
+      bx(x, cY, totalW, h);
+      t(label + ':', x + 3, cY + (h - 8) / 2, { b: true, sz: 7.5, w: labelW - 5 });
+      if (typeof dataUrl === 'string' && dataUrl.startsWith('data:image')) {
+        try {
+          const base64 = dataUrl.slice(dataUrl.indexOf(',') + 1);
+          const buf = Buffer.from(base64, 'base64');
+          doc.image(buf, x + labelW + 2, cY + 1, { fit: [totalW - labelW - 5, h - 2], align: 'center', valign: 'center' });
+        } catch (e) { /* corrupt image data — leave the box blank */ }
+      }
+    }
+
     // Draw a checkbox square with optional tick — avoids Unicode font issues
     function checkbox(checked, x, cY, size = 8) {
       doc.rect(x, cY, size, size).strokeColor(K).lineWidth(0.6).stroke();
@@ -121,30 +169,41 @@ function generatePdf(formType, fields) {
       y += 22;
 
       // ── Components Table ──────────────────────────────────────
-      const cComp  = W * 0.35;
-      const cUnits = W * 0.13;
-      const cPreOp = W * 0.20;
-      const cRout  = W * 0.16;
-      const cStat  = W - cComp - cUnits - cPreOp - cRout;
+      const cComp  = W * 0.27;
+      const cUnits = W * 0.09;
+      const cPreOp = W * 0.15;
+      const cRout  = W * 0.13;
+      const cStat  = W * 0.13;
+      const cEmer  = W - cComp - cUnits - cPreOp - cRout - cStat; // widest of the four — longest header label
 
       // Header row
       bx(ML, y, W, 14, GY);
-      t('Component',           ML + 3,                            y + 3, { b: true, sz: 7.5, w: cComp - 5 });
-      ln(ML + cComp,                    y, ML + cComp,                    y + 14);
-      t('Nº Units',            ML + cComp + 3,                    y + 3, { b: true, sz: 7.5, w: cUnits - 5, al: 'center' });
-      ln(ML + cComp + cUnits,           y, ML + cComp + cUnits,           y + 14);
-      t('Pre-Operative 24 hrs',ML + cComp + cUnits + 3,           y + 3, { b: true, sz: 7.5, w: cPreOp - 5, al: 'center' });
-      ln(ML + cComp + cUnits + cPreOp,  y, ML + cComp + cUnits + cPreOp,  y + 14);
-      t('Routine',             ML + cComp + cUnits + cPreOp + 3,  y + 3, { b: true, sz: 7.5, w: cRout - 5, al: 'center' });
-      ln(ML + cComp + cUnits + cPreOp + cRout, y, ML + cComp + cUnits + cPreOp + cRout, y + 14);
-      t('Stat (45 min)',        ML + cComp + cUnits + cPreOp + cRout + 3, y + 3, { b: true, sz: 7.5, w: cStat - 5, al: 'center' });
+      t('Component',           ML + 3,                                     y + 3, { b: true, sz: 7.5, w: cComp - 5 });
+      ln(ML + cComp,                             y, ML + cComp,                             y + 14);
+      t('Nº Units',            ML + cComp + 3,                             y + 3, { b: true, sz: 7.5, w: cUnits - 5, al: 'center' });
+      ln(ML + cComp + cUnits,                    y, ML + cComp + cUnits,                    y + 14);
+      t('Pre-Operative 24 hrs',ML + cComp + cUnits + 3,                    y + 3, { b: true, sz: 7.5, w: cPreOp - 5, al: 'center' });
+      ln(ML + cComp + cUnits + cPreOp,           y, ML + cComp + cUnits + cPreOp,           y + 14);
+      t('Routine',             ML + cComp + cUnits + cPreOp + 3,           y + 3, { b: true, sz: 7.5, w: cRout - 5, al: 'center' });
+      ln(ML + cComp + cUnits + cPreOp + cRout,   y, ML + cComp + cUnits + cPreOp + cRout,   y + 14);
+      t('Stat (45 min)',       ML + cComp + cUnits + cPreOp + cRout + 3,   y + 3, { b: true, sz: 7.5, w: cStat - 5, al: 'center' });
+      ln(ML + cComp + cUnits + cPreOp + cRout + cStat, y, ML + cComp + cUnits + cPreOp + cRout + cStat, y + 14);
+      t('Emergent (<15 min)',  ML + cComp + cUnits + cPreOp + cRout + cStat + 3, y + 3, { b: true, sz: 7, w: cEmer - 5, al: 'center' });
       y += 14;
+
+      // Rows added via "+" beyond each component's first row (see
+      // renderTCompTable in index.html) travel here as JSON, keyed the same
+      // as COMP_LABELS below.
+      let extraComps = [];
+      try { extraComps = fields.components_json ? JSON.parse(fields.components_json) : []; } catch (e) { /* ignore bad JSON */ }
 
       const comps = [
         { name: 'Filtered Packed Cells', units: fields.fpc_units, type: fields.fpc_type },
         { name: 'F.F.P',                 units: fields.ffp_units, type: fields.ffp_type },
         { name: 'Platelets',             units: fields.plt_units, type: fields.plt_type },
+        { name: 'Irradiated RBC',        units: fields.irr_units, type: fields.irr_type },
         { name: fields.others || 'Others', units: fields.others_units, type: fields.others_type },
+        ...extraComps.map(c => ({ name: (COMP_LABELS[c.key] || c.key) + ' (additional)', units: c.units, type: c.type })),
       ];
       for (const c of comps) {
         bx(ML, y, W, 15);
@@ -153,14 +212,17 @@ function generatePdf(formType, fields) {
         t(c.units != null ? String(c.units) : '', ML + cComp + 3, y + 3.5, { sz: 8.5, w: cUnits - 5, al: 'center' });
         ln(ML + cComp + cUnits, y, ML + cComp + cUnits, y + 15);
         // tick in the right column
-        const xPreOp  = ML + cComp + cUnits + cPreOp / 2 - 3;
-        const xRout   = ML + cComp + cUnits + cPreOp + cRout / 2 - 3;
-        const xStat   = ML + cComp + cUnits + cPreOp + cRout + cStat / 2 - 3;
-        if (c.type === 'Pre-Op 24hrs') t('✓', xPreOp, y + 3, { b: true, sz: 9, w: 10 });
-        if (c.type === 'Routine')      t('✓', xRout,  y + 3, { b: true, sz: 9, w: 10 });
-        if (c.type === 'Stat')         t('✓', xStat,  y + 3, { b: true, sz: 9, w: 10 });
+        const xPreOp = ML + cComp + cUnits + cPreOp / 2 - 3;
+        const xRout  = ML + cComp + cUnits + cPreOp + cRout / 2 - 3;
+        const xStat  = ML + cComp + cUnits + cPreOp + cRout + cStat / 2 - 3;
+        const xEmer  = ML + cComp + cUnits + cPreOp + cRout + cStat + cEmer / 2 - 3;
+        if (c.type === 'Pre-Op 24hrs')          t('✓', xPreOp, y + 3, { b: true, sz: 9, w: 10 });
+        if (c.type === 'Routine')               t('✓', xRout,  y + 3, { b: true, sz: 9, w: 10 });
+        if (c.type === 'Stat')                  t('✓', xStat,  y + 3, { b: true, sz: 9, w: 10 });
+        if (c.type === 'Emergent (<15 min)')    t('✓', xEmer,  y + 3, { b: true, sz: 9, w: 10 });
         ln(ML + cComp + cUnits + cPreOp, y, ML + cComp + cUnits + cPreOp, y + 15);
         ln(ML + cComp + cUnits + cPreOp + cRout, y, ML + cComp + cUnits + cPreOp + cRout, y + 15);
+        ln(ML + cComp + cUnits + cPreOp + cRout + cStat, y, ML + cComp + cUnits + cPreOp + cRout + cStat, y + 15);
         y += 15;
       }
       y += 5;
@@ -205,7 +267,7 @@ function generatePdf(formType, fields) {
 
       // Physician + Signature
       cell('Physician', fields.physician, ML,        y, half, 60, 16);
-      labelOnly('Signature', ML + half, y, half, 16);
+      sigCell('Signature', fields.physician_signature, ML + half, y, half, 60, 16);
       y += 20;
 
       // ── Nurse / Phlebotomist ──────────────────────────────────
@@ -232,7 +294,7 @@ function generatePdf(formType, fields) {
       cell("Physician's Name", fields.ls_physician_t, ML,       y, lq,     80, 16);
       labelOnly('Date',                                ML + lq,  y, lq,     16);
       cell('Time', fields.ls_time_t,                  ML + lq*2,y, lq,     38, 16);
-      labelOnly('Signature',                           ML + lq*3,y, lq,     16);
+      sigCell('Signature', fields.ls_signature_t,      ML + lq*3,y, lq,     55, 16);
       y += 20;
 
       // Footer warning bar
@@ -311,10 +373,6 @@ function generatePdf(formType, fields) {
       t('( Please write Pos. for Positive and Neg. for Negative )', ML + W - 280, y + 4.5, { sz: 7, c: '#555555', w: 278 });
       y += 16;
 
-      // Type of Blood Requested
-      cell('Type of Blood Requested', fields.blood_type_requested, ML, y, W, 135, 16);
-      y += 16;
-
       // Nurse's Name + Signature
       cell("Nurse's Name", fields.nurse, ML,        y, W / 2, 70, 16);
       labelOnly('Signature',             ML + W/2,  y, W / 2, 16);
@@ -324,10 +382,28 @@ function generatePdf(formType, fields) {
       y = sBar('For Blood Bank Use Only', y);
       y += 3;
 
-      // Blood Unit N° / Type of Blood
-      cell('Blood Unit N°',  fields.blood_unit_numbers, ML,       y, W/2, 75, 16);
-      cell('Type of Blood',  fields.type_of_blood,      ML + W/2, y, W/2, 75, 16);
+      // Blood Unit N°
+      cell('Blood Unit N°', fields.blood_unit_numbers, ML, y, W, 90, 16);
       y += 16;
+
+      // Components Issued — Filtered RBC / FFP / Platelets / Irradiated RBC,
+      // plus any extra rows added via "+" (see renderDCompTable in index.html).
+      let extraDComps = [];
+      try { extraDComps = fields.d_components_json ? JSON.parse(fields.d_components_json) : []; } catch (e) { /* ignore bad JSON */ }
+      const dCompRows = [
+        { label: 'Filtered RBC',   units: fields.d_fpc_units },
+        { label: 'FFP',            units: fields.d_ffp_units },
+        { label: 'Platelets',      units: fields.d_plt_units },
+        { label: 'Irradiated RBC', units: fields.d_irr_units },
+        ...extraDComps.map(c => ({ label: (D_COMP_LABELS[c.key] || c.key) + ' (additional)', units: c.units })),
+      ];
+      for (let i = 0; i < dCompRows.length; i += 2) {
+        const a = dCompRows[i], b = dCompRows[i + 1];
+        cell(a.label, a.units, ML, y, W / 2, 90, 16);
+        if (b) cell(b.label, b.units, ML + W / 2, y, W / 2, 90, 16);
+        else   bx(ML + W / 2, y, W / 2, 16);
+        y += 16;
+      }
 
       // Blood Unit Group (Done Before Delivery)
       cell('Blood Unit group (Done Before Delivery)', fields.blood_unit_group, ML, y, W, 205, 16);
@@ -417,7 +493,7 @@ function generatePdf(formType, fields) {
       cell("Physician's Name", fields.ls_physician_d, ML,        y, lq,     80, 16);
       labelOnly('Date',                               ML + lq,   y, lq,     16);
       cell('Time', fields.ls_time_d,                  ML + lq*2, y, lq,     38, 16);
-      labelOnly('Signature',                          ML + lq*3, y, lq,     16);
+      sigCell('Signature', fields.ls_signature_d,      ML + lq*3, y, lq,     55, 16);
       y += 20;
 
       // Form number
@@ -640,6 +716,29 @@ async function generateDocx(formType, fields) {
     });
   }
 
+  // A drawn signature comes in as a "data:image/png;base64,..." URL from the
+  // signature-pad canvas. Decode it into an ImageRun; anything else (blank,
+  // corrupt, or an old plain-text value from before the canvas existed) just
+  // renders as an empty cell instead of throwing.
+  function sigRun(dataUrl, w = 130, h = 40) {
+    if (typeof dataUrl !== 'string' || !dataUrl.startsWith('data:image')) return null;
+    try {
+      const base64 = dataUrl.slice(dataUrl.indexOf(',') + 1);
+      return new ImageRun({ data: Buffer.from(base64, 'base64'), transformation: { width: w, height: h }, type: 'png' });
+    } catch (e) { return null; }
+  }
+
+  function sigCell(dataUrl, w, span = 1) {
+    const run = sigRun(dataUrl);
+    return new TableCell({
+      columnSpan: span,
+      borders: bdrAll,
+      shading: { fill: WHITE, type: ShadingType.CLEAR },
+      margins: { top: 40, bottom: 40, left: 80, right: 80 },
+      children: [new Paragraph({ children: run ? [run] : [] })]
+    });
+  }
+
   // Label + value in a single cell (bold label, normal value)
   function lvCell(label, value, span = 1, shade) {
     return new TableCell({
@@ -723,13 +822,26 @@ async function generateDocx(formType, fields) {
 
     // Components table
     children.push(new Paragraph({ spacing: { before: 120, after: 40 }, children: [new TextRun({ text: 'Blood Components Requested', bold: true, size: 20, font: 'Arial' })] }));
+    const compRow = (name, units, type) => new TableRow({ children: [
+      valCell(name, 2800), valCell(units, 1200),
+      valCell(type === 'Pre-Op 24hrs'       ? '✓' : '', 1300),
+      valCell(type === 'Routine'            ? '✓' : '', 1100),
+      valCell(type === 'Stat'               ? '✓' : '', 1100),
+      valCell(type === 'Emergent (<15 min)' ? '✓' : '', 1860),
+    ]});
+    // Rows added via "+" beyond each component's first row (see
+    // renderTCompTable in index.html) travel here as JSON.
+    let extraComps = [];
+    try { extraComps = fields.components_json ? JSON.parse(fields.components_json) : []; } catch (e) { /* ignore bad JSON */ }
     children.push(tbl([
-      new TableRow({ children: [navyCell('Component', 3240), navyCell('Nº Units', 1560), navyCell('Pre-Op 24hrs', 1680), navyCell('Routine', 1440), navyCell('Stat (45 min)', 1440)] }),
-      new TableRow({ children: [valCell('Filtered Packed Cells', 3240), valCell(fields.fpc_units, 1560), valCell(fields.fpc_type === 'Pre-Op 24hrs' ? '✓' : '', 1680), valCell(fields.fpc_type === 'Routine' ? '✓' : '', 1440), valCell(fields.fpc_type === 'Stat' ? '✓' : '', 1440)] }),
-      new TableRow({ children: [valCell('F.F.P', 3240),                  valCell(fields.ffp_units, 1560), valCell(fields.ffp_type === 'Pre-Op 24hrs' ? '✓' : '', 1680), valCell(fields.ffp_type === 'Routine' ? '✓' : '', 1440), valCell(fields.ffp_type === 'Stat' ? '✓' : '', 1440)] }),
-      new TableRow({ children: [valCell('Platelets', 3240),              valCell(fields.plt_units, 1560), valCell(fields.plt_type === 'Pre-Op 24hrs' ? '✓' : '', 1680), valCell(fields.plt_type === 'Routine' ? '✓' : '', 1440), valCell(fields.plt_type === 'Stat' ? '✓' : '', 1440)] }),
-      new TableRow({ children: [valCell(fields.others || 'Others', 3240),valCell(fields.others_units, 1560), valCell('', 1680), valCell('', 1440), valCell('', 1440)] }),
-    ], [3240, 1560, 1680, 1440, 1440]));
+      new TableRow({ children: [navyCell('Component', 2800), navyCell('Nº Units', 1200), navyCell('Pre-Op 24hrs', 1300), navyCell('Routine', 1100), navyCell('Stat (45 min)', 1100), navyCell('Emergent (<15 min)', 1860)] }),
+      compRow('Filtered Packed Cells', fields.fpc_units, fields.fpc_type),
+      compRow('F.F.P',                 fields.ffp_units, fields.ffp_type),
+      compRow('Platelets',             fields.plt_units, fields.plt_type),
+      compRow('Irradiated RBC',        fields.irr_units, fields.irr_type),
+      compRow(fields.others || 'Others', fields.others_units, fields.others_type),
+      ...extraComps.map(c => compRow((COMP_LABELS[c.key] || c.key) + ' (additional)', c.units, c.type)),
+    ], [2800, 1200, 1300, 1100, 1100, 1860]));
 
     // Blood Bank — Compatible units
     const unitRows = [];
@@ -748,7 +860,7 @@ async function generateDocx(formType, fields) {
     children.push(tbl([
       new TableRow({ children: [greyCell('Previous Transfusion', 3500), valCell(prevTx, 1860), greyCell('Date / Place', 1500), valCell(fields.prev_transfusion_place, 2500)] }),
       lv2('Previous Transfusion Reaction', fields.prev_transfusion_reaction),
-      new TableRow({ children: [greyCell('Physician', 3500), valCell(fields.physician, 2930), greyCell('Signature', 1430), valCell('', 1500)] }),
+      new TableRow({ children: [greyCell('Physician', 3500), valCell(fields.physician, 2930), greyCell('Signature', 1430), sigCell(fields.physician_signature, 1500)] }),
     ], [3500, 1860, 1500, 2500]));
 
     // Nurse / Phlebotomist
@@ -762,8 +874,9 @@ async function generateDocx(formType, fields) {
     children.push(new Paragraph({ spacing: { before: 120, after: 40 }, children: [new TextRun({ text: 'Life Saving Cases', bold: true, size: 20, font: 'Arial', color: NAVY })] }));
     children.push(new Paragraph({ spacing: { before: 0, after: 60 }, children: [new TextRun({ text: 'For delivery of blood units without cross-matching, please sign below:', size: 16, font: 'Arial', italics: true })] }));
     children.push(tbl([
-      new TableRow({ children: [greyCell("Physician's Name", 2340), valCell(fields.ls_physician_t, 2340), greyCell('Date', 1560), greyCell('Time', 1560), valCell(fields.ls_time_t, 1560)] }),
-    ], [2340, 2340, 1560, 1560, 1560]));
+      new TableRow({ children: [greyCell("Physician's Name", 2340), valCell(fields.ls_physician_t, 2340), greyCell('Signature', 1560), sigCell(fields.ls_signature_t, 3120)] }),
+      new TableRow({ children: [greyCell('Date', 2340), valCell('', 2340), greyCell('Time', 1560), valCell(fields.ls_time_t, 3120)] }),
+    ], [2340, 2340, 1560, 3120]));
 
     // Footer
     children.push(new Paragraph({
@@ -795,14 +908,34 @@ async function generateDocx(formType, fields) {
     ], [3500, 2930, 1430, 1500]));
 
     children.push(tbl([
-      lv2('Type of Blood Requested', fields.blood_type_requested),
       new TableRow({ children: [greyCell("Nurse's Name", 3500), valCell(fields.nurse, 2930), greyCell('Signature', 1430), valCell('', 1500)] }),
     ], [3500, 2930, 1430, 1500]));
 
     // Blood Bank
     children.push(new Paragraph({ spacing: { before: 120, after: 40 }, children: [new TextRun({ text: 'For Blood Bank Use Only', bold: true, size: 20, font: 'Arial', color: NAVY })] }));
+    // Components Issued — Filtered RBC / FFP / Platelets / Irradiated RBC,
+    // plus any extra rows added via "+" (see renderDCompTable in index.html).
+    let extraDComps = [];
+    try { extraDComps = fields.d_components_json ? JSON.parse(fields.d_components_json) : []; } catch (e) { /* ignore bad JSON */ }
+    const dCompRows = [
+      { label: 'Filtered RBC',   units: fields.d_fpc_units },
+      { label: 'FFP',            units: fields.d_ffp_units },
+      { label: 'Platelets',      units: fields.d_plt_units },
+      { label: 'Irradiated RBC', units: fields.d_irr_units },
+      ...extraDComps.map(c => ({ label: (D_COMP_LABELS[c.key] || c.key) + ' (additional)', units: c.units })),
+    ];
+    const dCompTableRows = [];
+    for (let i = 0; i < dCompRows.length; i += 2) {
+      const a = dCompRows[i], b = dCompRows[i + 1];
+      dCompTableRows.push(new TableRow({ children: [
+        greyCell(a.label, 3500), valCell(a.units, 2430),
+        greyCell(b ? b.label : '', 1430), valCell(b ? b.units : '', 2000),
+      ]}));
+    }
+
     children.push(tbl([
-      new TableRow({ children: [greyCell('Blood Unit N°', 3500), valCell(fields.blood_unit_numbers, 2430), greyCell('Type of Blood', 1430), valCell(fields.type_of_blood, 2000)] }),
+      lv2('Blood Unit N°', fields.blood_unit_numbers),
+      ...dCompTableRows,
       lv2('Blood Unit group (Done Before Delivery)', fields.blood_unit_group),
       lv2('Patient Blood Group (Done Before Delivery)', fields.patient_bg_delivery),
       new TableRow({ children: [greyCell('Technician Name', 3500), valCell(fields.technician, 2930), greyCell('Signature', 1430), valCell('', 1500)] }),
@@ -826,8 +959,9 @@ async function generateDocx(formType, fields) {
     children.push(new Paragraph({ spacing: { before: 120, after: 40 }, children: [new TextRun({ text: 'Life Saving Cases', bold: true, size: 20, font: 'Arial', color: NAVY })] }));
     children.push(new Paragraph({ spacing: { before: 0, after: 60 }, children: [new TextRun({ text: 'For delivery of blood units without cross-matching, please sign below:', size: 16, font: 'Arial', italics: true })] }));
     children.push(tbl([
-      new TableRow({ children: [greyCell("Physician's Name", 2340), valCell(fields.ls_physician_d, 2340), greyCell('Date', 1560), greyCell('Time', 1560), valCell(fields.ls_time_d, 1560)] }),
-    ], [2340, 2340, 1560, 1560, 1560]));
+      new TableRow({ children: [greyCell("Physician's Name", 2340), valCell(fields.ls_physician_d, 2340), greyCell('Signature', 1560), sigCell(fields.ls_signature_d, 3120)] }),
+      new TableRow({ children: [greyCell('Date', 2340), valCell('', 2340), greyCell('Time', 1560), valCell(fields.ls_time_d, 3120)] }),
+    ], [2340, 2340, 1560, 3120]));
   }
 
   // Form number at bottom
@@ -1163,7 +1297,7 @@ function generateHandoverPdf(data) {
           r.file_number          || '—',
           (r.patient_blood_group || '') + rhStr(r.patient_rh),
           r.room                 || '—',
-          r.type_of_blood        || r.type_of_blood_requested || '—',
+          deliveryComponentSummary(r) || '—',
           r.technician_name      || '—',
           r.time_saved           || '—',
         ];

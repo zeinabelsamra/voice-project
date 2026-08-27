@@ -5,6 +5,11 @@ node-backend/.env
 # Admin-editable DB credentials saved from the Settings page — never commit
 node-backend/config/
 
+# Real hospital eDelphyn schema export — internal hospital IP, kept local
+# only as a reference for validating node-backend/edelphyn-test-db scripts
+# and edelphynQueries.js/edelphynAnalyticsQueries.js against the real schema
+node-backend/edelphyn-test-db/schema.sql
+
 # Dependencies
 node-backend/node_modules/
 python-service/venv/
@@ -19,6 +24,9 @@ rag-chatbot/data_snapshot/
 
 # Uploaded audio files
 node-backend/uploads/
+
+# Runtime logs
+node-backend/*.log
 
 # OS files
 .DS_Store
