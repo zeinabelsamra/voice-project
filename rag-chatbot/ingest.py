@@ -33,7 +33,26 @@ def summarize_group(category, period_label, group_df):
         series = series[series.astype(str).str.strip() != ""]
         if series.empty:
             continue
-        if series.dtype == object or series.nunique() <= 20:
+        # Bug: `dtype == object` short-circuits this for almost every real
+        # column, since pandas loads plain strings as object dtype whether
+        # or not they're actually categorical -- so a near-unique free-text
+        # column (order form numbers, delivery notes, bag/box IDs not
+        # already caught by IDENTIFIER_COLS) was getting a "breakdown" line
+        # too, listing up to 8 values that each occur once. That's not a
+        # summary, it's noise -- and it gets WORSE as real data grows: a
+        # busy month has more of exactly this kind of high-cardinality
+        # column, each one crowding out the genuinely useful categorical
+        # breakdowns (Group, Component, Reason...) in the limited context
+        # the small local LLM actually reads.
+        #
+        # An absolute cap alone (nunique() <= 20) isn't quite enough either:
+        # a quiet month with only, say, 15 records will make even a fully
+        # per-row-unique ID column (nunique() == 15) pass that cap. Require
+        # actual repetition too -- most values appearing more than once --
+        # so a column only counts as categorical when it plausibly is one,
+        # independent of how many rows happen to be in this group.
+        nunique = series.nunique()
+        if nunique <= 20 and nunique <= max(3, len(series) * 0.5):
             counts = series.astype(str).value_counts().head(8)
             parts = ", ".join(f"{k}: {v}" for k, v in counts.items())
             lines.append(f"  {col} breakdown: {parts}")

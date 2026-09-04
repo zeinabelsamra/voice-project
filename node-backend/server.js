@@ -223,6 +223,14 @@ async function initDB() {
         ALTER TABLE BloodDeliveries ADD saved_by NVARCHAR(100) NULL;
     `);
 
+    // ── Migrate: blood bank date/time (Only for Blood Bank section) ─
+    await pool.request().query(`
+      IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='TransfusionRequests' AND COLUMN_NAME='blood_bank_date')
+        ALTER TABLE TransfusionRequests ADD blood_bank_date DATE NULL;
+      IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='TransfusionRequests' AND COLUMN_NAME='blood_bank_time')
+        ALTER TABLE TransfusionRequests ADD blood_bank_time NVARCHAR(10) NULL;
+    `);
+
     // ── Migrate: physician/life-saving signature columns ───────────
     // These hold a base64 PNG data URL captured from the draw-to-sign
     // canvas (easily several KB), so they need NVARCHAR(MAX), not a short
@@ -966,6 +974,8 @@ app.post("/forms/save", requireAuth, async (req, res) => {
         .input("irr_units",                 sql.Int,      parseInt(fields.irr_units) || null)
         .input("irr_type",                  sql.NVarChar, fields.irr_type || null)
         .input("components_json",           sql.NVarChar, fields.components_json || null)
+        .input("blood_bank_date",           sql.Date,     fields.blood_bank_date || null)
+        .input("blood_bank_time",           sql.NVarChar, fields.blood_bank_time || null)
         .input("blood_unit_1",              sql.NVarChar, fields.blood_unit_1 || null)
         .input("blood_unit_2",              sql.NVarChar, fields.blood_unit_2 || null)
         .input("blood_unit_3",              sql.NVarChar, fields.blood_unit_3 || null)
@@ -992,6 +1002,7 @@ app.post("/forms/save", requireAuth, async (req, res) => {
           blood_group, rh_factor, diagnosis,
           fpc_units, fpc_type, ffp_units, ffp_type, plt_units, plt_type,
           irr_units, irr_type, components_json,
+          blood_bank_date, blood_bank_time,
           blood_unit_1, blood_unit_2, blood_unit_3, blood_unit_4,
           blood_unit_5, blood_unit_6, blood_unit_7, blood_unit_8,
           previous_transfusion, prev_transfusion_place, prev_transfusion_reaction,
@@ -1004,6 +1015,7 @@ app.post("/forms/save", requireAuth, async (req, res) => {
           @blood_group, @rh_factor, @diagnosis,
           @fpc_units, @fpc_type, @ffp_units, @ffp_type, @plt_units, @plt_type,
           @irr_units, @irr_type, @components_json,
+          @blood_bank_date, @blood_bank_time,
           @blood_unit_1, @blood_unit_2, @blood_unit_3, @blood_unit_4,
           @blood_unit_5, @blood_unit_6, @blood_unit_7, @blood_unit_8,
           @previous_transfusion, @prev_transfusion_place, @prev_transfusion_reaction,
@@ -1271,12 +1283,14 @@ app.get("/history", requireAuth, async (req, res) => {
         patient_name, diagnosis, blood_group, rh_factor, file_number, room,
         fpc_units, fpc_type, ffp_units, ffp_type, plt_units, plt_type,
         irr_units, irr_type, components_json,
+        blood_bank_date, blood_bank_time,
         blood_unit_1, blood_unit_2, blood_unit_3, blood_unit_4,
         blood_unit_5, blood_unit_6, blood_unit_7, blood_unit_8,
         previous_transfusion, prev_transfusion_place, prev_transfusion_reaction,
         physician, physician_signature, phlebotomist,
-        request_date, request_time,
-        life_saving, life_saving_physician, life_saving_signature, life_saving_time,
+        request_date, CONVERT(VARCHAR(5), request_time, 108) AS request_time,
+        life_saving, life_saving_physician, life_saving_signature,
+        CONVERT(VARCHAR(5), life_saving_time, 108) AS life_saving_time,
         saved_by, signed_by_user_id, signed_by_name,
         CONVERT(VARCHAR(19), signed_at, 120) AS signed_at,
         CONVERT(VARCHAR(19), created_at, 120) AS created_at
@@ -1302,13 +1316,14 @@ app.get("/history", requireAuth, async (req, res) => {
         technician_name         AS technician,
         orderly_name            AS orderly,
         nurse_name              AS nurse,
-        delivery_date, delivery_time,
+        delivery_date, CONVERT(VARCHAR(5), delivery_time, 108) AS delivery_time,
         leakage, gases, volume, expiry_date,
         temperature_c           AS temperature,
         received_by,
         nurse_unit_received_by, nurse_unit_name,
         nurse_unit_date, nurse_unit_time,
-        life_saving, life_saving_physician, life_saving_signature, life_saving_time,
+        life_saving, life_saving_physician, life_saving_signature,
+        CONVERT(VARCHAR(5), life_saving_time, 108) AS life_saving_time,
         saved_by, signed_by_user_id, signed_by_name,
         CONVERT(VARCHAR(19), signed_at, 120) AS signed_at,
         CONVERT(VARCHAR(19), created_at, 120) AS created_at
@@ -1389,6 +1404,8 @@ app.put("/forms/update/:id", requireAuth, async (req, res) => {
         .input("irr_units",                  sql.Int,      parseInt(fields.irr_units) || null)
         .input("irr_type",                   sql.NVarChar, fields.irr_type || null)
         .input("components_json",            sql.NVarChar, fields.components_json || null)
+        .input("blood_bank_date",            sql.Date,     fields.blood_bank_date || null)
+        .input("blood_bank_time",            sql.NVarChar, fields.blood_bank_time || null)
         .input("blood_unit_1",               sql.NVarChar, fields.blood_unit_1 || null)
         .input("blood_unit_2",               sql.NVarChar, fields.blood_unit_2 || null)
         .input("blood_unit_3",               sql.NVarChar, fields.blood_unit_3 || null)
@@ -1417,6 +1434,7 @@ app.put("/forms/update/:id", requireAuth, async (req, res) => {
           ffp_units=@ffp_units, ffp_type=@ffp_type,
           plt_units=@plt_units, plt_type=@plt_type,
           irr_units=@irr_units, irr_type=@irr_type, components_json=@components_json,
+          blood_bank_date=@blood_bank_date, blood_bank_time=@blood_bank_time,
           blood_unit_1=@blood_unit_1, blood_unit_2=@blood_unit_2,
           blood_unit_3=@blood_unit_3, blood_unit_4=@blood_unit_4,
           blood_unit_5=@blood_unit_5, blood_unit_6=@blood_unit_6,
@@ -2376,7 +2394,8 @@ app.get('/handover', requireAuth, async (req, res) => {
       .query(`
         SELECT request_id, patient_name, file_number, blood_group, rh_factor, room,
           diagnosis, fpc_units, fpc_type, ffp_units, ffp_type, plt_units, plt_type,
-          physician, life_saving, life_saving_physician, life_saving_time,
+          physician, life_saving, life_saving_physician,
+          CONVERT(VARCHAR(5), life_saving_time, 108) AS life_saving_time,
           saved_by, CONVERT(VARCHAR(5), created_at, 108) AS time_saved
         FROM TransfusionRequests
         WHERE created_at >= CAST(@from AS DATETIME) AND created_at < CAST(@to AS DATETIME)
@@ -2389,7 +2408,8 @@ app.get('/handover', requireAuth, async (req, res) => {
       .query(`
         SELECT delivery_id, patient_name, file_number, patient_blood_group, patient_rh,
           room, fpc_units, ffp_units, plt_units, irr_units, components_json, technician_name,
-          life_saving, life_saving_physician, life_saving_time,
+          life_saving, life_saving_physician,
+          CONVERT(VARCHAR(5), life_saving_time, 108) AS life_saving_time,
           saved_by, CONVERT(VARCHAR(5), created_at, 108) AS time_saved
         FROM BloodDeliveries
         WHERE created_at >= CAST(@from AS DATETIME) AND created_at < CAST(@to AS DATETIME)
@@ -2485,11 +2505,14 @@ app.get('/history/search', requireAuth, async (req, res) => {
           file_number, room, fpc_units, fpc_type,
           ffp_units, ffp_type, plt_units, plt_type,
           irr_units, irr_type, components_json,
+          blood_bank_date, blood_bank_time,
           blood_unit_1, blood_unit_2, blood_unit_3, blood_unit_4,
           blood_unit_5, blood_unit_6, blood_unit_7, blood_unit_8,
           previous_transfusion, prev_transfusion_place, prev_transfusion_reaction,
-          physician, physician_signature, phlebotomist, request_date, request_time,
-          life_saving, life_saving_physician, life_saving_signature, life_saving_time,
+          physician, physician_signature, phlebotomist,
+          request_date, CONVERT(VARCHAR(5), request_time, 108) AS request_time,
+          life_saving, life_saving_physician, life_saving_signature,
+          CONVERT(VARCHAR(5), life_saving_time, 108) AS life_saving_time,
           saved_by, signed_by_user_id, signed_by_name,
           CONVERT(VARCHAR(19), signed_at, 120) AS signed_at,
           CONVERT(VARCHAR(19), created_at, 120) AS created_at
@@ -2525,13 +2548,14 @@ app.get('/history/search', requireAuth, async (req, res) => {
           technician_name  AS technician,
           orderly_name     AS orderly,
           nurse_name       AS nurse,
-          delivery_date, delivery_time,
+          delivery_date, CONVERT(VARCHAR(5), delivery_time, 108) AS delivery_time,
           leakage, gases, volume, expiry_date,
           temperature_c    AS temperature,
           received_by,
           nurse_unit_received_by, nurse_unit_name,
           nurse_unit_date, nurse_unit_time,
-          life_saving, life_saving_physician, life_saving_signature, life_saving_time,
+          life_saving, life_saving_physician, life_saving_signature,
+          CONVERT(VARCHAR(5), life_saving_time, 108) AS life_saving_time,
           saved_by, signed_by_user_id, signed_by_name,
           CONVERT(VARCHAR(19), signed_at, 120) AS signed_at,
           CONVERT(VARCHAR(19), created_at, 120) AS created_at

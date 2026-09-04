@@ -233,6 +233,10 @@ function generatePdf(formType, fields) {
       t('Compatible Blood Units', ML, y, { b: true, sz: 8.5, w: W });
       y += 11;
 
+      cell('Date', fields.blood_bank_date, ML,        y, half, 38, 17);
+      cell('Time', fields.blood_bank_time, ML + half, y, half, 38, 17);
+      y += 20;
+
       const uPairW  = W / 2;
       const uNumW   = 18;
       const uValW   = uPairW - uNumW;
@@ -852,6 +856,9 @@ async function generateDocx(formType, fields) {
       ]}));
     }
     children.push(new Paragraph({ spacing: { before: 120, after: 40 }, children: [new TextRun({ text: 'Only for Blood Bank — Compatible Blood Units', bold: true, size: 20, font: 'Arial', color: NAVY })] }));
+    children.push(tbl([
+      new TableRow({ children: [greyCell('Date', 2340), valCell(fields.blood_bank_date, 2340), greyCell('Time', 2340), valCell(fields.blood_bank_time, 2340)] }),
+    ], [2340, 2340, 2340, 2340]));
     children.push(tbl(unitRows, [780, 3900, 780, 3900]));
 
     // Physicians — Patient History

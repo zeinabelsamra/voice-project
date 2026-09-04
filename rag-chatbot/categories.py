@@ -47,14 +47,16 @@ CATEGORY_KEYWORDS = {
 # classifyComponent() -- tune both together if real DES_COMPONENT text
 # from eDelphyn turns out to need different matching.
 COMPONENT_MARKERS = (
-    ("whole blood",    "whole"),
-    ("platelet",       "plat"),
-    ("plasma",         "plasma|ffp"),
-    ("ffp",            "plasma|ffp"),
-    ("red blood cell", "red|rbc|prc|pack"),
-    ("red cells",      "red|rbc|prc|pack"),
-    ("rbc",            "red|rbc|prc|pack"),
-    ("packed cell",    "red|rbc|prc|pack"),
+    ("whole blood",     "whole"),
+    ("platelet",        "plat"),
+    ("plasma",          "plasma|ffp"),
+    ("ffp",             "plasma|ffp"),
+    ("red blood cell",  "red|rbc|prc|pack"),
+    ("red cells",       "red|rbc|prc|pack"),
+    ("rbc",             "red|rbc|prc|pack"),
+    ("packed cell",     "red|rbc|prc|pack"),
+    ("cryoprecipitate", "cryo"),
+    ("cryo",            "cryo"),
 )
 
 # Columns that identify individuals or are raw IDs -- excluded from
@@ -62,5 +64,5 @@ COMPONENT_MARKERS = (
 # high-cardinality to summarize.
 IDENTIFIER_COLS = {
     "patient", "donor", "patient number", "dob", "sample", "order form",
-    "seq", "unit", "bag", "donation", "c.m.",
+    "seq", "unit", "bag", "box", "donation", "c.m.",
 }

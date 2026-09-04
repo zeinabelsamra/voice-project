@@ -806,22 +806,44 @@ def _attribute_keywords(question_kw, tables):
 
 
 def _find_breakdown_column(question_kw, tables):
-    # See _attribute_keywords: words that already earned their keep picking
-    # the category shouldn't also be allowed to justify a column match on
-    # their own -- otherwise a question about an attribute nothing has data
-    # for (e.g. "priority" when the matched category has no Priority column)
-    # silently gets answered with an unrelated column instead of admitting
-    # there's no match.
-    attribute_kw = _attribute_keywords(question_kw, tables) or question_kw
-
+    # Score against the RAW question keywords, NOT the category/value-
+    # subtracted attribute_kw (_attribute_keywords is still used by
+    # try_exact_breakdown, just only to decide whether a "no such field"
+    # message is warranted once no column matches here). Subtracting
+    # first looks appealing -- stop category-name noise from justifying a
+    # column match -- but it backfires: any column-name word that ALSO
+    # happens to appear inside some unrelated VALUE elsewhere in the data
+    # (e.g. the column "Hospital" vs. a value like "Zahra Hospital"; the
+    # column "Unit Group" vs. "unit" being an IDENTIFIER_COLS word) gets
+    # silently stripped before matching even starts -- so a question that
+    # plainly names a real column ("breakdown of Hospital") wrongly landed
+    # on "no such field exists". That coincidence only gets MORE likely as
+    # real data grows and picks up more free-text values, i.e. this was
+    # actively getting worse on bigger datasets. Scoring against the
+    # column's OWN keywords is self-limiting regardless -- a column can
+    # only ever match if the question actually contains one of ITS words,
+    # so this doesn't reopen the "priority when there's no Priority
+    # column" false-match case the subtraction was originally guarding.
+    #
     # Column names are the dataset's own headers, not free-text someone
     # could typo -- plain (singularized) exact-set overlap is enough here,
-    # no need for _fuzzy_overlap's typo tolerance.
-    best_col, best_score = None, 0
+    # no need for _fuzzy_overlap's typo tolerance. Ties broken by
+    # preferring the more PRECISE column (fewest extra unmatched words in
+    # its own name) -- same approach as _find_patient_field -- so "Unit
+    # Group" (2/2 words matched) beats "Group" (1/1 matched but 0 extra
+    # too) whenever the question's wording actually supports the longer
+    # name; see the score comparison below for exactly how ties resolve.
+    best_col, best_score, best_extra = None, 0, None
     for col in _breakdown_column_candidates(tables):
-        score = len(attribute_kw & _keywords(col))
-        if score > best_score:
-            best_score, best_col = score, col
+        col_kw = _keywords(col)
+        if not col_kw:
+            continue
+        score = len(question_kw & col_kw)
+        if score == 0:
+            continue
+        extra = len(col_kw) - score
+        if score > best_score or (score == best_score and (best_extra is None or extra < best_extra)):
+            best_col, best_score, best_extra = col, score, extra
     return best_col
 
 

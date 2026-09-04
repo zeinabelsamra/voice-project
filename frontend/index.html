@@ -1579,6 +1579,12 @@
 
         <div class="form-section-block bb-block">
           <div class="sec-label">Only for Blood Bank — Compatible Blood Units</div>
+          <div class="row row-2">
+            <div class="fg"><label class="fl">Date</label>
+              <input class="fi" type="date" id="t_bb_date"/></div>
+            <div class="fg"><label class="fl">Time</label>
+              <input class="fi" type="time" id="t_bb_time"/></div>
+          </div>
           <div class="unit-grid">
             <div class="unit-cell"><div class="unit-num">1</div><input class="fi" type="text" id="t_unit_1" placeholder="Unit #"/></div>
             <div class="unit-cell"><div class="unit-num">2</div><input class="fi" type="text" id="t_unit_2" placeholder="Unit #"/></div>
@@ -3384,6 +3390,8 @@ const FIELD_MAP = {
   plt_type:                 { id:'t_plt_type',            form:'transfusion' },
   irr_units:                { id:'t_irr_units',           form:'transfusion' },
   irr_type:                 { id:'t_irr_type',            form:'transfusion' },
+  blood_bank_date:          { id:'t_bb_date',             form:'transfusion' },
+  blood_bank_time:          { id:'t_bb_time',             form:'transfusion' },
   blood_unit_1:             { id:'t_unit_1',              form:'transfusion' },
   blood_unit_2:             { id:'t_unit_2',              form:'transfusion' },
   blood_unit_3:             { id:'t_unit_3',              form:'transfusion' },
@@ -5051,6 +5059,8 @@ function loadRecordIntoForm(idx) {
       plt_type: r.plt_type || '',
       irr_units: r.irr_units || '',
       irr_type: r.irr_type || '',
+      bb_date: r.blood_bank_date ? r.blood_bank_date.split('T')[0] : '',
+      bb_time: r.blood_bank_time || '',
       unit_1: r.blood_unit_1 || '',
       unit_2: r.blood_unit_2 || '',
       unit_3: r.blood_unit_3 || '',
