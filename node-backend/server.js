@@ -320,6 +320,17 @@ async function initDB() {
         ALTER TABLE TransfusionRequests ADD components_json NVARCHAR(MAX) NULL;
     `);
 
+    // ── Migrate: Compatible Blood Units grouped per component ──────
+    // blood_unit_1..blood_unit_8 stay as legacy flat columns (no longer
+    // written to); each Unit # is now grouped under its component
+    // (Filtered Packed Cells / F.F.P / Platelets / Irradiated RBC) and
+    // "+" adds another Unit # for that component — see renderTUnitCompTable
+    // in index.html.
+    await pool.request().query(`
+      IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='TransfusionRequests' AND COLUMN_NAME='blood_unit_entries_json')
+        ALTER TABLE TransfusionRequests ADD blood_unit_entries_json NVARCHAR(MAX) NULL;
+    `);
+
     // ── Migrate: "Components Issued" on the delivery form ───────────
     // Same "+ add another row" concept as the transfusion table, but for
     // "For Blood Bank Use Only" on the Delivery form — just a component +
@@ -984,6 +995,7 @@ app.post("/forms/save", requireAuth, async (req, res) => {
         .input("blood_unit_6",              sql.NVarChar, fields.blood_unit_6 || null)
         .input("blood_unit_7",              sql.NVarChar, fields.blood_unit_7 || null)
         .input("blood_unit_8",              sql.NVarChar, fields.blood_unit_8 || null)
+        .input("blood_unit_entries_json",    sql.NVarChar, fields.blood_unit_entries_json || null)
         .input("previous_transfusion",      sql.Bit,      fields.previous_transfusion === true || fields.previous_transfusion === 'true' ? 1 : 0)
         .input("prev_transfusion_place",    sql.NVarChar, fields.prev_transfusion_place || null)
         .input("prev_transfusion_reaction", sql.NVarChar, fields.prev_transfusion_reaction || null)
@@ -1005,6 +1017,7 @@ app.post("/forms/save", requireAuth, async (req, res) => {
           blood_bank_date, blood_bank_time,
           blood_unit_1, blood_unit_2, blood_unit_3, blood_unit_4,
           blood_unit_5, blood_unit_6, blood_unit_7, blood_unit_8,
+          blood_unit_entries_json,
           previous_transfusion, prev_transfusion_place, prev_transfusion_reaction,
           physician, physician_signature, phlebotomist,
           life_saving, life_saving_physician, life_saving_signature, life_saving_time,
@@ -1018,6 +1031,7 @@ app.post("/forms/save", requireAuth, async (req, res) => {
           @blood_bank_date, @blood_bank_time,
           @blood_unit_1, @blood_unit_2, @blood_unit_3, @blood_unit_4,
           @blood_unit_5, @blood_unit_6, @blood_unit_7, @blood_unit_8,
+          @blood_unit_entries_json,
           @previous_transfusion, @prev_transfusion_place, @prev_transfusion_reaction,
           @physician, @physician_signature, @phlebotomist,
           @life_saving, @life_saving_physician, @life_saving_signature, @life_saving_time,
@@ -1414,6 +1428,7 @@ app.put("/forms/update/:id", requireAuth, async (req, res) => {
         .input("blood_unit_6",               sql.NVarChar, fields.blood_unit_6 || null)
         .input("blood_unit_7",               sql.NVarChar, fields.blood_unit_7 || null)
         .input("blood_unit_8",               sql.NVarChar, fields.blood_unit_8 || null)
+        .input("blood_unit_entries_json",     sql.NVarChar, fields.blood_unit_entries_json || null)
         .input("previous_transfusion",       sql.Bit,      fields.previous_transfusion === true || fields.previous_transfusion === 'true' ? 1 : 0)
         .input("prev_transfusion_place",     sql.NVarChar, fields.prev_transfusion_place || null)
         .input("prev_transfusion_reaction",  sql.NVarChar, fields.prev_transfusion_reaction || null)
@@ -1439,6 +1454,7 @@ app.put("/forms/update/:id", requireAuth, async (req, res) => {
           blood_unit_3=@blood_unit_3, blood_unit_4=@blood_unit_4,
           blood_unit_5=@blood_unit_5, blood_unit_6=@blood_unit_6,
           blood_unit_7=@blood_unit_7, blood_unit_8=@blood_unit_8,
+          blood_unit_entries_json=@blood_unit_entries_json,
           previous_transfusion=@previous_transfusion,
           prev_transfusion_place=@prev_transfusion_place,
           prev_transfusion_reaction=@prev_transfusion_reaction,
@@ -2508,6 +2524,7 @@ app.get('/history/search', requireAuth, async (req, res) => {
           blood_bank_date, blood_bank_time,
           blood_unit_1, blood_unit_2, blood_unit_3, blood_unit_4,
           blood_unit_5, blood_unit_6, blood_unit_7, blood_unit_8,
+          blood_unit_entries_json,
           previous_transfusion, prev_transfusion_place, prev_transfusion_reaction,
           physician, physician_signature, phlebotomist,
           request_date, CONVERT(VARCHAR(5), request_time, 108) AS request_time,

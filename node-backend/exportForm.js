@@ -18,6 +18,18 @@ try { LOGO_BUF = fs.readFileSync(LOGO_PATH); } catch(e) { /* logo not found — 
 // fpc_units/fpc_type-style field).
 const COMP_LABELS = { fpc: 'Filtered Packed Cells', ffp: 'F.F.P', plt: 'Platelets', irr: 'Irradiated RBC' };
 
+// blood_unit_entries_json holds every Compatible Blood Unit Unit # entered,
+// grouped by component (see renderTUnitCompTable/tUnitComponents in
+// index.html) — join each component's own entries into one display string.
+function tUnitLabel(fields, key) {
+  let entries = [];
+  try { entries = fields.blood_unit_entries_json ? JSON.parse(fields.blood_unit_entries_json) : []; } catch (e) { /* ignore bad JSON */ }
+  const nos = (Array.isArray(entries) ? entries : [])
+    .filter(c => c && c.key === key && c.unit_no)
+    .map(c => c.unit_no);
+  return nos.join(', ');
+}
+
 // Same idea for the delivery form's simpler "Components Issued" table (see
 // renderDCompTable in index.html) — different labels (matches External
 // Delivery's naming) since it's a distinct section of a distinct form.
@@ -237,15 +249,19 @@ function generatePdf(formType, fields) {
       cell('Time', fields.blood_bank_time, ML + half, y, half, 38, 17);
       y += 20;
 
-      const uPairW  = W / 2;
-      const uNumW   = 18;
-      const uValW   = uPairW - uNumW;
-      for (let row = 0; row < 4; row++) {
-        const a = row + 1, b = row + 5;
-        bx(ML,               y, uNumW,  16, GY); t(String(a), ML + 5,               y + 4, { b: true, sz: 8, w: 10 });
-        bx(ML + uNumW,       y, uValW,  16);      t(fields[`blood_unit_${a}`], ML + uNumW + 3, y + 3.5, { sz: 8.5, w: uValW - 5 });
-        bx(ML + uPairW,      y, uNumW,  16, GY); t(String(b), ML + uPairW + 5,      y + 4, { b: true, sz: 8, w: 10 });
-        bx(ML + uPairW+uNumW,y, uValW,  16);      t(fields[`blood_unit_${b}`], ML + uPairW + uNumW + 3, y + 3.5, { sz: 8.5, w: uValW - 5 });
+      // Unit #(s) grouped per component (see renderTUnitCompTable /
+      // blood_unit_entries_json in index.html) — two components per row.
+      const unitLabelRows = [
+        { label: COMP_LABELS.fpc, units: tUnitLabel(fields, 'fpc') },
+        { label: COMP_LABELS.ffp, units: tUnitLabel(fields, 'ffp') },
+        { label: COMP_LABELS.plt, units: tUnitLabel(fields, 'plt') },
+        { label: COMP_LABELS.irr, units: tUnitLabel(fields, 'irr') },
+      ];
+      for (let i = 0; i < unitLabelRows.length; i += 2) {
+        const a = unitLabelRows[i], b = unitLabelRows[i + 1];
+        cell(a.label, a.units, ML, y, W / 2, 90, 16);
+        if (b) cell(b.label, b.units, ML + W / 2, y, W / 2, 90, 16);
+        else   bx(ML + W / 2, y, W / 2, 16);
         y += 16;
       }
       y += 5;
@@ -847,19 +863,23 @@ async function generateDocx(formType, fields) {
       ...extraComps.map(c => compRow((COMP_LABELS[c.key] || c.key) + ' (additional)', c.units, c.type)),
     ], [2800, 1200, 1300, 1100, 1100, 1860]));
 
-    // Blood Bank — Compatible units
-    const unitRows = [];
-    for (let i = 0; i < 4; i++) {
-      unitRows.push(new TableRow({ children: [
-        greyCell(String(i+1), 780), valCell(fields[`blood_unit_${i+1}`], 3900),
-        greyCell(String(i+5), 780), valCell(fields[`blood_unit_${i+5}`], 3900),
-      ]}));
-    }
+    // Blood Bank — Compatible units, grouped per component (see
+    // renderTUnitCompTable/blood_unit_entries_json in index.html).
+    const unitRows = [
+      new TableRow({ children: [
+        greyCell(COMP_LABELS.fpc, 2340), valCell(tUnitLabel(fields, 'fpc'), 2340),
+        greyCell(COMP_LABELS.ffp, 2340), valCell(tUnitLabel(fields, 'ffp'), 2340),
+      ]}),
+      new TableRow({ children: [
+        greyCell(COMP_LABELS.plt, 2340), valCell(tUnitLabel(fields, 'plt'), 2340),
+        greyCell(COMP_LABELS.irr, 2340), valCell(tUnitLabel(fields, 'irr'), 2340),
+      ]}),
+    ];
     children.push(new Paragraph({ spacing: { before: 120, after: 40 }, children: [new TextRun({ text: 'Only for Blood Bank — Compatible Blood Units', bold: true, size: 20, font: 'Arial', color: NAVY })] }));
     children.push(tbl([
       new TableRow({ children: [greyCell('Date', 2340), valCell(fields.blood_bank_date, 2340), greyCell('Time', 2340), valCell(fields.blood_bank_time, 2340)] }),
     ], [2340, 2340, 2340, 2340]));
-    children.push(tbl(unitRows, [780, 3900, 780, 3900]));
+    children.push(tbl(unitRows, [2340, 2340, 2340, 2340]));
 
     // Physicians — Patient History
     children.push(new Paragraph({ spacing: { before: 120, after: 40 }, children: [new TextRun({ text: 'Only For Physicians — Patient History', bold: true, size: 20, font: 'Arial', color: NAVY })] }));

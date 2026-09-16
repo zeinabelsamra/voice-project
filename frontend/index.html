@@ -1585,16 +1585,14 @@
             <div class="fg"><label class="fl">Time</label>
               <input class="fi" type="time" id="t_bb_time"/></div>
           </div>
-          <div class="unit-grid">
-            <div class="unit-cell"><div class="unit-num">1</div><input class="fi" type="text" id="t_unit_1" placeholder="Unit #"/></div>
-            <div class="unit-cell"><div class="unit-num">2</div><input class="fi" type="text" id="t_unit_2" placeholder="Unit #"/></div>
-            <div class="unit-cell"><div class="unit-num">3</div><input class="fi" type="text" id="t_unit_3" placeholder="Unit #"/></div>
-            <div class="unit-cell"><div class="unit-num">4</div><input class="fi" type="text" id="t_unit_4" placeholder="Unit #"/></div>
-            <div class="unit-cell"><div class="unit-num">5</div><input class="fi" type="text" id="t_unit_5" placeholder="Unit #"/></div>
-            <div class="unit-cell"><div class="unit-num">6</div><input class="fi" type="text" id="t_unit_6" placeholder="Unit #"/></div>
-            <div class="unit-cell"><div class="unit-num">7</div><input class="fi" type="text" id="t_unit_7" placeholder="Unit #"/></div>
-            <div class="unit-cell"><div class="unit-num">8</div><input class="fi" type="text" id="t_unit_8" placeholder="Unit #"/></div>
-          </div>
+          <!-- Each component's own Unit #(s) — "+" adds another Unit # row
+               for that component. See renderTUnitCompTable in index.html. -->
+          <table class="comp-table" style="margin-top:4px">
+            <thead>
+              <tr><th>Component</th><th>Unit #</th><th class="comp-btn-cell"></th></tr>
+            </thead>
+            <tbody id="tUnitCompBody"></tbody>
+          </table>
         </div>
 
         <div class="form-footer-note">⚠ Incomplete requests or bad filling are not accepted</div>
@@ -3036,6 +3034,8 @@ function collectFormData(formType) {
   if (formType === 'transfusion') {
     const extraComponents = collectExtraTComponents();
     if (extraComponents.length) data.components_json = JSON.stringify(extraComponents);
+    const unitEntries = collectTUnitCompEntries();
+    if (unitEntries.length) data.blood_unit_entries_json = JSON.stringify(unitEntries);
   }
   if (formType === 'delivery') {
     const extraComponents = collectExtraDComponents();
@@ -3102,6 +3102,7 @@ function restoreDraft(formType) {
     // below fills the freshly-rendered first-row inputs (t_fpc_units, ...)
     // instead of ones about to be wiped by a later render.
     if (formType === 'transfusion' && draft.components_json)   applyTComponentsFromJson(draft.components_json);
+    if (formType === 'transfusion' && draft.blood_unit_entries_json) applyTUnitComponentsFromJson(draft.blood_unit_entries_json);
     if (formType === 'delivery'    && draft.d_components_json) applyDComponentsFromJson(draft.d_components_json);
     Object.entries(FIELD_MAP).forEach(([key, map]) => {
       if (map.form !== formType) return;
@@ -3325,7 +3326,7 @@ function clearForm(arg) {
   else if (arg === 'delivery') prefix = 'd';
   else prefix = arg;
 
-  if (prefix === 't') { tComponents = defaultTComponents(); renderTCompTable(); } // drop any extra component rows
+  if (prefix === 't') { tComponents = defaultTComponents(); renderTCompTable(); tUnitComponents = defaultTUnitComponents(); renderTUnitCompTable(); } // drop any extra component rows / unit entries
   if (prefix === 'd') { dComponents = defaultDComponents(); renderDCompTable(); } // drop any extra component rows
   document.querySelectorAll(`[id^="${prefix}_"]`).forEach(el => {
     if (el.type === 'checkbox' || el.type === 'radio') el.checked = false;
@@ -3392,14 +3393,10 @@ const FIELD_MAP = {
   irr_type:                 { id:'t_irr_type',            form:'transfusion' },
   blood_bank_date:          { id:'t_bb_date',             form:'transfusion' },
   blood_bank_time:          { id:'t_bb_time',             form:'transfusion' },
-  blood_unit_1:             { id:'t_unit_1',              form:'transfusion' },
-  blood_unit_2:             { id:'t_unit_2',              form:'transfusion' },
-  blood_unit_3:             { id:'t_unit_3',              form:'transfusion' },
-  blood_unit_4:             { id:'t_unit_4',              form:'transfusion' },
-  blood_unit_5:             { id:'t_unit_5',              form:'transfusion' },
-  blood_unit_6:             { id:'t_unit_6',              form:'transfusion' },
-  blood_unit_7:             { id:'t_unit_7',              form:'transfusion' },
-  blood_unit_8:             { id:'t_unit_8',              form:'transfusion' },
+  // blood_unit_1..8 are intentionally absent here — Compatible Blood Units
+  // is now a per-component Unit # list (see tUnitComponents /
+  // renderTUnitCompTable below), computed at every collection/restore point
+  // instead of round-tripping through 8 plain DOM elements.
   previous_transfusion:     { id:'t_prev_yes',            form:'transfusion', type:'radio' },
   prev_transfusion_place:   { id:'t_prev_place',          form:'transfusion' },
   prev_transfusion_reaction:{ id:'t_prev_reaction',       form:'transfusion' },
@@ -3486,12 +3483,9 @@ function removeTCompRow(idx) {
 function renderTCompTable() {
   const tbody = document.getElementById('tCompBody');
   if (!tbody) return;
-  const lastOfKey = {};
-  tComponents.forEach((c, i) => { lastOfKey[c.key] = i; });
   const seenKeys = {};
   tbody.innerHTML = tComponents.map((c, idx) => {
     const isFirst = !seenKeys[c.key]; seenKeys[c.key] = true;
-    const isLast  = lastOfKey[c.key] === idx;
     const label   = T_COMP_FIXED[c.key] || '';
     // Only the first row of each key keeps the fixed id — see header note above.
     const unitsAttr = isFirst ? ` id="t_${c.key}_units"` : '';
@@ -3499,14 +3493,13 @@ function renderTCompTable() {
     const checkAttr = isFirst ? ` id="t_${c.key}_check"` : '';
     const nameCell  = `<td class="comp-name"${isFirst ? '' : ' style="color:var(--text-soft);font-style:italic;font-size:11px"'}>${label}</td>`;
     const typeOpts  = T_COMP_TYPE_OPTS.map(o => `<option value="${escHtml(o)}"${o === c.type ? ' selected' : ''}>${escHtml(o) || '—'}</option>`).join('');
-    const addBtn    = isLast   ? `<button type="button" class="comp-add-btn" onclick="addTCompRow('${c.key}')" title="Add another ${escHtml(label)} row">+</button>` : '';
     const remBtn    = !isFirst ? `<button type="button" class="comp-rem-btn" onclick="removeTCompRow(${idx})" title="Remove row">−</button>` : '';
     return `<tr>
       ${nameCell}
       <td><input type="number" min="0"${unitsAttr} value="${escHtml(c.units)}" oninput="syncTComp(${idx},'units',this.value)" placeholder="0"/></td>
       <td><select${typeAttr} onchange="syncTComp(${idx},'type',this.value)">${typeOpts}</select></td>
       <td><input type="checkbox"${checkAttr} ${c.checked ? 'checked' : ''} style="width:14px;height:14px;accent-color:var(--blood)" onchange="syncTComp(${idx},'checked',this.checked)"/></td>
-      <td class="comp-btn-cell">${addBtn}${remBtn}</td>
+      <td class="comp-btn-cell">${remBtn}</td>
     </tr>`;
   }).join('');
 }
@@ -3547,6 +3540,102 @@ function applyTComponentsFromJson(jsonStr) {
 }
 
 document.addEventListener('DOMContentLoaded', () => renderTCompTable());
+
+// ═══════════════════════════════════════════════════════
+// COMPATIBLE BLOOD UNITS (transfusion) — one row per issued unit, grouped
+// by component (Filtered Packed Cells / F.F.P / Platelets / Irradiated
+// RBC — same labels as T_COMP_FIXED above) and identified by its Unit #.
+// "+" adds another Unit # row for that same component. Travels as
+// blood_unit_entries_json — the old flat blood_unit_1..8 columns are no
+// longer written to from this UI.
+// ═══════════════════════════════════════════════════════
+function defaultTUnitComponents() {
+  return Object.keys(T_COMP_FIXED).map(key => ({ key, unit_no:'' }));
+}
+let tUnitComponents = defaultTUnitComponents();
+
+function syncTUnitComp(idx, value) {
+  if (tUnitComponents[idx]) tUnitComponents[idx].unit_no = value;
+}
+
+function addTUnitCompRow(key) {
+  let lastIdx = -1;
+  tUnitComponents.forEach((c, i) => { if (c.key === key) lastIdx = i; });
+  if (lastIdx === -1) return;
+  tUnitComponents.splice(lastIdx + 1, 0, { key, unit_no:'' });
+  renderTUnitCompTable();
+}
+
+function removeTUnitCompRow(idx) {
+  tUnitComponents.splice(idx, 1);
+  renderTUnitCompTable();
+}
+
+function renderTUnitCompTable() {
+  const tbody = document.getElementById('tUnitCompBody');
+  if (!tbody) return;
+  const lastOfKey = {};
+  tUnitComponents.forEach((c, i) => { lastOfKey[c.key] = i; });
+  const seenKeys = {};
+  tbody.innerHTML = tUnitComponents.map((c, idx) => {
+    const isFirst = !seenKeys[c.key]; seenKeys[c.key] = true;
+    const isLast  = lastOfKey[c.key] === idx;
+    const label   = T_COMP_FIXED[c.key] || '';
+    const nameCell = `<td class="comp-name"${isFirst ? '' : ' style="color:var(--text-soft);font-style:italic;font-size:11px"'}>${label}</td>`;
+    const addBtn   = isLast   ? `<button type="button" class="comp-add-btn" onclick="addTUnitCompRow('${c.key}')" title="Add another ${escHtml(label)} unit">+</button>` : '';
+    const remBtn   = !isFirst ? `<button type="button" class="comp-rem-btn" onclick="removeTUnitCompRow(${idx})" title="Remove unit">−</button>` : '';
+    return `<tr>
+      ${nameCell}
+      <td><input type="text" value="${escHtml(c.unit_no)}" oninput="syncTUnitComp(${idx},this.value)" placeholder="Unit #"/></td>
+      <td class="comp-btn-cell">${addBtn}${remBtn}</td>
+    </tr>`;
+  }).join('');
+}
+
+// Every filled-in Unit # entry across all components — sent as
+// blood_unit_entries_json.
+function collectTUnitCompEntries() {
+  return tUnitComponents
+    .filter(c => c.unit_no && String(c.unit_no).trim())
+    .map(c => ({ key: c.key, unit_no: String(c.unit_no).trim() }));
+}
+
+function rebuildTUnitCompFromEntries(entries) {
+  const list = (Array.isArray(entries) ? entries : []).filter(e => e && T_COMP_FIXED[e.key]);
+  const base = [];
+  Object.keys(T_COMP_FIXED).forEach(key => {
+    const rows = list.filter(e => e.key === key);
+    if (rows.length) rows.forEach(e => base.push({ key, unit_no: e.unit_no || '' }));
+    else base.push({ key, unit_no: '' });
+  });
+  return base;
+}
+
+// Restores from a saved blood_unit_entries_json string alone (drafts).
+function applyTUnitComponentsFromJson(jsonStr) {
+  let entries = [];
+  try { entries = jsonStr ? JSON.parse(jsonStr) : []; } catch { entries = []; }
+  tUnitComponents = entries.length ? rebuildTUnitCompFromEntries(entries) : defaultTUnitComponents();
+  renderTUnitCompTable();
+}
+
+// Restores from a full saved record. Records saved before this per-
+// component listing existed only have the old flat blood_unit_1..8 values
+// with no component association — show them ungrouped under Filtered
+// Packed Cells so the data isn't lost, ready to be re-filed by hand.
+function applyTUnitComponentsFromRecord(r) {
+  let entries = [];
+  try { entries = r && r.blood_unit_entries_json ? JSON.parse(r.blood_unit_entries_json) : []; } catch { entries = []; }
+  entries = (Array.isArray(entries) ? entries : []).filter(e => e && T_COMP_FIXED[e.key]);
+  if (!entries.length && r) {
+    const legacy = [1,2,3,4,5,6,7,8].map(n => r[`blood_unit_${n}`]).filter(v => v && String(v).trim());
+    entries = legacy.map(v => ({ key: 'fpc', unit_no: v }));
+  }
+  tUnitComponents = entries.length ? rebuildTUnitCompFromEntries(entries) : defaultTUnitComponents();
+  renderTUnitCompTable();
+}
+
+document.addEventListener('DOMContentLoaded', () => renderTUnitCompTable());
 
 // ═══════════════════════════════════════════════════════
 // COMPONENTS ISSUED (delivery) — same "+ add another row" concept as the
@@ -3762,8 +3851,6 @@ document.addEventListener('DOMContentLoaded', initSignaturePads);
 // instead of the normal brief flash, until a human reviews/edits it.
 const HIGH_RISK_VOICE_LABELS = {
   t_file_number: 'File Number',
-  t_unit_1: 'Blood Unit 1', t_unit_2: 'Blood Unit 2', t_unit_3: 'Blood Unit 3', t_unit_4: 'Blood Unit 4',
-  t_unit_5: 'Blood Unit 5', t_unit_6: 'Blood Unit 6', t_unit_7: 'Blood Unit 7', t_unit_8: 'Blood Unit 8',
   t_room: 'Room / Ward',
   d_file_number: 'File Number',
   d_blood_unit_numbers: 'Blood Unit N°',
@@ -4771,6 +4858,8 @@ async function saveForm(formType) {
   if (formType === 'transfusion') {
     const extraComponents = collectExtraTComponents();
     data.components_json = extraComponents.length ? JSON.stringify(extraComponents) : null;
+    const unitEntries = collectTUnitCompEntries();
+    data.blood_unit_entries_json = unitEntries.length ? JSON.stringify(unitEntries) : null;
   }
   if (formType === 'delivery') {
     const extraComponents = collectExtraDComponents();
@@ -4890,6 +4979,8 @@ async function exportForm(formType, fileType) {
   if (formType === 'transfusion') {
     const extraComponents = collectExtraTComponents();
     if (extraComponents.length) data.components_json = JSON.stringify(extraComponents);
+    const unitEntries = collectTUnitCompEntries();
+    if (unitEntries.length) data.blood_unit_entries_json = JSON.stringify(unitEntries);
   }
   if (formType === 'delivery') {
     const extraComponents = collectExtraDComponents();
@@ -5042,6 +5133,7 @@ function loadRecordIntoForm(idx) {
     // fills the freshly-rendered first-row inputs (t_fpc_units, t_irr_units,
     // ...) rather than ones a later render would wipe out.
     applyTComponentsFromJson(r.components_json);
+    applyTUnitComponentsFromRecord(r);
     fillFromRecord('t', {
       request_date: r.request_date ? r.request_date.split('T')[0] : '',
       request_time: r.request_time || '',
@@ -5061,14 +5153,6 @@ function loadRecordIntoForm(idx) {
       irr_type: r.irr_type || '',
       bb_date: r.blood_bank_date ? r.blood_bank_date.split('T')[0] : '',
       bb_time: r.blood_bank_time || '',
-      unit_1: r.blood_unit_1 || '',
-      unit_2: r.blood_unit_2 || '',
-      unit_3: r.blood_unit_3 || '',
-      unit_4: r.blood_unit_4 || '',
-      unit_5: r.blood_unit_5 || '',
-      unit_6: r.blood_unit_6 || '',
-      unit_7: r.blood_unit_7 || '',
-      unit_8: r.blood_unit_8 || '',
       physician: r.physician || '',
       physician_signature: r.physician_signature || '',
       phlebotomist: r.phlebotomist || '',
