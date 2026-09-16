@@ -21,13 +21,19 @@ const COMP_LABELS = { fpc: 'Filtered Packed Cells', ffp: 'F.F.P', plt: 'Platelet
 // blood_unit_entries_json holds every Compatible Blood Unit Unit # entered,
 // grouped by component (see renderTUnitCompTable/tUnitComponents in
 // index.html) — join each component's own entries into one display string.
-function tUnitLabel(fields, key) {
+// key 'other' covers the free-text Other component row.
+function tUnitEntries(fields) {
   let entries = [];
   try { entries = fields.blood_unit_entries_json ? JSON.parse(fields.blood_unit_entries_json) : []; } catch (e) { /* ignore bad JSON */ }
-  const nos = (Array.isArray(entries) ? entries : [])
-    .filter(c => c && c.key === key && c.unit_no)
-    .map(c => c.unit_no);
-  return nos.join(', ');
+  return Array.isArray(entries) ? entries : [];
+}
+function tUnitLabel(fields, key) {
+  return tUnitEntries(fields).filter(c => c && c.key === key && c.unit_no).map(c => c.unit_no).join(', ');
+}
+// Name typed into the Other component row (e.g. "Cryoprecipitate").
+function tOtherComponentName(fields) {
+  const other = tUnitEntries(fields).find(c => c && c.key === 'other' && c.name);
+  return other ? other.name : '';
 }
 
 // Same idea for the delivery form's simpler "Components Issued" table (see
@@ -257,6 +263,8 @@ function generatePdf(formType, fields) {
         { label: COMP_LABELS.plt, units: tUnitLabel(fields, 'plt') },
         { label: COMP_LABELS.irr, units: tUnitLabel(fields, 'irr') },
       ];
+      const otherUnits = tUnitLabel(fields, 'other');
+      if (otherUnits) unitLabelRows.push({ label: tOtherComponentName(fields) || 'Other', units: otherUnits });
       for (let i = 0; i < unitLabelRows.length; i += 2) {
         const a = unitLabelRows[i], b = unitLabelRows[i + 1];
         cell(a.label, a.units, ML, y, W / 2, 90, 16);
@@ -875,6 +883,13 @@ async function generateDocx(formType, fields) {
         greyCell(COMP_LABELS.irr, 2340), valCell(tUnitLabel(fields, 'irr'), 2340),
       ]}),
     ];
+    const otherDocxUnits = tUnitLabel(fields, 'other');
+    if (otherDocxUnits) {
+      unitRows.push(new TableRow({ children: [
+        greyCell(tOtherComponentName(fields) || 'Other', 2340), valCell(otherDocxUnits, 2340),
+        greyCell('', 2340), valCell('', 2340),
+      ]}));
+    }
     children.push(new Paragraph({ spacing: { before: 120, after: 40 }, children: [new TextRun({ text: 'Only for Blood Bank — Compatible Blood Units', bold: true, size: 20, font: 'Arial', color: NAVY })] }));
     children.push(tbl([
       new TableRow({ children: [greyCell('Date', 2340), valCell(fields.blood_bank_date, 2340), greyCell('Time', 2340), valCell(fields.blood_bank_time, 2340)] }),

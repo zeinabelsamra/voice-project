@@ -3544,18 +3544,21 @@ document.addEventListener('DOMContentLoaded', () => renderTCompTable());
 // ═══════════════════════════════════════════════════════
 // COMPATIBLE BLOOD UNITS (transfusion) — one row per issued unit, grouped
 // by component (Filtered Packed Cells / F.F.P / Platelets / Irradiated
-// RBC — same labels as T_COMP_FIXED above) and identified by its Unit #.
-// "+" adds another Unit # row for that same component. Travels as
-// blood_unit_entries_json — the old flat blood_unit_1..8 columns are no
-// longer written to from this UI.
+// RBC — same labels as T_COMP_FIXED above) and identified by its Unit #,
+// plus a free-text "Other" component (mirrors the Others row on the Blood
+// Components Requested table). "+" adds another Unit # row for that same
+// component. Travels as blood_unit_entries_json — the old flat
+// blood_unit_1..8 columns are no longer written to from this UI.
 // ═══════════════════════════════════════════════════════
 function defaultTUnitComponents() {
-  return Object.keys(T_COMP_FIXED).map(key => ({ key, unit_no:'' }));
+  const base = Object.keys(T_COMP_FIXED).map(key => ({ key, unit_no:'' }));
+  base.push({ key:'other', name:'', unit_no:'' });
+  return base;
 }
 let tUnitComponents = defaultTUnitComponents();
 
-function syncTUnitComp(idx, value) {
-  if (tUnitComponents[idx]) tUnitComponents[idx].unit_no = value;
+function syncTUnitComp(idx, field, value) {
+  if (tUnitComponents[idx]) tUnitComponents[idx][field] = value;
 }
 
 function addTUnitCompRow(key) {
@@ -3577,37 +3580,52 @@ function renderTUnitCompTable() {
   const lastOfKey = {};
   tUnitComponents.forEach((c, i) => { lastOfKey[c.key] = i; });
   const seenKeys = {};
+  // Name typed into the first "Other" row — shared by any extra Other rows.
+  const otherName = (tUnitComponents.find(c => c.key === 'other') || {}).name || '';
   tbody.innerHTML = tUnitComponents.map((c, idx) => {
     const isFirst = !seenKeys[c.key]; seenKeys[c.key] = true;
     const isLast  = lastOfKey[c.key] === idx;
-    const label   = T_COMP_FIXED[c.key] || '';
-    const nameCell = `<td class="comp-name"${isFirst ? '' : ' style="color:var(--text-soft);font-style:italic;font-size:11px"'}>${label}</td>`;
-    const addBtn   = isLast   ? `<button type="button" class="comp-add-btn" onclick="addTUnitCompRow('${c.key}')" title="Add another ${escHtml(label)} unit">+</button>` : '';
+    const isOther = c.key === 'other';
+    const label   = isOther ? otherName : (T_COMP_FIXED[c.key] || '');
+    const nameCell = isOther && isFirst
+      ? `<td><input type="text" value="${escHtml(c.name || '')}" oninput="syncTUnitComp(${idx},'name',this.value)" placeholder="Other component…"/></td>`
+      : `<td class="comp-name"${isFirst ? '' : ' style="color:var(--text-soft);font-style:italic;font-size:11px"'}>${escHtml(label) || (isOther ? 'Other' : '')}</td>`;
+    const addBtn   = isLast   ? `<button type="button" class="comp-add-btn" onclick="addTUnitCompRow('${c.key}')" title="Add another ${escHtml(label) || 'Other'} unit">+</button>` : '';
     const remBtn   = !isFirst ? `<button type="button" class="comp-rem-btn" onclick="removeTUnitCompRow(${idx})" title="Remove unit">−</button>` : '';
     return `<tr>
       ${nameCell}
-      <td><input type="text" value="${escHtml(c.unit_no)}" oninput="syncTUnitComp(${idx},this.value)" placeholder="Unit #"/></td>
+      <td><input type="text" value="${escHtml(c.unit_no)}" oninput="syncTUnitComp(${idx},'unit_no',this.value)" placeholder="Unit #"/></td>
       <td class="comp-btn-cell">${addBtn}${remBtn}</td>
     </tr>`;
   }).join('');
 }
 
 // Every filled-in Unit # entry across all components — sent as
-// blood_unit_entries_json.
+// blood_unit_entries_json. The Other row's name (if any) rides along with
+// each of its entries so it survives a reload.
 function collectTUnitCompEntries() {
+  const otherName = ((tUnitComponents.find(c => c.key === 'other') || {}).name || '').trim();
   return tUnitComponents
     .filter(c => c.unit_no && String(c.unit_no).trim())
-    .map(c => ({ key: c.key, unit_no: String(c.unit_no).trim() }));
+    .map(c => c.key === 'other'
+      ? { key:'other', name: otherName, unit_no: String(c.unit_no).trim() }
+      : { key: c.key, unit_no: String(c.unit_no).trim() });
 }
 
 function rebuildTUnitCompFromEntries(entries) {
-  const list = (Array.isArray(entries) ? entries : []).filter(e => e && T_COMP_FIXED[e.key]);
+  const list = (Array.isArray(entries) ? entries : []).filter(e => e && (T_COMP_FIXED[e.key] || e.key === 'other'));
   const base = [];
   Object.keys(T_COMP_FIXED).forEach(key => {
     const rows = list.filter(e => e.key === key);
     if (rows.length) rows.forEach(e => base.push({ key, unit_no: e.unit_no || '' }));
     else base.push({ key, unit_no: '' });
   });
+  const otherRows = list.filter(e => e.key === 'other');
+  if (otherRows.length) {
+    otherRows.forEach((e, i) => base.push({ key:'other', unit_no: e.unit_no || '', name: i === 0 ? (e.name || '') : '' }));
+  } else {
+    base.push({ key:'other', unit_no:'', name:'' });
+  }
   return base;
 }
 
@@ -3626,7 +3644,7 @@ function applyTUnitComponentsFromJson(jsonStr) {
 function applyTUnitComponentsFromRecord(r) {
   let entries = [];
   try { entries = r && r.blood_unit_entries_json ? JSON.parse(r.blood_unit_entries_json) : []; } catch { entries = []; }
-  entries = (Array.isArray(entries) ? entries : []).filter(e => e && T_COMP_FIXED[e.key]);
+  entries = (Array.isArray(entries) ? entries : []).filter(e => e && (T_COMP_FIXED[e.key] || e.key === 'other'));
   if (!entries.length && r) {
     const legacy = [1,2,3,4,5,6,7,8].map(n => r[`blood_unit_${n}`]).filter(v => v && String(v).trim());
     entries = legacy.map(v => ({ key: 'fpc', unit_no: v }));
