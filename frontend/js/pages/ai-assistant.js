@@ -3,7 +3,7 @@
 // Loaded as a classic script (shared global scope) — see index.html for load order.
 
 // ═══════════════════════════════════════════════════════
-// AI ASSISTANT (offline RAG chatbot over the Excel data)
+// AI ASSISTANT (offline RAG chatbot over live e-Delphyn data)
 // ═══════════════════════════════════════════════════════
 let _aiInitialized = false;
 let _aiHistory = [];  // [{role:'user'|'assistant', content:'...'}, ...] — sent back for follow-up context

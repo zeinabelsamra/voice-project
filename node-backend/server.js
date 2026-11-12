@@ -1644,7 +1644,7 @@ app.get('/dashboard/stats', requireAuth, async (req, res) => {
 
 // ════════════════════════════════════════════════════════════════
 // POST /api/rag-chat — proxy to the local Python RAG chatbot service
-// (rag-chatbot/app.py, offline Ollama + Chroma over the Excel data)
+// (rag-chatbot/app.py, offline Ollama + Chroma over live e-Delphyn data)
 // ════════════════════════════════════════════════════════════════
 app.post('/api/rag-chat', requireAuth, async (req, res) => {
   const { question, history } = req.body;
