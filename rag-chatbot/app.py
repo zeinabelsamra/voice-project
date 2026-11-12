@@ -5,8 +5,9 @@ Then open http://127.0.0.1:5000 in a browser.
 """
 
 from flask import Flask, request, jsonify, send_from_directory
-import chromadb
-from chat import retrieve, ask, DB_DIR, COLLECTION_NAME
+import live_data
+from chat import retrieve, ask
+from ingest import get_or_create_collection, sync_index
 from structured_query import (
     try_exact_count, try_exact_breakdown, try_exact_patient, try_exact_trend,
     resolve_patient_reference,
@@ -14,8 +15,16 @@ from structured_query import (
 
 app = Flask(__name__, static_folder="static")
 
-client = chromadb.PersistentClient(path=DB_DIR)
-collection = client.get_collection(COLLECTION_NAME)
+collection = get_or_create_collection()
+
+# Whenever live_data fetches e-Delphyn data that differs from what it held,
+# re-embed just the monthly summaries that changed (background thread).
+def _sync_index(rows_by_category):
+    embedded, deleted = sync_index(collection, rows_by_category, verbose=False)
+    if embedded or deleted:
+        print(f"[app] vector index synced: {embedded} embedded, {deleted} removed")
+
+live_data.on_change(_sync_index)
 
 
 @app.route("/")
@@ -38,6 +47,9 @@ def chat_api():
     if not question:
         return jsonify({"error": "question is required"}), 400
 
+    # Refresh live data first (no-op within the TTL) so both the exact-answer
+    # path and the vector index see the current e-Delphyn state.
+    live_data.get_rows()
     rows = retrieve(collection, question, history)
     # Patient lookup checked first: it's the most specific and only ever
     # fires when a name/ID was actually named. Trend checked before
@@ -63,10 +75,21 @@ def chat_api():
         # Echoed back so the frontend can keep remembering it across turns
         # even once `history` itself has trimmed the original mention away.
         "patientContext": matched_patient or patient_context,
+        "data": live_data.status(),
     })
 
 
+@app.route("/api/data-status")
+def data_status():
+    live_data.get_rows()
+    return jsonify(live_data.status())
+
+
 if __name__ == "__main__":
+    # Warm up: fetch live data (and sync the index in the background) before
+    # the first question, so it doesn't pay the fetch cost.
+    live_data.get_rows()
+    print(f"[app] data source: {live_data.status()}")
     # threaded=True: without it, Flask's dev server handles one request at a
     # time -- a couple of questions that fall through to the LLM (each
     # taking 45-80s on this CPU-only phi3:mini) queue up back-to-back

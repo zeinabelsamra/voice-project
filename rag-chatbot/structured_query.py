@@ -1,19 +1,19 @@
 """
-Computes exact counts directly from the live e-Delphyn snapshot (data_snapshot/,
-built by fetch_snapshot.py), instead of relying on the LLM to add numbers up
-itself (which it does unreliably). Used as a grounding fact injected into the
-chat prompt for "how many / total / count" style questions.
+Computes exact counts directly from live e-Delphyn data (via live_data.py,
+which falls back to the data_snapshot/ files when node-backend is
+unreachable), instead of relying on the LLM to add numbers up itself (which
+it does unreliably). Used as a grounding fact injected into the chat prompt
+for "how many / total / count" style questions.
 """
 
 import difflib
-import json
-import os
 import re
 import pandas as pd
 
+import live_data
 from categories import (
     CATEGORIES, CATEGORY_LABELS, CATEGORY_KEYWORDS, COMPONENT_MARKERS,
-    IDENTIFIER_COLS, SNAPSHOT_DIR,
+    IDENTIFIER_COLS,
 )
 
 STOPWORDS = {
@@ -78,6 +78,7 @@ PATIENT_LOOKUP_STOPWORDS = {
 }
 
 _cache = None
+_cache_version = None
 
 
 def _singularize(word):
@@ -126,16 +127,16 @@ COMPONENT_MARKER_KEYWORDS = _keywords(" ".join(phrase for phrase, _ in COMPONENT
 
 
 def _load_all():
-    global _cache
-    if _cache is not None:
+    """DataFrames for every category, from live_data (live e-Delphyn via
+    node-backend, cached for a short TTL; falls back to data_snapshot/).
+    Rebuilt only when the underlying data version changes."""
+    global _cache, _cache_version
+    rows_by_category, version = live_data.get_rows()
+    if _cache is not None and _cache_version == version:
         return _cache
     tables = []
     for category in CATEGORIES:
-        path = os.path.join(SNAPSHOT_DIR, f"{category}.json")
-        if not os.path.exists(path):
-            continue
-        with open(path, "r", encoding="utf-8") as f:
-            rows = json.load(f)
+        rows = rows_by_category.get(category) or []
         if not rows:
             continue
         df = pd.DataFrame(rows)
@@ -145,6 +146,7 @@ def _load_all():
         )
         tables.append({"category": category, "df": df})
     _cache = tables
+    _cache_version = version
     return tables
 
 

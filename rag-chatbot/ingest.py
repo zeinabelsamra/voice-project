@@ -1,12 +1,11 @@
 """
-Reads each category snapshot in data_snapshot/ (built by fetch_snapshot.py
-from live e-Delphyn data), summarizes each by month (instead of embedding
-all raw rows, which is too slow on a CPU-only laptop), embeds the summaries
-with Ollama (nomic-embed-text), and stores them in a local Chroma vector
-database.
+Summarizes each e-Delphyn category by month (instead of embedding all raw
+rows, which is too slow on a CPU-only laptop), embeds the summaries with
+Ollama (nomic-embed-text), and stores them in a local Chroma vector database.
 
-Run via refresh_data.py (fetches then ingests), or standalone any time the
-snapshot in data_snapshot/ has already been refreshed.
+app.py calls sync_index() automatically whenever live_data.py fetches data
+that changed -- only changed months are re-embedded. Running this file by
+hand (or via refresh_data.py) syncs the index from data_snapshot/ instead.
 """
 
 import os
@@ -59,53 +58,80 @@ def summarize_group(category, period_label, group_df):
     return "\n".join(lines)
 
 
-def load_chunks():
-    chunks = []
+def chunks_from_rows(rows_by_category, verbose=True):
+    """{chunk_id: summary_text} -- one chunk per category per month. The id is
+    stable ("transfusion:2026-11"), so sync_index can tell which months
+    actually changed and only re-embed those."""
+    chunks = {}
+    for category in CATEGORIES:
+        rows = rows_by_category.get(category) or []
+        if not rows:
+            if verbose:
+                print(f"Skipping {category}: no data")
+            continue
+
+        df = pd.DataFrame(rows)
+        date_col = next((c for c in df.columns if c.strip().lower() == "date"), None)
+        if date_col is None:
+            chunks[f"{category}:all"] = summarize_group(category, "all records", df)
+        else:
+            dates = pd.to_datetime(df[date_col], errors="coerce")
+            periods = dates.dt.to_period("M")
+            for period, group_df in df.groupby(periods.fillna(pd.Period("1900-01", freq="M"))):
+                label = str(period) if str(period) != "1900-01" else "unknown date"
+                chunks[f"{category}:{label}"] = summarize_group(category, label, group_df)
+        if verbose:
+            print(f"Loaded {category} ({len(rows)} row(s))")
+    return chunks
+
+
+def load_snapshot_rows():
+    rows_by_category = {}
     for category in CATEGORIES:
         path = os.path.join(SNAPSHOT_DIR, f"{category}.json")
         if not os.path.exists(path):
             print(f"Skipping {category}: no snapshot found (run fetch_snapshot.py first)")
             continue
         with open(path, "r", encoding="utf-8") as f:
-            rows = json.load(f)
-        if not rows:
-            print(f"Skipping {category}: snapshot is empty")
-            continue
+            rows_by_category[category] = json.load(f)
+    return rows_by_category
 
-        df = pd.DataFrame(rows)
-        date_col = next((c for c in df.columns if c.strip().lower() == "date"), None)
-        if date_col is None:
-            chunks.append(summarize_group(category, "all records", df))
-            print(f"Loaded {category} ({len(rows)} row(s))")
-            continue
 
-        dates = pd.to_datetime(df[date_col], errors="coerce")
-        periods = dates.dt.to_period("M")
-        for period, group_df in df.groupby(periods.fillna(pd.Period("1900-01", freq="M"))):
-            label = str(period) if str(period) != "1900-01" else "unknown date"
-            chunks.append(summarize_group(category, label, group_df))
-        print(f"Loaded {category} ({len(rows)} row(s))")
-    return chunks
+def get_or_create_collection(client=None):
+    client = client or chromadb.PersistentClient(path=DB_DIR)
+    return client.get_or_create_collection(COLLECTION_NAME)
+
+
+def sync_index(collection, rows_by_category, verbose=True):
+    """Bring the vector index in line with rows_by_category, re-embedding
+    only chunks that are new or whose summary text changed, and deleting
+    chunks that no longer exist. Returns (embedded, deleted) counts."""
+    chunks = chunks_from_rows(rows_by_category, verbose=verbose)
+    existing = collection.get(include=["documents"])
+    current = dict(zip(existing["ids"], existing["documents"]))
+
+    to_delete = [cid for cid in current if cid not in chunks]
+    to_embed = [cid for cid, text in chunks.items() if current.get(cid) != text]
+
+    if to_delete:
+        collection.delete(ids=to_delete)
+
+    batch_size = 100
+    for i in range(0, len(to_embed), batch_size):
+        ids = to_embed[i:i + batch_size]
+        docs = [chunks[cid] for cid in ids]
+        embeddings = [ollama.embeddings(model=EMBED_MODEL, prompt=d)["embedding"] for d in docs]
+        collection.upsert(ids=ids, documents=docs, embeddings=embeddings)
+        if verbose:
+            print(f"Indexed {i + len(ids)}/{len(to_embed)} changed chunk(s)")
+
+    return len(to_embed), len(to_delete)
 
 
 def main():
-    chunks = load_chunks()
-    print(f"Total summary chunks to index: {len(chunks)}")
-
-    client = chromadb.PersistentClient(path=DB_DIR)
-    if COLLECTION_NAME in [c.name for c in client.list_collections()]:
-        client.delete_collection(COLLECTION_NAME)
-    collection = client.create_collection(COLLECTION_NAME)
-
-    batch_size = 100
-    for i in range(0, len(chunks), batch_size):
-        batch = chunks[i:i + batch_size]
-        embeddings = [ollama.embeddings(model=EMBED_MODEL, prompt=c)["embedding"] for c in batch]
-        ids = [f"row-{i + j}" for j in range(len(batch))]
-        collection.add(ids=ids, documents=batch, embeddings=embeddings)
-        print(f"Indexed {i + len(batch)}/{len(chunks)}")
-
-    print("Done. Vector DB saved to", DB_DIR)
+    collection = get_or_create_collection()
+    embedded, deleted = sync_index(collection, load_snapshot_rows())
+    print(f"Done. {embedded} chunk(s) embedded, {deleted} removed. Vector DB saved to", DB_DIR)
 
 
 if __name__ == "__main__":

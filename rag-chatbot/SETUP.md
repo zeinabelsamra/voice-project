@@ -63,7 +63,12 @@ chatbot-specific limitation.
    ```
    venv\Scripts\python.exe refresh_data.py
    ```
-   Re-run this any time the underlying data has changed — it's not automatic.
+   You only need this once, for the initial index. While `app.py` runs it
+   pulls **live** e-Delphyn data through node-backend itself (cached for 60 s,
+   `RAG_LIVE_TTL_SECONDS` to change), re-embeds only the months that
+   changed, and keeps `data_snapshot/` updated as a fallback for when
+   node-backend is unreachable. Set `RAG_LIVE_DATA=0` to answer from
+   `data_snapshot/` only.
 5. **Start the chatbot**:
    ```
    venv\Scripts\python.exe app.py
