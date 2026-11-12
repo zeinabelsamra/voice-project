@@ -38,7 +38,9 @@ const QUERIES = {
         NULLIF(CONCAT(NULLIF(p.COD_GROUP, ''), NULLIF(p.COD_RH, '')), '') AS [Group],
         cs.DES_CELLSEPARATOR                                       AS [Separator],
         CAST(NULL AS nvarchar(200))                                 AS [Patient],
-        CASE p.COD_GENDER WHEN 'M' THEN 'Male' WHEN 'F' THEN 'Female' ELSE p.COD_GENDER END AS [Gender],
+        -- Only Male/Female; any other code (the hospital's data has "@") becomes
+        -- empty, so it's left out of the By Gender chart.
+        CASE UPPER(LTRIM(RTRIM(p.COD_GENDER))) WHEN 'M' THEN 'Male' WHEN 'F' THEN 'Female' ELSE NULL END AS [Gender],
         p.DAT_BIRTH                                                AS [DOB]
     FROM dbo.DONATION AS d
     INNER JOIN dbo.PERSON AS p ON p.ID_PERSON = d.ID_PERSON
