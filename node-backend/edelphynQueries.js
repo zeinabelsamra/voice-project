@@ -102,9 +102,13 @@ const QUERIES = {
     ORDER BY tr.DAT_TRANSFUSION, tr.TIM_TRANSFUSION, ofm.COD_ORDERFORM, u.COD_UNIT;
   `,
 
+  // The receiving hospital is the request's ORIGIN (the centre that asked
+  // for the blood). REQUEST.ID_REQUESTDEST is our own blood bank (shows as
+  // "ANTELIAS" at the hospital) — verified against e-Delphyn's own
+  // "Units Sent To Other Centres" report.
   sent_to_centres: `
     SELECT
-        /*HOSPITAL_EXPR*/                                          AS [Hospital],
+        ro.DES_REQUESTORIG                                         AS [Hospital],
         dn.COD_DELIVERYNOTE                                        AS [Delivery Note],
         c.DES_COMPONENT                                            AS [Component],
         ct.DES_COMPONENTTYPE                                       AS [Component Type],
@@ -117,7 +121,7 @@ const QUERIES = {
     FROM dbo.DELIVERYDETAIL AS dd
     INNER JOIN dbo.REQUEST AS r ON r.ID_REQUEST = dd.ID_REQUEST
     LEFT JOIN dbo.DELIVERYNOTE AS dn ON dn.ID_DELIVERYNOTE = dd.ID_DELIVERYNOTE
-    /*HOSPITAL_JOINS*/
+    LEFT JOIN dbo.REQUESTORIG  AS ro ON ro.ID_REQUESTORIG = r.ID_REQUESTORIG
     LEFT JOIN dbo.UNIT         AS u  ON u.ID_UNIT = dd.ID_UNIT
     LEFT JOIN dbo.COMPONENT    AS c  ON c.ID_COMPONENT = COALESCE(dd.ID_COMPONENT, u.ID_COMPONENT)
     LEFT JOIN dbo.COMPONENTTYPE AS ct ON ct.ID_COMPONENTTYPE = c.ID_COMPONENTTYPE
@@ -196,44 +200,6 @@ const REQUESTS_ALT = `
   ORDER BY r.DAT_REQUEST, r.TIM_REQUEST, r.COD_REQUEST;
 `;
 
-// Which e-Delphyn field holds the hospital a unit was sent to differs between
-// installations (at the hospital, REQUEST.ID_REQUESTDEST is the same value —
-// "ANTELIAS" — for every delivery, while e-Delphyn's own "Units Sent To Other
-// Centres" report shows the real hospital). Set EDELPHYN_SENT_HOSPITAL_FIELD in
-// .env to whichever column diagnose_sent_to_centres.sql (query 10) proves right:
-//   request_dest (default) | request_orig | rdu_dest | rdu_orig
-const SENT_HOSPITAL_SOURCES = {
-  request_dest: {
-    expr:  'h.DES_REQUESTDEST',
-    joins: 'LEFT JOIN dbo.REQUESTDEST AS h ON h.ID_REQUESTDEST = r.ID_REQUESTDEST',
-  },
-  request_orig: {
-    expr:  'h.DES_REQUESTORIG',
-    joins: 'LEFT JOIN dbo.REQUESTORIG AS h ON h.ID_REQUESTORIG = r.ID_REQUESTORIG',
-  },
-  rdu_dest: {
-    expr:  'h.DES_REQUESTDEST',
-    joins: `LEFT JOIN dbo.RDUDELIVERYNOTE AS rdn ON rdn.ID_RDUDELIVERYNOTE = dd.ID_RDUDELIVERYNOTE
-    LEFT JOIN dbo.REQUESTDEST AS h ON h.ID_REQUESTDEST = rdn.ID_REQUESTDEST`,
-  },
-  rdu_orig: {
-    expr:  'h.DES_REQUESTORIG',
-    joins: `LEFT JOIN dbo.RDUDELIVERYNOTE AS rdn ON rdn.ID_RDUDELIVERYNOTE = dd.ID_RDUDELIVERYNOTE
-    LEFT JOIN dbo.REQUESTORIG AS h ON h.ID_REQUESTORIG = rdn.ID_REQUESTORIG`,
-  },
-};
-
-function sentToCentresQuery() {
-  const key = (process.env.EDELPHYN_SENT_HOSPITAL_FIELD || 'request_dest').trim().toLowerCase();
-  const src = SENT_HOSPITAL_SOURCES[key];
-  if (!src) {
-    throw new Error(`EDELPHYN_SENT_HOSPITAL_FIELD="${key}" is not valid — use one of: ${Object.keys(SENT_HOSPITAL_SOURCES).join(', ')}`);
-  }
-  return QUERIES.sent_to_centres
-    .replace('/*HOSPITAL_EXPR*/', src.expr)
-    .replace('/*HOSPITAL_JOINS*/', src.joins);
-}
-
 const CATEGORIES = ['external_units', 'donors', 'requests', 'transfusion', 'sent_to_centres', 'wasted'];
 
 let requestSourceResolved = null; // 'orderform' | 'request', cached for process lifetime
@@ -283,8 +249,6 @@ async function runCategoryQuery(pool, category, dateFrom, dateTo) {
   if (category === 'requests') {
     const source = await resolveRequestSource(pool);
     queryText = source === 'orderform' ? REQUESTS_ORDERFORM : REQUESTS_ALT;
-  } else if (category === 'sent_to_centres') {
-    queryText = sentToCentresQuery();
   } else {
     queryText = QUERIES[category];
   }
