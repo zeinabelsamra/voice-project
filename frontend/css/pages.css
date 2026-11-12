@@ -305,6 +305,9 @@
 .an-heatmap td{width:22px;height:22px;text-align:center;border-radius:3px;color:#fff;font-weight:600;cursor:default;}
 .an-heatmap td.empty{background:var(--mist);color:transparent;}
 .an-heatmap th.row-label{text-align:right;padding-right:8px;color:var(--text);font-weight:700;}
+/* Department × month fulfilment table: only as wide as its columns, centred */
+.an-heatmap-centered table{width:auto;margin:0 auto;}
+.an-heatmap-centered td{width:auto;min-width:46px;padding:0 6px;}
 .an-recall-controls{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap;}
 .an-recall-controls input[type=number]{width:70px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;}
 .consump-bar-wrap{display:flex;align-items:center;gap:8px;}

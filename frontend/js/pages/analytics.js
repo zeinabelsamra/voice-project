@@ -21,6 +21,11 @@ function noDataMsg(el, text) {
   ctx.fillText(text || 'No data for this period', el.width / 2, 90);
 }
 
+function setText(id, text) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = text;
+}
+
 async function loadAnalytics() {
   const from = document.getElementById('anFrom').value;
   const to   = document.getElementById('anTo').value;
@@ -32,7 +37,7 @@ async function loadAnalytics() {
   const kpiParams = new URLSearchParams(rangeParams);
   kpiParams.set('expiryDays', document.getElementById('anExpiryDays')?.value || 14);
 
-  const [kpiRes, trendRes, typesRes, retentionRes, fulfilmentRes, returnRes, turnaroundRes, heatmapRes, anomalyRes] =
+  const [kpiRes, trendRes, typesRes, retentionRes, fulfilmentRes, returnRes, turnaroundRes, heatmapRes, anomalyRes, deptYearRes] =
     await Promise.all([
       apiFetch(`${API}/api/analytics/kpi-summary?${kpiParams}`),
       apiFetch(`${API}/api/analytics/monthly-trend`),
@@ -43,6 +48,9 @@ async function loadAnalytics() {
       apiFetch(`${API}/api/analytics/turnaround?${rangeParams}`),
       apiFetch(`${API}/api/analytics/demand-heatmap`),
       apiFetch(`${API}/api/analytics/anomaly`),
+      // Department × month table: aggregated on the server, and with no range
+      // picked it covers the last 12 months (server default) instead of 30 days.
+      apiFetch(`${API}/api/analytics/fulfilment-by-department?${rangeParams}`),
     ]);
 
   if (kpiRes)         renderAnKpiCards(await kpiRes.json());
@@ -51,6 +59,11 @@ async function loadAnalytics() {
   if (retentionRes)     renderAnRetentionChart(await retentionRes.json());
   initFulfilmentThreshold();
   if (fulfilmentRes)    renderAnFulfilmentChart(await fulfilmentRes.json());
+  setText('anFulfilmentHeatmapRange', (from || to) ? '(selected range)' : '(last 12 months)');
+  if (deptYearRes) {
+    const deptRows = await deptYearRes.json();
+    renderAnFulfilmentHeatmap(Array.isArray(deptRows) ? deptRows : []);
+  }
   if (returnRes)        renderAnReturnChart(await returnRes.json());
   if (turnaroundRes)    renderAnTurnaroundChart(await turnaroundRes.json());
   if (heatmapRes)       renderAnHeatmap(await heatmapRes.json());
@@ -249,7 +262,6 @@ function renderAnFulfilmentChart(rows) {
   const el = document.getElementById('anFulfilmentChart');
   _anFulfilmentRows = Array.isArray(rows) ? rows : [];
   renderFulfilmentAlert(_anFulfilmentRows);
-  renderAnFulfilmentHeatmap(_anFulfilmentRows);
   if (!el) return;
   if (!_anFulfilmentRows.length) { noDataMsg(el); return; }
   // Stacked by month instead of one aggregate doughnut, so a trend across

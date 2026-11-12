@@ -310,6 +310,46 @@ async function fulfilmentRate(pool, dateFrom, dateTo) {
   return result.recordset;
 }
 
+// ── 9b. Fulfilment rate by department × month (aggregated in SQL) ──
+// Used for the department heatmap, which spans 12 months by default — at a
+// real hospital that's ~14k orders, so aggregate here rather than shipping
+// every order to the browser. Orders with an implausible quantity (see
+// MAX_UNITS_PER_ORDER) are left out entirely so a typo can't zero a cell.
+// Returns rows shaped like fulfilmentRate()'s (Department, RequestDate,
+// RequestedUnits, IssuedUnits) so the frontend heatmap code is unchanged.
+async function fulfilmentByDepartment(pool, dateFrom, dateTo) {
+  const request = pool.request();
+  dateInput(request, "DateFrom", dateFrom);
+  dateInput(request, "DateTo", dateTo);
+  const result = await request.query(`
+    WITH Orders AS (
+      SELECT O.ID_ORDERFORM, O.ID_DEPARTMENT,
+             DATEFROMPARTS(YEAR(COALESCE(O.DAT_REQUEST, O.DAT_ORDERFORM)), MONTH(COALESCE(O.DAT_REQUEST, O.DAT_ORDERFORM)), 1) AS MonthStart,
+             COALESCE(O.NUM_QUANTITY, 0) AS RequestedUnits
+      FROM dbo.ORDERFORM O
+      WHERE COALESCE(O.DAT_REQUEST, O.DAT_ORDERFORM) >= @DateFrom
+        AND COALESCE(O.DAT_REQUEST, O.DAT_ORDERFORM) <  @DateTo
+        AND COALESCE(O.NUM_QUANTITY, 0) BETWEEN 0 AND ${MAX_UNITS_PER_ORDER}
+    ),
+    IssuedPerOrder AS (
+      SELECT T.ID_ORDERFORM, COUNT(*) AS IssuedUnits
+      FROM dbo.TRANSFUSION T
+      INNER JOIN Orders o ON o.ID_ORDERFORM = T.ID_ORDERFORM
+      GROUP BY T.ID_ORDERFORM
+    )
+    SELECT DPT.DES_DEPARTMENT                        AS Department,
+           CONVERT(char(7), o.MonthStart, 126)        AS RequestDate,
+           SUM(o.RequestedUnits)                      AS RequestedUnits,
+           SUM(COALESCE(i.IssuedUnits, 0))            AS IssuedUnits
+    FROM Orders o
+    LEFT JOIN IssuedPerOrder i   ON i.ID_ORDERFORM = o.ID_ORDERFORM
+    INNER JOIN dbo.DEPARTMENT DPT ON DPT.ID_DEPARTMENT = o.ID_DEPARTMENT
+    GROUP BY DPT.DES_DEPARTMENT, o.MonthStart
+    ORDER BY DPT.DES_DEPARTMENT, o.MonthStart;
+  `);
+  return result.recordset;
+}
+
 // ── 10. Request turnaround time ─────────────────────────────────────
 async function turnaroundTime(pool, dateFrom, dateTo) {
   const request = pool.request();
@@ -505,6 +545,7 @@ async function anomalyDetection(pool, dateFrom, dateTo) {
 }
 
 module.exports = {
+  fulfilmentByDepartment,
   kpiTrend,
   monthlyTrend,
   donationTypes,

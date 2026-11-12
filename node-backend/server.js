@@ -3575,6 +3575,19 @@ app.get('/api/analytics/donor-recall', requireAuth, async (req, res) => {
   } catch (err) { console.error('donor-recall error:', err.message); res.status(500).json({ error: err.message }); }
 });
 
+// Department × month fulfilment table — defaults to the last 12 months
+// (a 30-day window would only ever show one or two month columns).
+app.get('/api/analytics/fulfilment-by-department', requireAuth, async (req, res) => {
+  try {
+    const now = new Date();
+    const defFrom = ymdLocal(new Date(now.getFullYear(), now.getMonth() - 11, 1));
+    const dateFrom = req.query.from || defFrom;
+    const dateTo   = nextDayStr(req.query.to || ymdLocal(now));
+    const pool = await getEdelphynPool();
+    res.json(await analyticsQueries.fulfilmentByDepartment(pool, dateFrom, dateTo));
+  } catch (err) { console.error('fulfilment-by-department error:', err.message); res.status(500).json({ error: err.message }); }
+});
+
 app.get('/api/analytics/fulfilment', requireAuth, async (req, res) => {
   try {
     const { from: defFrom, to: defTo } = defaultRange(30);
