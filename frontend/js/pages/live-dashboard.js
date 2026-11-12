@@ -666,7 +666,7 @@ function makeBar(id, labels, values, color) {
       datasets: [{ data: values, backgroundColor: color || 'rgba(192,57,43,0.75)', borderRadius: 4, borderSkipped: false }]
     },
     options: {
-      responsive: true, maintainAspectRatio: true,
+      responsive: true, maintainAspectRatio: false,
       plugins: {
         legend: { display: false },
         datalabels: {
@@ -697,7 +697,7 @@ function makeDoughnut(id, items, useGroupColors) {
     type: 'doughnut',
     data: { labels, datasets: [{ data: values, backgroundColor: colors, borderWidth: 2 }] },
     options: {
-      responsive: true, maintainAspectRatio: true,
+      responsive: true, maintainAspectRatio: false,
       plugins: {
         legend: { position: 'right', labels: { font: { size: 10 }, boxWidth: 12, padding: 8 } },
         datalabels: {
@@ -725,7 +725,7 @@ function makeHBar(id, items) {
       datasets: [{ data: items.map(x => x.count), backgroundColor: CHART_PALETTE, borderRadius: 4 }]
     },
     options: {
-      indexAxis: 'y', responsive: true, maintainAspectRatio: true,
+      indexAxis: 'y', responsive: true, maintainAspectRatio: false,
       plugins: {
         legend: { display: false },
         datalabels: {
@@ -827,7 +827,7 @@ function makeIATDoughnut(id, items) {
       datasets: [{ data: items.map(d => d.count), backgroundColor: colors, borderWidth: 2 }]
     },
     options: {
-      responsive: true, maintainAspectRatio: true,
+      responsive: true, maintainAspectRatio: false,
       plugins: {
         legend: { position: 'bottom', labels: { font: { size: 11 } } },
         tooltip: { callbacks: { label: c => ` ${c.label}: ${c.parsed.toLocaleString()} (${((c.parsed/c.dataset.data.reduce((a,b)=>a+b,0))*100).toFixed(1)}%)` } },
@@ -867,7 +867,7 @@ function makePeakBar(id, hourData) {
     type: 'bar',
     data: { labels, datasets: [{ data: values, backgroundColor: colors, borderRadius: 3 }] },
     options: {
-      responsive: true, maintainAspectRatio: true,
+      responsive: true, maintainAspectRatio: false,
       plugins: {
         legend: { display: false },
         tooltip: { callbacks: { label: c => ` ${c.parsed.y.toLocaleString()} units` } },
@@ -890,7 +890,7 @@ function makePeakBar(id, hourData) {
 function chartPanel(id, title, span2) {
   return `<div class="excel-chart-panel${span2?' span-2':''}">
     <div class="excel-chart-title">${title}</div>
-    <canvas id="${id}"></canvas>
+    <div class="excel-chart-box"><canvas id="${id}"></canvas></div>
   </div>`;
 }
 

@@ -671,6 +671,9 @@ color: var(--text-soft); background: var(--mist); padding: 2px 7px; border-radiu
 @media(max-width:760px){.excel-chart-grid,.excel-chart-grid.cols-3{grid-template-columns:1fr;}}
 .excel-chart-panel{background:var(--white);border:1px solid var(--border);border-radius:12px;padding:18px;}
 .excel-chart-panel.span-2{grid-column:span 2;}
+/* Fixed chart height so charts don't grow with screen width (Chart.js
+   charts use maintainAspectRatio:false and fill this box). */
+.excel-chart-box{position:relative;height:240px;}
 .excel-chart-title{font-size:12px;font-weight:700;color:var(--navy);margin-bottom:12px;text-transform:uppercase;letter-spacing:.4px;}
 .excel-table-wrap{background:var(--white);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:18px;}
 .excel-table-header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border);}
