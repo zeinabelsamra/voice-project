@@ -14,6 +14,16 @@ const MAX_UNITS_PER_ORDER = (() => {
   return Number.isInteger(n) && n > 0 ? n : 50;
 })();
 
+// SQL that reads an eDelphyn TIM_ column as a real TIME, or NULL when
+// nothing was recorded. Live eDelphyn stores these as text ('14:45:00')
+// and uses an empty string — not NULL — for "no time", which SQL Server
+// silently converts to 00:00 (so COALESCE never falls through and every
+// row lands at midnight). Style 121 keeps the time part when the column
+// is a real datetime/time type, as in the test DB.
+function sqlTime(col) {
+  return `TRY_CAST(NULLIF(LTRIM(RTRIM(CONVERT(varchar(40), ${col}, 121))), '') AS time)`;
+}
+
 // SQL for an order's quantity with implausible values counted as 0.
 // MAX_UNITS_PER_ORDER is a validated integer, so inlining it is safe.
 function saneQty(alias = '') {
@@ -358,9 +368,10 @@ async function turnaroundTime(pool, dateFrom, dateTo) {
   const result = await request.query(`
     WITH IssueTimes AS (
       SELECT O.ID_ORDERFORM, O.ID_DEPARTMENT, O.ID_COMPONENTTYPE, O.LOG_EMERGENCY,
-             DATEADD(SECOND, DATEDIFF(SECOND, CAST('00:00:00' AS time), COALESCE(O.TIM_REQUEST, O.TIM_ORDERFORM)),
+             DATEADD(SECOND, DATEDIFF(SECOND, CAST('00:00:00' AS time),
+                       COALESCE(${sqlTime('O.TIM_REQUEST')}, ${sqlTime('O.TIM_ORDERFORM')})),
                      CAST(COALESCE(O.DAT_REQUEST, O.DAT_ORDERFORM) AS datetime2)) AS RequestDateTime,
-             DATEADD(SECOND, DATEDIFF(SECOND, CAST('00:00:00' AS time), T.TIM_TRANSFUSION),
+             DATEADD(SECOND, DATEDIFF(SECOND, CAST('00:00:00' AS time), ${sqlTime('T.TIM_TRANSFUSION')}),
                      CAST(T.DAT_TRANSFUSION AS datetime2)) AS IssueDateTime
       FROM dbo.ORDERFORM O
       INNER JOIN dbo.TRANSFUSION T ON T.ID_ORDERFORM = O.ID_ORDERFORM
@@ -491,20 +502,24 @@ async function demandHeatmap(pool, dateFrom, dateTo) {
   dateInput(request, "DateTo", dateTo);
   const result = await request.query(`
     SELECT
-        DATENAME(WEEKDAY, COALESCE(O.DAT_REQUEST, O.DAT_ORDERFORM)) AS WeekdayName,
-        DATEPART(WEEKDAY, COALESCE(O.DAT_REQUEST, O.DAT_ORDERFORM)) AS WeekdayNumber,
-        DATEPART(HOUR, COALESCE(O.TIM_REQUEST, O.TIM_ORDERFORM)) AS RequestHour,
+        DATENAME(WEEKDAY, X.ReqDate) AS WeekdayName,
+        DATEPART(WEEKDAY, X.ReqDate) AS WeekdayNumber,
+        DATEPART(HOUR, X.ReqTime) AS RequestHour,
         COUNT(*) AS RequestCount,
         SUM(${saneQty('O')}) AS UnitsRequested,
         SUM(CASE WHEN O.LOG_EMERGENCY = N'1' THEN 1 ELSE 0 END) AS EmergencyRequests
     FROM dbo.ORDERFORM O
-    WHERE COALESCE(O.DAT_REQUEST, O.DAT_ORDERFORM) >= @DateFrom
-      AND COALESCE(O.DAT_REQUEST, O.DAT_ORDERFORM) < @DateTo
-      
+    CROSS APPLY (SELECT
+        COALESCE(O.DAT_REQUEST, O.DAT_ORDERFORM) AS ReqDate,
+        COALESCE(${sqlTime('O.TIM_REQUEST')}, ${sqlTime('O.TIM_ORDERFORM')}) AS ReqTime
+    ) X
+    WHERE X.ReqDate >= @DateFrom
+      AND X.ReqDate < @DateTo
+      AND X.ReqTime IS NOT NULL
     GROUP BY
-        DATENAME(WEEKDAY, COALESCE(O.DAT_REQUEST, O.DAT_ORDERFORM)),
-        DATEPART(WEEKDAY, COALESCE(O.DAT_REQUEST, O.DAT_ORDERFORM)),
-        DATEPART(HOUR, COALESCE(O.TIM_REQUEST, O.TIM_ORDERFORM))
+        DATENAME(WEEKDAY, X.ReqDate),
+        DATEPART(WEEKDAY, X.ReqDate),
+        DATEPART(HOUR, X.ReqTime)
     ORDER BY WeekdayNumber, RequestHour;
   `);
   return result.recordset;
