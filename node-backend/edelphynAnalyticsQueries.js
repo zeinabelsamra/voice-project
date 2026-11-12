@@ -5,6 +5,22 @@ const sql = require("mssql");
 // demand heatmap, and anomaly detection. Separate from edelphynQueries.js
 // (which powers the raw category tables) so the two can evolve independently.
 
+// Order-form quantities above this are treated as data-entry mistakes
+// (e.g. "30000" typed instead of "3") and left out of requested-unit
+// totals — one such order turned a ~1,300-unit month into ~32,000 on the
+// supply-vs-demand chart. Override with EDELPHYN_MAX_UNITS_PER_ORDER.
+const MAX_UNITS_PER_ORDER = (() => {
+  const n = parseInt(process.env.EDELPHYN_MAX_UNITS_PER_ORDER, 10);
+  return Number.isInteger(n) && n > 0 ? n : 50;
+})();
+
+// SQL for an order's quantity with implausible values counted as 0.
+// MAX_UNITS_PER_ORDER is a validated integer, so inlining it is safe.
+function saneQty(alias = '') {
+  const col = alias ? `${alias}.NUM_QUANTITY` : 'NUM_QUANTITY';
+  return `(CASE WHEN ${col} BETWEEN 0 AND ${MAX_UNITS_PER_ORDER} THEN ${col} ELSE 0 END)`;
+}
+
 function dateInput(request, name, value) {
   request.input(name, sql.Date, new Date(`${value}T00:00:00Z`));
 }
@@ -58,7 +74,7 @@ async function kpiTrend(pool, dateFrom, dateTo, expiryDays) {
     SELECT 'current' AS Period,
         (SELECT COUNT(*) FROM dbo.DONATION D WHERE D.DAT_DONATION >= @DateFrom AND D.DAT_DONATION < @DateTo) AS TotalDonations,
         (SELECT COUNT(DISTINCT D.ID_PERSON) FROM dbo.DONATION D WHERE D.DAT_DONATION >= @DateFrom AND D.DAT_DONATION < @DateTo) AS UniqueDonors,
-        (SELECT COALESCE(SUM(O.NUM_QUANTITY), 0) FROM dbo.ORDERFORM O WHERE COALESCE(O.DAT_REQUEST, O.DAT_ORDERFORM) >= @DateFrom AND COALESCE(O.DAT_REQUEST, O.DAT_ORDERFORM) < @DateTo) AS UnitsRequested,
+        (SELECT COALESCE(SUM(${saneQty('O')}), 0) FROM dbo.ORDERFORM O WHERE COALESCE(O.DAT_REQUEST, O.DAT_ORDERFORM) >= @DateFrom AND COALESCE(O.DAT_REQUEST, O.DAT_ORDERFORM) < @DateTo) AS UnitsRequested,
         (SELECT COUNT(*) FROM dbo.TRANSFUSION T WHERE T.DAT_TRANSFUSION >= @DateFrom AND T.DAT_TRANSFUSION < @DateTo) AS UnitsIssued,
         (SELECT COUNT(*) FROM dbo.TRANSFUSION T WHERE T.DAT_RETURN >= @DateFrom AND T.DAT_RETURN < @DateTo) AS UnitsReturned,
         (SELECT COUNT(*) FROM dbo.DESTROYBOXUNIT DBU INNER JOIN dbo.DESTROYBOX DB ON DB.ID_DESTROYBOX = DBU.ID_DESTROYBOX
@@ -68,7 +84,7 @@ async function kpiTrend(pool, dateFrom, dateTo, expiryDays) {
     SELECT 'previous',
         (SELECT COUNT(*) FROM dbo.DONATION D WHERE D.DAT_DONATION >= @PrevFrom AND D.DAT_DONATION < @PrevTo),
         (SELECT COUNT(DISTINCT D.ID_PERSON) FROM dbo.DONATION D WHERE D.DAT_DONATION >= @PrevFrom AND D.DAT_DONATION < @PrevTo),
-        (SELECT COALESCE(SUM(O.NUM_QUANTITY), 0) FROM dbo.ORDERFORM O WHERE COALESCE(O.DAT_REQUEST, O.DAT_ORDERFORM) >= @PrevFrom AND COALESCE(O.DAT_REQUEST, O.DAT_ORDERFORM) < @PrevTo),
+        (SELECT COALESCE(SUM(${saneQty('O')}), 0) FROM dbo.ORDERFORM O WHERE COALESCE(O.DAT_REQUEST, O.DAT_ORDERFORM) >= @PrevFrom AND COALESCE(O.DAT_REQUEST, O.DAT_ORDERFORM) < @PrevTo),
         (SELECT COUNT(*) FROM dbo.TRANSFUSION T WHERE T.DAT_TRANSFUSION >= @PrevFrom AND T.DAT_TRANSFUSION < @PrevTo),
         (SELECT COUNT(*) FROM dbo.TRANSFUSION T WHERE T.DAT_RETURN >= @PrevFrom AND T.DAT_RETURN < @PrevTo),
         (SELECT COUNT(*) FROM dbo.DESTROYBOXUNIT DBU INNER JOIN dbo.DESTROYBOX DB ON DB.ID_DESTROYBOX = DBU.ID_DESTROYBOX
@@ -88,7 +104,7 @@ async function kpiTrend(pool, dateFrom, dateTo, expiryDays) {
         Days.SeriesDate,
         (SELECT COUNT(*) FROM dbo.DONATION D WHERE D.DAT_DONATION >= Days.SeriesDate AND D.DAT_DONATION < DATEADD(DAY, 1, Days.SeriesDate)) AS Donations,
         (SELECT COUNT(DISTINCT D.ID_PERSON) FROM dbo.DONATION D WHERE D.DAT_DONATION >= Days.SeriesDate AND D.DAT_DONATION < DATEADD(DAY, 1, Days.SeriesDate)) AS UniqueDonors,
-        (SELECT COALESCE(SUM(O.NUM_QUANTITY), 0) FROM dbo.ORDERFORM O WHERE COALESCE(O.DAT_REQUEST, O.DAT_ORDERFORM) >= Days.SeriesDate AND COALESCE(O.DAT_REQUEST, O.DAT_ORDERFORM) < DATEADD(DAY, 1, Days.SeriesDate)) AS UnitsRequested,
+        (SELECT COALESCE(SUM(${saneQty('O')}), 0) FROM dbo.ORDERFORM O WHERE COALESCE(O.DAT_REQUEST, O.DAT_ORDERFORM) >= Days.SeriesDate AND COALESCE(O.DAT_REQUEST, O.DAT_ORDERFORM) < DATEADD(DAY, 1, Days.SeriesDate)) AS UnitsRequested,
         (SELECT COUNT(*) FROM dbo.TRANSFUSION T WHERE T.DAT_TRANSFUSION >= Days.SeriesDate AND T.DAT_TRANSFUSION < DATEADD(DAY, 1, Days.SeriesDate)) AS UnitsIssued,
         (SELECT COUNT(*) FROM dbo.TRANSFUSION T WHERE T.DAT_RETURN >= Days.SeriesDate AND T.DAT_RETURN < DATEADD(DAY, 1, Days.SeriesDate)) AS UnitsReturned,
         (SELECT COUNT(*) FROM dbo.DESTROYBOXUNIT DBU INNER JOIN dbo.DESTROYBOX DB ON DB.ID_DESTROYBOX = DBU.ID_DESTROYBOX
@@ -129,7 +145,8 @@ async function monthlyTrend(pool, dateFrom, dateTo) {
     ),
     Requests AS (
       SELECT DATEFROMPARTS(YEAR(COALESCE(DAT_REQUEST, DAT_ORDERFORM)), MONTH(COALESCE(DAT_REQUEST, DAT_ORDERFORM)), 1) AS MonthStart,
-             SUM(COALESCE(NUM_QUANTITY, 0)) AS RequestedUnits
+             SUM(${saneQty()}) AS RequestedUnits,
+             SUM(CASE WHEN NUM_QUANTITY > ${MAX_UNITS_PER_ORDER} THEN 1 ELSE 0 END) AS ExcludedOrders
       FROM dbo.ORDERFORM
       WHERE COALESCE(DAT_REQUEST, DAT_ORDERFORM) >= @DateFrom AND COALESCE(DAT_REQUEST, DAT_ORDERFORM) < @DateTo
         
@@ -154,7 +171,8 @@ async function monthlyTrend(pool, dateFrom, dateTo) {
         COALESCE(D.DonationCount, 0) AS Donations,
         COALESCE(R.RequestedUnits, 0) AS RequestedUnits,
         COALESCE(I.IssuedUnits, 0) AS IssuedUnits,
-        COALESCE(W.WastedUnits, 0) AS WastedUnits
+        COALESCE(W.WastedUnits, 0) AS WastedUnits,
+        COALESCE(R.ExcludedOrders, 0) AS ExcludedOrders
     FROM Months M
     LEFT JOIN Donations D ON D.MonthStart = M.MonthStart
     LEFT JOIN Requests R ON R.MonthStart = M.MonthStart
@@ -437,7 +455,7 @@ async function demandHeatmap(pool, dateFrom, dateTo) {
         DATEPART(WEEKDAY, COALESCE(O.DAT_REQUEST, O.DAT_ORDERFORM)) AS WeekdayNumber,
         DATEPART(HOUR, COALESCE(O.TIM_REQUEST, O.TIM_ORDERFORM)) AS RequestHour,
         COUNT(*) AS RequestCount,
-        SUM(COALESCE(O.NUM_QUANTITY, 0)) AS UnitsRequested,
+        SUM(${saneQty('O')}) AS UnitsRequested,
         SUM(CASE WHEN O.LOG_EMERGENCY = N'1' THEN 1 ELSE 0 END) AS EmergencyRequests
     FROM dbo.ORDERFORM O
     WHERE COALESCE(O.DAT_REQUEST, O.DAT_ORDERFORM) >= @DateFrom
@@ -460,7 +478,7 @@ async function anomalyDetection(pool, dateFrom, dateTo) {
   const result = await request.query(`
     WITH DailyDemand AS (
       SELECT COALESCE(O.DAT_REQUEST, O.DAT_ORDERFORM) AS DemandDate,
-             SUM(COALESCE(O.NUM_QUANTITY, 0)) AS UnitsRequested
+             SUM(${saneQty('O')}) AS UnitsRequested
       FROM dbo.ORDERFORM O
       WHERE COALESCE(O.DAT_REQUEST, O.DAT_ORDERFORM) >= @DateFrom
         AND COALESCE(O.DAT_REQUEST, O.DAT_ORDERFORM) < @DateTo

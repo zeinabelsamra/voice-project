@@ -159,6 +159,18 @@ function renderAnTrendChart(rows) {
   if (!el) return;
   if (!Array.isArray(rows) || !rows.length) { noDataMsg(el); return; }
   const labels = rows.map(r => String(r.MonthStart).slice(0, 7));
+
+  // Orders with an implausible quantity (typing mistakes) are left out of
+  // "Units Requested" by the backend — say so, so totals aren't a mystery.
+  const note = document.getElementById('anTrendNote');
+  if (note) {
+    const skipped = rows.reduce((n, r) => n + (Number(r.ExcludedOrders) || 0), 0);
+    note.hidden = skipped === 0;
+    note.textContent = skipped
+      ? `· ${skipped} order${skipped === 1 ? '' : 's'} with an unrealistic quantity (likely a typing mistake) left out of Units Requested`
+      : '';
+  }
+
   _anTrendChart = new Chart(el, {
     type: 'line',
     data: {
