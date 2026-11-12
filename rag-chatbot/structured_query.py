@@ -37,6 +37,8 @@ STOPWORDS = {
     "give", "show", "tell", "list", "please", "can", "could", "would",
     "you", "want", "need", "know", "find", "get", "all", "this", "that",
     "with", "have", "has", "had", "does", "during", "year",
+    # Follow-up phrasing ("what about 2026?", "and the same for 2025?").
+    "about", "also", "same", "then", "instead", "now", "again",
 }
 
 # Wording that means "split the count up by some field" -- only then is an
@@ -329,6 +331,15 @@ def _effective_text(question, history):
     question ("how many units were wasted?" is 5 words) must never be
     mistaken for a contextless follow-up and get the prior turn prepended."""
     if not _matching_tables(question):
+        # Walk back to the last question that named a category on its own,
+        # so chained follow-ups ("what about 2026?" then "and 2025?") still
+        # resolve to the original "how many wasted units in 2024".
+        for h in reversed(history or []):
+            if h.get("role") != "user":
+                continue
+            prior = h.get("content", "")
+            if _matching_tables(prior):
+                return f"{prior} {question}"
         prior = _last_user_message(history)
         if prior:
             return f"{prior} {question}"
@@ -351,10 +362,14 @@ def _fails_soft(fn):
 
 @_fails_soft
 def try_exact_count(question, history=None):
-    if not _looks_like_count_question(question):
+    # Judged on `combined`, not the bare question: a follow-up like "what
+    # about 2026?" after "how many wasted units in 2024" carries no count
+    # wording of its own, but _effective_text has already borrowed the prior
+    # question for it -- so it IS a count question.
+    combined = _effective_text(question, history or [])
+    if not _looks_like_count_question(combined):
         return None
 
-    combined = _effective_text(question, history or [])
     # Prefer a year mentioned in the current question; fall back to one
     # borrowed from the prior turn via `combined`.
     year_match = re.search(r"\b(20\d{2})\b", question) or re.search(r"\b(20\d{2})\b", combined)
@@ -884,8 +899,10 @@ def try_exact_breakdown(question, history=None):
         # 2024") with no "by/per/which..." wording isn't asking for a
         # breakdown at all -- let try_exact_count answer it rather than
         # complaining about whatever leftover word wasn't a stopword.
-        q_lower = question.lower()
-        if any(t in q_lower for t in COUNT_TRIGGERS) and not BREAKDOWN_WORDING.search(q_lower):
+        # `combined`, so follow-ups ("what about 2026?") inherit the prior
+        # question's count wording.
+        q_lower = combined.lower()
+        if _looks_like_count_question(q_lower) and not BREAKDOWN_WORDING.search(q_lower):
             return None
         attribute_kw = _attribute_keywords(q_kw, tables)
         if attribute_kw:
