@@ -31,7 +31,19 @@ STOPWORDS = {
     # leftover "made" gets mistaken for a real (but unmatched) breakdown
     # attribute instead of falling through to a plain count.
     "made",
+    # Request phrasing ("give me the number of...", "can you show...",
+    # "I want to know...") -- same problem: "give" was being reported back
+    # as a missing field ("No 'give' field exists in this data").
+    "give", "show", "tell", "list", "please", "can", "could", "would",
+    "you", "want", "need", "know", "find", "get", "all", "this", "that",
+    "with", "have", "has", "had", "does", "during", "year",
 }
+
+# Wording that means "split the count up by some field" -- only then is an
+# unrecognised word worth a "no such field" reply on a count question.
+BREAKDOWN_WORDING = re.compile(
+    r"\b(by|per|each|breakdown|broken down|split|distribution|which|most|top|common)\b"
+)
 
 # Boolean status flags, not real categorical breakdown dimensions -- already
 # covered by dedicated summary stats (returnedCount/notReturnedCount etc. in
@@ -868,6 +880,13 @@ def try_exact_breakdown(question, history=None):
         # but matches no real column -- say so plainly instead of silently
         # falling through to the LLM, which tends to grab an unrelated field
         # and confidently mislabel it as the answer.
+        # A plain count question ("give me the number of wasted units in
+        # 2024") with no "by/per/which..." wording isn't asking for a
+        # breakdown at all -- let try_exact_count answer it rather than
+        # complaining about whatever leftover word wasn't a stopword.
+        q_lower = question.lower()
+        if any(t in q_lower for t in COUNT_TRIGGERS) and not BREAKDOWN_WORDING.search(q_lower):
+            return None
         attribute_kw = _attribute_keywords(q_kw, tables)
         if attribute_kw:
             available = sorted(_breakdown_column_candidates(tables))
