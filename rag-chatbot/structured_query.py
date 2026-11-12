@@ -394,6 +394,15 @@ def try_exact_count(question, history=None):
     return f"{total} record(s){year_note}.{breakdown}"
 
 
+_YEAR_RE = re.compile(r"(19|20)\d{2}")
+# Words that name a category ("requests", "donations", "transfusions",
+# "wasted"...) -- never part of a person's name/ID.
+_CATEGORY_VOCAB = (
+    _keywords(" ".join(CATEGORY_LABELS.values()))
+    | _keywords(" ".join(CATEGORY_KEYWORDS.values()))
+)
+
+
 def _extract_identifier_candidate(question):
     """Text following "patient"/"donor" in the question, with filler words
     stripped -- e.g. "what blood type does patient John Doe have" -> "John
@@ -406,7 +415,17 @@ def _extract_identifier_candidate(question):
     if not m:
         return None
     words = re.findall(r"[A-Za-z0-9]+", m.group(2))
-    words = [w for w in words if w.lower() not in PATIENT_LOOKUP_STOPWORDS]
+    words = [
+        w for w in words
+        if w.lower() not in PATIENT_LOOKUP_STOPWORDS
+        # Years and category vocabulary ("How many patient requests in
+        # 2025?") aren't part of a name/ID -- without this the digits in
+        # "2025" made "requests in 2025" look like an ID and the question
+        # was answered as "No record found for patient 'requests in 2025'".
+        and not _YEAR_RE.fullmatch(w)
+        and w.lower() not in STOPWORDS
+        and _singularize(w.lower()) not in _CATEGORY_VOCAB
+    ]
     if not words:
         return None
     looks_like_name = any(w[:1].isupper() or any(c.isdigit() for c in w) for w in words)
