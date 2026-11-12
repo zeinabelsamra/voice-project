@@ -283,16 +283,16 @@
 /* Expiry Calendar — normal month-grid view */
 .an-cal-controls{display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap;}
 .an-cal-select{padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:var(--font-sans);background:var(--white);cursor:pointer;}
-.an-cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;}
+.an-cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;max-width:420px;}
 .an-cal-dow{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--text-soft);text-align:center;padding:2px 0 6px;}
-.an-cal-cell{aspect-ratio:1;min-height:52px;border-radius:8px;background:var(--mist);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;transition:transform .12s;}
+.an-cal-cell{height:44px;border-radius:6px;background:var(--mist);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;transition:transform .12s;}
 .an-cal-cell:hover{transform:scale(1.05);}
 .an-cal-cell.empty{background:transparent;cursor:default;}
 .an-cal-cell.selected{box-shadow:0 0 0 2.5px var(--navy);}
 .an-cal-cell.today .acc-daynum{text-decoration:underline;text-underline-offset:2px;}
-.an-cal-cell .acc-daynum{font-size:12px;font-weight:700;}
+.an-cal-cell .acc-daynum{font-size:11px;font-weight:700;line-height:1;}
 .an-cal-cell.has-data .acc-daynum{font-weight:800;}
-.an-cal-cell .acc-count{font-size:11px;font-weight:800;line-height:1;}
+.an-cal-cell .acc-count{font-size:10px;font-weight:800;line-height:1;}
 /* Anomaly chart — click detail card, shown for whichever point was clicked */
 .an-anomaly-detail{margin-top:14px;padding:12px 16px;border-radius:8px;background:var(--mist);border:1px solid var(--border);}
 .an-anomaly-detail.alert{background:var(--blood-50);border-color:var(--blood-100);}
