@@ -678,6 +678,10 @@ color: var(--text-soft); background: var(--mist); padding: 2px 7px; border-radiu
 .excel-table-info{font-size:11px;color:var(--text-soft);}
 .excel-table-scroll{overflow-x:auto;max-height:420px;overflow-y:auto;}
 .excel-table{width:100%;border-collapse:collapse;font-size:12px;}
+.excel-table th.excel-sortable{cursor:pointer;user-select:none;white-space:nowrap;}
+.excel-table th.excel-sortable:hover{color:var(--blood);}
+.excel-sort-arrow{display:inline-block;margin-left:5px;font-size:10px;opacity:.35;}
+.excel-table th.sorted .excel-sort-arrow{opacity:1;color:var(--blood);}
 .excel-table th{text-align:left;padding:7px 10px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--text-soft);border-bottom:1px solid var(--border);background:var(--off-white);position:sticky;top:0;white-space:nowrap;}
 .excel-table td{padding:7px 10px;border-bottom:1px solid var(--mist);color:var(--text);white-space:nowrap;}
 .excel-table tr:last-child td{border-bottom:none;}

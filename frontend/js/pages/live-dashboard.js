@@ -10,6 +10,9 @@ let excelCurrentPage    = 1;
 let excelChartInstances = [];
 let excelSearchTimer    = null;
 let excelActiveShortcut = null;
+let excelSortCol        = null;   // column name the table is sorted by (null = default order)
+let excelSortDir        = 'asc';  // 'asc' | 'desc'
+let excelQuerySeq       = 0;      // increments per request; stale replies are dropped
 
 const CAT_CONFIG = {
   transfusion:     { icon: '🩸', label: 'Units Issued for Transfusion' },
@@ -387,6 +390,8 @@ function renderTopDepts(topDepts) {
 async function selectCategory(type) {
   excelActiveCategory = type;
   excelCurrentPage    = 1;
+  excelSortCol        = null;
+  excelSortDir        = 'asc';
   document.getElementById('excelCatView').style.display  = 'none';
   document.getElementById('excelDashView').style.display = '';
   document.getElementById('excelBackBtn').style.display  = '';
@@ -418,14 +423,30 @@ function showExcelCategories() {
   loadExcelCategories();
 }
 
-async function queryCategoryData() {
+// tableOnly: true when only the table's order/page changes (sorting, paging),
+// so the cards and charts stay as they are instead of the whole view reloading.
+async function queryCategoryData({ tableOnly = false } = {}) {
   if (!excelActiveCategory) return;
   const loading   = document.getElementById('excelLoading');
   const tableWrap = document.getElementById('excelTableWrap');
-  loading.style.display   = '';
-  tableWrap.style.display = 'none';
-  document.getElementById('excelSummaryCards').style.display = 'none';
-  document.getElementById('excelChartGrid').style.display    = 'none';
+  const reqId     = ++excelQuerySeq;   // ignore replies from older, slower requests
+
+  if (tableOnly) {
+    // Sorting / paging only changes the table — keep cards and charts on
+    // screen and just dim the table while the new rows load.
+    tableWrap.style.opacity = '0.5';
+    tableWrap.style.pointerEvents = 'none';
+  } else {
+    loading.style.display   = '';
+    tableWrap.style.display = 'none';
+    document.getElementById('excelSummaryCards').style.display = 'none';
+    document.getElementById('excelChartGrid').style.display    = 'none';
+  }
+  const done = () => {
+    loading.style.display = 'none';
+    tableWrap.style.opacity = '';
+    tableWrap.style.pointerEvents = '';
+  };
 
   try {
     const body = {
@@ -433,12 +454,22 @@ async function queryCategoryData() {
       dateFrom: document.getElementById('excelDateFrom').value || null,
       dateTo:   document.getElementById('excelDateTo').value   || null,
       search:   (document.getElementById('excelSearchInput')?.value || '').trim() || null,
-      page: excelCurrentPage, pageSize: 100
+      page: excelCurrentPage, pageSize: 100,
+      sortCol: excelSortCol, sortDir: excelSortDir
     };
     const r = await apiFetch(`${API}/api/dashboard/category-query`, { method: 'POST', body: JSON.stringify(body) });
-    if (!r) { loading.style.display = 'none'; return; }
+    if (!r) { done(); return; }
     const data = await r.json();
-    if (data.error) { loading.style.display = 'none'; return; }
+    if (reqId !== excelQuerySeq) return;   // a newer click is already loading
+    if (data.error) { done(); return; }
+
+    if (tableOnly) {
+      renderExcelTable(data.columns, data.rows, data.filtered, data.page, data.pageSize, data.totalPages);
+      const scroller = tableWrap.querySelector('.excel-table-scroll');
+      if (scroller) scroller.scrollTop = 0;
+      done();
+      return;
+    }
 
     const isFiltered = body.dateFrom || body.dateTo;
     let statusText = isFiltered
@@ -452,10 +483,10 @@ async function queryCategoryData() {
     renderTypeCharts(data.type, data.summary, data.monthlyChart);
     renderExcelTable(data.columns, data.rows, data.filtered, data.page, data.pageSize, data.totalPages);
     tableWrap.style.display = '';
-    loading.style.display   = 'none';
+    done();
   } catch (e) {
     console.error('queryCategoryData', e);
-    loading.style.display = 'none';
+    if (reqId === excelQuerySeq) done();
   }
 }
 
@@ -475,7 +506,16 @@ function clearExcelFilter() {
   excelCurrentPage = 1;
   queryCategoryData();
 }
-function excelGoPage(p) { excelCurrentPage = p; queryCategoryData(); }
+function excelGoPage(p) { excelCurrentPage = p; queryCategoryData({ tableOnly: true }); }
+
+// Header click: first click sorts A→Z / smallest first, second click reverses.
+// Sorting happens on the server so it covers every page, not just the 100 rows shown.
+function sortExcelTable(col) {
+  if (excelSortCol === col) excelSortDir = excelSortDir === 'asc' ? 'desc' : 'asc';
+  else { excelSortCol = col; excelSortDir = 'asc'; }
+  excelCurrentPage = 1;
+  queryCategoryData({ tableOnly: true });
+}
 
 function excelShortcut(key) {
   const now   = new Date();
@@ -515,6 +555,7 @@ async function exportExcelData() {
     dateFrom: document.getElementById('excelDateFrom').value || null,
     dateTo:   document.getElementById('excelDateTo').value   || null,
     search:   (document.getElementById('excelSearchInput')?.value || '').trim() || null,
+    sortCol:  excelSortCol, sortDir: excelSortDir,
   };
   try {
     const r = await fetch(`${API}/api/dashboard/category-export`, {
@@ -1044,7 +1085,18 @@ function renderTypeCharts(type, s, monthly) {
 
 function renderExcelTable(columns, rows, filteredTotal, page, pageSize, totalPages) {
   const thead = document.getElementById('excelTableHead');
-  thead.innerHTML = `<tr>${columns.map(c => `<th>${c}</th>`).join('')}</tr>`;
+  const esc = s => String(s).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+  thead.innerHTML = `<tr>${columns.map((c, i) => {
+    const active = c === excelSortCol;
+    const arrow  = active ? (excelSortDir === 'asc' ? '▲' : '▼') : '↕';
+    const aria   = active ? (excelSortDir === 'asc' ? 'ascending' : 'descending') : 'none';
+    return `<th class="excel-sortable${active ? ' sorted' : ''}" data-col-idx="${i}" aria-sort="${aria}" title="Sort by ${esc(c)}">`
+         + `${esc(c)}<span class="excel-sort-arrow">${arrow}</span></th>`;
+  }).join('')}</tr>`;
+  thead.onclick = e => {
+    const th = e.target.closest('th[data-col-idx]');
+    if (th) sortExcelTable(columns[Number(th.dataset.colIdx)]);
+  };
   const tbody = document.getElementById('excelTableBody');
   if (rows.length === 0) {
     tbody.innerHTML = `<tr><td colspan="${columns.length}" style="text-align:center;padding:24px;color:var(--text-soft)">No data for the selected range.</td></tr>`;

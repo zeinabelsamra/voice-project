@@ -2861,6 +2861,27 @@ function excelCountBy(rows, col, topN) {
   return topN ? arr.slice(0, topN) : arr;
 }
 
+// Sort category rows by one column, across ALL rows (before pagination).
+// Numbers compare numerically, everything else with a natural-order
+// collator (so "Unit 10" > "Unit 9" and YYYY-MM-DD dates sort correctly).
+// Empty cells always go last. Returns a new array — never mutates the
+// cached rows.
+const SORT_COLLATOR = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
+const NUMERIC_RE = /^-?\d+(\.\d+)?$/;
+function sortCategoryRows(rows, columns, sortCol, sortDir) {
+  if (!sortCol || !columns.includes(sortCol)) return rows;
+  const dir = sortDir === 'desc' ? -1 : 1;
+  return [...rows].sort((a, b) => {
+    const va = a[sortCol], vb = b[sortCol];
+    const ea = va === null || va === undefined || va === '';
+    const eb = vb === null || vb === undefined || vb === '';
+    if (ea || eb) return ea === eb ? 0 : (ea ? 1 : -1);
+    const sa = String(va).trim(), sb = String(vb).trim();
+    if (NUMERIC_RE.test(sa) && NUMERIC_RE.test(sb)) return (Number(sa) - Number(sb)) * dir;
+    return SORT_COLLATOR.compare(sa, sb) * dir;
+  });
+}
+
 function excelFindCol(columns, ...names) {
   for (const name of names) {
     const m = columns.find(c => c.toLowerCase().trim() === name.toLowerCase());
@@ -3153,7 +3174,7 @@ app.get('/api/dashboard/categories', requireAuth, async (req, res) => {
 // POST /api/dashboard/category-query — filtered/paginated rows + summary for one category
 app.post('/api/dashboard/category-query', requireAuth, async (req, res) => {
   try {
-    const { category, dateFrom, dateTo, search, page = 1, pageSize = 100 } = req.body;
+    const { category, dateFrom, dateTo, search, page = 1, pageSize = 100, sortCol, sortDir } = req.body;
     if (!EDELPHYN_CATEGORIES.includes(category)) return res.status(400).json({ error: 'Unknown category' });
 
     const from = dateFrom || '1900-01-01';
@@ -3198,7 +3219,8 @@ app.post('/api/dashboard/category-query', requireAuth, async (req, res) => {
     const filteredTotal = filtered.length;
     const pageInt       = Math.max(1, parseInt(page));
     const pageSizeInt   = Math.min(500, Math.max(1, parseInt(pageSize)));
-    const paginatedRows = filtered.slice((pageInt-1)*pageSizeInt, pageInt*pageSizeInt);
+    const sorted        = sortCategoryRows(filtered, columns, sortCol, sortDir);
+    const paginatedRows = sorted.slice((pageInt-1)*pageSizeInt, pageInt*pageSizeInt);
 
     res.json({
       columns,
@@ -3215,7 +3237,7 @@ app.post('/api/dashboard/category-query', requireAuth, async (req, res) => {
 // POST /api/dashboard/category-export — download filtered rows as XLSX
 app.post('/api/dashboard/category-export', requireAuth, async (req, res) => {
   try {
-    const { category, dateFrom, dateTo, search } = req.body;
+    const { category, dateFrom, dateTo, search, sortCol, sortDir } = req.body;
     if (!EDELPHYN_CATEGORIES.includes(category)) return res.status(400).json({ error: 'Unknown category' });
 
     const from = dateFrom || '1900-01-01';
@@ -3227,6 +3249,7 @@ app.post('/api/dashboard/category-export', requireAuth, async (req, res) => {
       const q = search.trim().toLowerCase();
       rows = rows.filter(row => Object.values(row).some(v => v !== null && v !== undefined && String(v).toLowerCase().includes(q)));
     }
+    rows = sortCategoryRows(rows, columns, sortCol, sortDir);
 
     const wb = xlsx.utils.book_new();
     const ws = xlsx.utils.json_to_sheet(rows, { header: columns });
