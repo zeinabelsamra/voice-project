@@ -17,7 +17,9 @@ const { parseVoiceToFields, splitBatchTranscript } = require("./voiceParser");
 const { getEdelphynPool, resetEdelphynPool, testEdelphynConnection } = require("./edelphynDb");
 const { runCategoryQuery, CATEGORIES: EDELPHYN_CATEGORIES } = require("./edelphynQueries");
 const analyticsQueries = require("./edelphynAnalyticsQueries");
+const stockQueries = require("./edelphynStockQueries");
 const settingsStore = require("./settingsStore");
+const { ensureDonorCardTable, registerDonorCardRoutes } = require("./donorCard");
 // Same module instance initDB() lazily wires `getPool`/`sql` from below — required
 // directly here too so Settings routes can reset/test the pool without waiting on initDB().
 const dbModule = require("./db");
@@ -453,6 +455,9 @@ async function initDB() {
       IF NOT EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='ExternalDeliveries' AND COLUMN_NAME='components_json')
         ALTER TABLE ExternalDeliveries ADD components_json NVARCHAR(MAX) NULL;
     `);
+
+    // ── Migrate: DonorCards table (بطاقة المتبرع BB-19F-01) ──────
+    await ensureDonorCardTable(pool);
 
     // ── Migrate: Departments table (admin-managed, replaces the two
     // hardcoded department lists that used to live in the frontend: the
@@ -2820,6 +2825,16 @@ app.post('/ext-delivery/export/docx', requireAdmin, async (req, res) => {
 });
 
 // ════════════════════════════════════════════════════════════════
+// DONOR CARD (بطاقة المتبرع BB-19F-01)  — admin only, see donorCard.js
+// ════════════════════════════════════════════════════════════════
+registerDonorCardRoutes(app, {
+  getPool: () => getPool(),
+  getSql:  () => sql,
+  isDbReady: () => dbReady,
+  requireAdmin,
+});
+
+// ════════════════════════════════════════════════════════════════
 // LIVE DASHBOARD (e-Delphyn)
 // ════════════════════════════════════════════════════════════════
 const xlsx = require('xlsx'); // still used by /api/dashboard/category-export
@@ -3270,6 +3285,10 @@ app.post('/api/dashboard/category-charts-export/:fileType', requireAuth, async (
   }
 });
 
+// Days ahead that count as "near expiry" for Smart Alerts and the default of
+// the Blood Stock page (which lets the user pick another window).
+const STOCK_NEAR_EXPIRY_DEFAULT_DAYS = 7;
+
 // GET /api/dashboard/alerts — rule-based smart alerts from live eDelphyn data
 app.get('/api/dashboard/alerts', requireAuth, async (req, res) => {
   try {
@@ -3449,6 +3468,17 @@ app.get('/api/dashboard/alerts', requireAuth, async (req, res) => {
       }
     }
 
+    // ── Rules 8–11: blood stock (low / critical levels, near expiry,
+    // expired but not discarded). Own try/catch so a stock-query failure
+    // never hides the other alerts.
+    try {
+      const pool = await getEdelphynPool();
+      const overview = await stockQueries.getStockOverview(pool, STOCK_NEAR_EXPIRY_DEFAULT_DAYS);
+      alerts.push(...stockQueries.stockAlerts(overview));
+    } catch (err) {
+      console.error('stock alerts error:', err.message);
+    }
+
     // Sort: critical first, then warning
     alerts.sort((a, b) => (a.severity === 'critical' ? -1 : 1) - (b.severity === 'critical' ? -1 : 1));
 
@@ -3598,6 +3628,31 @@ app.get('/api/analytics/anomaly', requireAuth, async (req, res) => {
     const rows = await analyticsQueries.anomalyDetection(pool, dateFrom, dateTo);
     res.json(rows);
   } catch (err) { console.error('anomaly error:', err.message); res.status(500).json({ error: err.message }); }
+});
+
+// ════════════════════════════════════════════════════════════════
+// /api/stock/* — blood-bank stock (live from e-Delphyn): units in stock by
+// component and blood group, alert/critical levels, oldest-first list, and
+// received / issued / discarded movements over a period.
+// ════════════════════════════════════════════════════════════════
+app.get('/api/stock/overview', requireAuth, async (req, res) => {
+  try {
+    const nearDays = Math.min(Math.max(parseInt(req.query.nearDays) || STOCK_NEAR_EXPIRY_DEFAULT_DAYS, 1), 60);
+    const pool = await getEdelphynPool();
+    const overview = await stockQueries.getStockOverview(pool, nearDays);
+    res.json({ ...overview, alerts: stockQueries.stockAlerts(overview) });
+  } catch (err) { console.error('stock-overview error:', err.message); res.status(500).json({ error: err.message }); }
+});
+
+app.get('/api/stock/movements', requireAuth, async (req, res) => {
+  try {
+    const { from: defFrom, to: defTo } = defaultRange(30);
+    const dateFrom = req.query.from || defFrom;
+    const dateTo   = nextDayStr(req.query.to || defTo);
+    const pool = await getEdelphynPool();
+    const rows = await stockQueries.stockMovements(pool, dateFrom, dateTo);
+    res.json(stockQueries.buildMovementSummary(rows, dateFrom, dateTo));
+  } catch (err) { console.error('stock-movements error:', err.message); res.status(500).json({ error: err.message }); }
 });
 
 // ════════════════════════════════════════════════════════════════
