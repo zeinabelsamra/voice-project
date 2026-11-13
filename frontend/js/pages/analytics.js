@@ -664,7 +664,8 @@ async function loadAnExpiryCalendarMonth() {
   _anCalMonth = parseInt(document.getElementById('anCalMonth').value) || _anCalMonth;
   const el = document.getElementById('anExpiryCalendar');
   if (el) el.innerHTML = '<div class="rt-empty">Loading…</div>';
-  document.getElementById('anExpiryDayDetail').style.display = 'none';
+  document.getElementById('anExpiryDayDetail').innerHTML =
+    '<div class="an-cal-hint">Click a highlighted day on the calendar to see the units expiring that day.</div>';
   _anCalSelectedDay = null;
 
   const r = await apiFetch(`${API}/api/analytics/expiry-risk/month?year=${_anCalYear}&month=${_anCalMonth}`);

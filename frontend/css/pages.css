@@ -281,6 +281,11 @@
 .an-sortable:hover{color:var(--text);}
 .an-expiry-head{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px;}
 /* Expiry Calendar — normal month-grid view */
+/* Calendar on the left, clicked day's units on the right; stacks on narrow screens */
+.an-cal-layout{display:flex;gap:28px;align-items:flex-start;flex-wrap:wrap;}
+.an-cal-left{flex:0 1 420px;min-width:0;}
+.an-cal-right{flex:1 1 360px;min-width:0;align-self:stretch;}
+.an-cal-hint{height:100%;min-height:200px;display:flex;align-items:center;justify-content:center;text-align:center;border:1.5px dashed var(--border);border-radius:10px;color:var(--text-soft);font-size:12px;padding:20px;}
 .an-cal-controls{display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:14px;flex-wrap:wrap;}
 .an-cal-select{padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:var(--font-sans);background:var(--white);cursor:pointer;}
 .an-cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;max-width:420px;margin:0 auto;}

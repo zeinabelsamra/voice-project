@@ -1664,15 +1664,19 @@
 
     <div class="consump-panel" style="margin-bottom:20px;">
       <div class="consump-panel-title">Expiry Calendar</div>
-      <div class="an-cal-controls">
-        <button class="btn-clear" onclick="anCalShiftMonth(-1)" title="Previous month">◀</button>
-        <select class="an-cal-select" id="anCalMonth" onchange="loadAnExpiryCalendarMonth()"></select>
-        <select class="an-cal-select" id="anCalYear" onchange="loadAnExpiryCalendarMonth()"></select>
-        <button class="btn-clear" onclick="anCalShiftMonth(1)" title="Next month">▶</button>
-        <button class="btn-clear" onclick="anCalToday()">Today</button>
+      <div class="an-cal-layout">
+        <div class="an-cal-left">
+          <div class="an-cal-controls">
+            <button class="btn-clear" onclick="anCalShiftMonth(-1)" title="Previous month">◀</button>
+            <select class="an-cal-select" id="anCalMonth" onchange="loadAnExpiryCalendarMonth()"></select>
+            <select class="an-cal-select" id="anCalYear" onchange="loadAnExpiryCalendarMonth()"></select>
+            <button class="btn-clear" onclick="anCalShiftMonth(1)" title="Next month">▶</button>
+            <button class="btn-clear" onclick="anCalToday()">Today</button>
+          </div>
+          <div id="anExpiryCalendar"><div class="rt-empty">Loading…</div></div>
+        </div>
+        <div class="an-cal-right" id="anExpiryDayDetail"></div>
       </div>
-      <div id="anExpiryCalendar"><div class="rt-empty">Loading…</div></div>
-      <div id="anExpiryDayDetail" style="display:none;margin-top:16px;"></div>
     </div>
 
     <div class="consump-panel" style="margin-bottom:20px;">
