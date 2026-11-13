@@ -281,9 +281,9 @@
 .an-sortable:hover{color:var(--text);}
 .an-expiry-head{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:16px;}
 /* Expiry Calendar — normal month-grid view */
-.an-cal-controls{display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap;}
+.an-cal-controls{display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:14px;flex-wrap:wrap;}
 .an-cal-select{padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:12px;font-family:var(--font-sans);background:var(--white);cursor:pointer;}
-.an-cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;max-width:420px;}
+.an-cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;max-width:420px;margin:0 auto;}
 .an-cal-dow{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--text-soft);text-align:center;padding:2px 0 6px;}
 .an-cal-cell{height:44px;border-radius:6px;background:var(--mist);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;transition:transform .12s;}
 .an-cal-cell:hover{transform:scale(1.05);}
@@ -308,6 +308,9 @@
 /* Department × month fulfilment table: only as wide as its columns, centred */
 .an-heatmap-centered table{width:auto;margin:0 auto;}
 .an-heatmap-centered td{width:auto;min-width:46px;padding:0 6px;}
+/* Demand heatmap: sized to its cells and centred, instead of stretching full width */
+.an-heatmap-fit table{width:auto;margin:0 auto;}
+.an-heatmap-fit td{width:30px;min-width:30px;}
 .an-recall-controls{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap;}
 .an-recall-controls input[type=number]{width:70px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;}
 .consump-bar-wrap{display:flex;align-items:center;gap:8px;}

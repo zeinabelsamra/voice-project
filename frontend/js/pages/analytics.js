@@ -530,6 +530,7 @@ async function loadExpiryRisk() {
   if (!r) return;
   const rows = await r.json();
   _anExpiryRows = Array.isArray(rows) ? rows : [];
+  _anPages.expiry = 1;
   renderAnExpiryComponentChart(_anExpiryRows);
   renderAnExpiryGroupChart(_anExpiryRows);
   renderAnExpiryTable();
@@ -723,7 +724,12 @@ function renderAnExpiryCalendarGrid() {
 
 function selectAnExpiryDay(dateStr) {
   _anCalSelectedDay = dateStr;
+  _anPages.day = 1;
   renderAnExpiryCalendarGrid();
+  renderAnExpiryDayDetail(dateStr);
+}
+
+function renderAnExpiryDayDetail(dateStr) {
   const rows = _anCalRows.filter(r => String(r.ExpiryDate || '').slice(0, 10) === dateStr);
   const el = document.getElementById('anExpiryDayDetail');
   el.style.display = '';
@@ -731,11 +737,12 @@ function selectAnExpiryDay(dateStr) {
     el.innerHTML = `<div class="rt-empty">No units expiring on ${dateStr}.</div>`;
     return;
   }
+  const { slice, footer } = anPaginate('day', rows, 'Units');
   el.innerHTML = `
     <div class="consump-panel-title">Units expiring on ${dateStr} (${rows.length})</div>
     <table class="consump-table">
       <thead><tr><th>Unit</th><th>Component</th><th>Blood Group</th><th>Risk</th></tr></thead>
-      <tbody>${rows.map(u => `
+      <tbody>${slice.map(u => `
         <tr>
           <td><strong>${u.UnitNumber ?? ''}</strong></td>
           <td>${u.ComponentType || u.Component || '—'}</td>
@@ -743,7 +750,38 @@ function selectAnExpiryDay(dateStr) {
           <td>${riskBadge(u.ExpiryRisk)}</td>
         </tr>`).join('')}
       </tbody>
-    </table>`;
+    </table>${footer}`;
+}
+
+// ── Shared pager for the analytics tables (same look as the Categories table) ──
+const AN_PAGE_SIZE = 10;
+const _anPages = { expiry: 1, recall: 1, day: 1 };
+
+// Clamps the stored page for `key` and returns { slice, footer } for rows.
+function anPaginate(key, rows, noun) {
+  const totalPages = Math.max(1, Math.ceil(rows.length / AN_PAGE_SIZE));
+  const page = Math.min(Math.max(1, _anPages[key]), totalPages);
+  _anPages[key] = page;
+  const start = (page - 1) * AN_PAGE_SIZE;
+  const slice = rows.slice(start, start + AN_PAGE_SIZE);
+  const info  = `<span class="excel-page-info">${noun} ${start + 1}–${start + slice.length} of ${rows.length.toLocaleString()}</span>`;
+  if (totalPages <= 1) return { slice, footer: `<div class="excel-pagination">${info}</div>` };
+  const btn = (p, label, disabled) =>
+    `<button class="excel-page-btn" onclick="anGoPage('${key}',${p})" ${disabled ? 'disabled' : ''}>${label}</button>`;
+  const footer = `<div class="excel-pagination">
+      ${btn(1, '«', page === 1)}${btn(page - 1, '‹', page === 1)}
+      <span class="excel-page-info">Page ${page} of ${totalPages}</span>
+      ${btn(page + 1, '›', page === totalPages)}${btn(totalPages, '»', page === totalPages)}
+      ${info}
+    </div>`;
+  return { slice, footer };
+}
+
+function anGoPage(key, page) {
+  _anPages[key] = page;
+  if (key === 'expiry') renderAnExpiryTable();
+  else if (key === 'recall') renderAnRecallTable();
+  else if (key === 'day' && _anCalSelectedDay) renderAnExpiryDayDetail(_anCalSelectedDay);
 }
 
 function hexToRgba(hex, alpha) {
@@ -782,6 +820,7 @@ function setAnExpirySort(key) {
   _anExpirySort = _anExpirySort.key === key
     ? { key, dir: _anExpirySort.dir === 'asc' ? 'desc' : 'asc' }
     : { key, dir: 'asc' };
+  _anPages.expiry = 1;
   renderAnExpiryTable();
 }
 
@@ -790,6 +829,7 @@ function renderAnExpiryTable() {
   if (!el) return;
   if (!_anExpiryRows.length) { el.innerHTML = '<div class="rt-empty">No units expiring within this window.</div>'; return; }
   const sorted = sortAnExpiryRows(_anExpiryRows, _anExpirySort.key, _anExpirySort.dir);
+  const { slice, footer } = anPaginate('expiry', sorted, 'Units');
   const arrow  = key => _anExpirySort.key === key ? (_anExpirySort.dir === 'asc' ? ' ▲' : ' ▼') : '';
   const th     = (key, label) => `<th class="an-sortable" onclick="setAnExpirySort('${key}')">${label}${arrow(key)}</th>`;
   el.innerHTML = `
@@ -797,7 +837,7 @@ function renderAnExpiryTable() {
       <thead><tr>
         ${th('unit', 'Unit')}${th('component', 'Component')}${th('group', 'Blood Group')}${th('expiry', 'Expiry Date')}${th('days', 'Days Left')}${th('risk', 'Risk')}
       </tr></thead>
-      <tbody>${sorted.slice(0, 150).map(u => `
+      <tbody>${slice.map(u => `
         <tr>
           <td><strong>${u.UnitNumber ?? ''}</strong></td>
           <td>${u.ComponentType || u.Component || '—'}</td>
@@ -807,7 +847,7 @@ function renderAnExpiryTable() {
           <td>${riskBadge(u.ExpiryRisk)}</td>
         </tr>`).join('')}
       </tbody>
-    </table>${sorted.length > 150 ? `<div class="rt-empty">Showing 150 of ${sorted.length} units.</div>` : ''}`;
+    </table>${footer}`;
 }
 
 let _anRecallGroupChart = null;
@@ -820,6 +860,7 @@ async function loadDonorRecall() {
   if (!r) return;
   const rows = await r.json();
   _anRecallRows = Array.isArray(rows) ? rows : [];
+  _anPages.recall = 1;
   renderAnRecallGroupChart(_anRecallRows);
   renderAnRecallTable();
 }
@@ -876,6 +917,7 @@ function setAnRecallSort(key) {
   _anRecallSort = _anRecallSort.key === key
     ? { key, dir: _anRecallSort.dir === 'asc' ? 'desc' : 'asc' }
     : { key, dir: 'asc' };
+  _anPages.recall = 1;
   renderAnRecallTable();
 }
 
@@ -884,6 +926,7 @@ function renderAnRecallTable() {
   if (!el) return;
   if (!_anRecallRows.length) { el.innerHTML = '<div class="rt-empty">No inactive donors found for this threshold.</div>'; return; }
   const sorted = sortAnRecallRows(_anRecallRows, _anRecallSort.key, _anRecallSort.dir);
+  const { slice, footer } = anPaginate('recall', sorted, 'Donors');
   const arrow  = key => _anRecallSort.key === key ? (_anRecallSort.dir === 'asc' ? ' ▲' : ' ▼') : '';
   const th     = (key, label) => `<th class="an-sortable" onclick="setAnRecallSort('${key}')">${label}${arrow(key)}</th>`;
   el.innerHTML = `
@@ -891,7 +934,7 @@ function renderAnRecallTable() {
       <thead><tr>
         ${th('name', 'Donor')}${th('group', 'Blood Group')}${th('days', 'Days Inactive')}${th('freq', 'Donation Frequency')}${th('phone', 'Phone Availability')}${th('sms', 'SMS Consent')}${th('email', 'Email Consent')}
       </tr></thead>
-      <tbody>${sorted.slice(0, 150).map(d => `
+      <tbody>${slice.map(d => `
         <tr>
           <td><strong>${d.DonorName || '—'}</strong><br><span style="color:var(--text-soft);font-size:10.5px;">#${d.DonorNumber ?? ''}</span></td>
           <td>${d.BloodGroup || '—'}</td>
@@ -902,5 +945,5 @@ function renderAnRecallTable() {
           <td>${yesNoBadge(d.EmailConsent, 'Consented', 'No consent')}</td>
         </tr>`).join('')}
       </tbody>
-    </table>${sorted.length > 150 ? `<div class="rt-empty">Showing 150 of ${sorted.length} donors.</div>` : ''}`;
+    </table>${footer}`;
 }
